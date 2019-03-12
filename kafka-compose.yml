@@ -1,0 +1,18 @@
+networks:
+  sharenet:
+    external: true
+services:
+  kafkaserver:
+    container_name: kafka
+    environment:
+    - ADVERTISED_HOST=kafkaserver
+    - ADVERTISED_PORT=9092
+    hostname: kafkaserver
+    image: spotify/kafka:latest
+    networks:
+    - sharenet
+    ports:
+    - 2181:2181
+    - 9092:9092
+    restart: always
+version: "3"
