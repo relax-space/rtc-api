@@ -12,10 +12,10 @@ project:
   ports:
     - 9040:8080
   envs: 
-    - APP_ENV=local
+    - APP_ENV=test
     - OUTER_TEMP_TOKEN=A0y2JxQy7ibq2hOwTsqsteOfWb7pqARy
     - APPSECRET_ENV=sandboxbed79ba1720d59717ef7d56e5
-    - MSL_TAOBAO_CONN=root:1234@tcp(10.202.101.43:3306)/sync-msl-taobao?charset=utf8&parseTime=True&loc=UTC
+    - MSL_TAOBAO_CONN=root:1234@tcp(test-mysql:3306)/sync-msl-taobao?charset=utf8&parseTime=True&loc=UTC
     - TAOBAO_STOCK_CRON=@every 10m
     - TAOBAO_SLEEP=100
     - ENABLE_LOG=true
@@ -30,5 +30,5 @@ subProjects:
       - 54102:5000
       - 54202:6000
     envs: 
-      - POS_ENV=local
+      - POS_ENV=test
       - JWT_SECRET=Z2tza3NsYWRtbDAxMjM0ZWhkbnRsYTk4
