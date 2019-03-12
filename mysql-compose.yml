@@ -1,0 +1,19 @@
+networks:
+  sharenet:
+    external: true
+services:
+  mysql:
+    container_name: local-mysql
+    environment:
+    - MYSQL_ROOT_PASSWORD=1234
+    - MYSQL_DATABASE_1=catalog
+    - MYSQL_DATABASE_2=sync-msl-taobao
+    image: gruppometasrl/mysql57
+    networks:
+    - sharenet
+    ports:
+    - 3306:3306
+    restart: always
+    volumes:
+    - /D/source/gopath/src/test-db:/docker-entrypoint-initdb.d
+version: "3"
