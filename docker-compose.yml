@@ -1,0 +1,65 @@
+services:
+  catalog:
+    build:
+      context: D:/source/gopath/src/catalog
+      dockerfile: Dockerfile
+    container_name: test-catalog
+    depends_on:
+    - mysqlserver
+    environment:
+    - POS_ENV=test
+    - JWT_SECRET=Z2tza3NsYWRtbDAxMjM0ZWhkbnRsYTk4
+    image: test-catalog
+    ports:
+    - 54102:5000
+    - 54202:6000
+    restart: on-failure:5
+  kafkaserver:
+    container_name: test-kafka
+    environment:
+    - ADVERTISED_HOST=kafkaserver
+    - ADVERTISED_PORT=9092
+    hostname: kafkaserver
+    image: spotify/kafka:latest
+    ports:
+    - 2181:2181
+    - 9092:9092
+    restart: always
+  mysqlserver:
+    container_name: test-mysql
+    environment:
+    - MYSQL_ROOT_PASSWORD=1234
+    - MYSQL_DATABASE_1=catalog
+    - MYSQL_DATABASE_2=sync-msl-taobao
+    image: gruppometasrl/mysql57
+    ports:
+    - 3306:3306
+    restart: always
+    volumes:
+    - /D/source/gopath/src/test-db:/docker-entrypoint-initdb.d
+  sync-msl-taobao:
+    build:
+      context: D:/source/gopath/src/sync-msl-taobao
+      dockerfile: Dockerfile
+    container_name: test-sync-msl-taobao
+    depends_on:
+    - catalog
+    - kafkaserver
+    - mysqlserver
+    environment:
+    - APP_ENV=test
+    - OUTER_TEMP_TOKEN=A0y2JxQy7ibq2hOwTsqsteOfWb7pqARy
+    - APPSECRET_ENV=sandboxbed79ba1720d59717ef7d56e5
+    - MSL_TAOBAO_CONN=root:1234@tcp(test-mysql:3306)/sync-msl-taobao?charset=utf8&parseTime=True&loc=UTC
+    - TAOBAO_STOCK_CRON=@every 10m
+    - TAOBAO_SLEEP=100
+    - ENABLE_LOG=true
+    - ENABLE_AUTO_ADJUST=false
+    - REDIS_AUTH=eland2swzl
+    - SMART_SESSION=EE=610120938e8d4cff21f46c6131ddc37b4329cff1818d0e92649119619
+    - APPSECRET_Wisdom_ENV=23414e054cf7ad1f285158c733d4ea95
+    image: test-sync-msl-taobao
+    ports:
+    - 9040:8080
+    restart: on-failure:5
+version: "3"
