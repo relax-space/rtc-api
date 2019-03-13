@@ -29,14 +29,14 @@ services:
     container_name: test-mysql
     environment:
     - MYSQL_ROOT_PASSWORD=1234
-    - MYSQL_DATABASE_1=catalog
-    - MYSQL_DATABASE_2=sync-msl-taobao
+    - MYSQL_DATABASE_1=sync-msl-taobao
+    - MYSQL_DATABASE_2=catalog
     image: gruppometasrl/mysql57
     ports:
     - 3306:3306
     restart: always
     volumes:
-    - /D/source/gopath/src/test-db:/docker-entrypoint-initdb.d
+    - .:/docker-entrypoint-initdb.d
   sync-msl-taobao:
     build:
       context: D:/source/gopath/src/sync-msl-taobao
