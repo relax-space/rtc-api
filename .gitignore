@@ -4,6 +4,7 @@
 *.so
 *.dylib
 *.sql
+*.yml
 
 # Test binary, build with `go test -c`
 *.test
