@@ -1,18 +1,38 @@
 services:
-  catalog:
+  ibill-api:
     build:
-      context: D:/source/gopath/src/catalog
+      context: D:\source\gopath/src/ibill-api
       dockerfile: Dockerfile
-    container_name: test-catalog
+    container_name: test-ibill-api
+    depends_on:
+    - ipay-api
+    - kafkaserver
+    - mysqlserver
+    environment:
+    - APP_ENV=test
+    - IBILL_CONN=root:1234@tcp(test-mysql:3306)/ibill?charset=utf8&parseTime=True&loc=UTC
+    - IPAY_CONN=root:1234@tcp(test-mysql:3306)/ipay?charset=utf8&parseTime=True&loc=UTC
+    - JWT_SECRET=Z2tza3NsYWRtbDAxMjM0ZWhkbnRsYTk4
+    image: test-ibill-api
+    ports:
+    - 50505:8080
+    restart: on-failure:5
+  ipay-api:
+    build:
+      context: D:\source\gopath/src/ipay-api
+      dockerfile: Dockerfile
+    container_name: test-ipay-api
     depends_on:
     - mysqlserver
     environment:
-    - POS_ENV=test
+    - APP_ENV=test
+    - IPAY_HOST=root:1234@tcp(test-mysql:3306)/ibill?charset=utf8&parseTime=True&loc=UTC
+    - IPAY_CONN=root:1234@tcp(test-mysql:3306)/ipay?charset=utf8&parseTime=True&loc=UTC
     - JWT_SECRET=Z2tza3NsYWRtbDAxMjM0ZWhkbnRsYTk4
-    image: test-catalog
+    - WX_NOTIFY_EVENT="https://www.baidu.com"
+    image: test-ipay-api
     ports:
-    - 54102:5000
-    - 54202:6000
+    - 50277:8080
     restart: on-failure:5
   kafkaserver:
     container_name: test-kafka
@@ -28,38 +48,13 @@ services:
   mysqlserver:
     container_name: test-mysql
     environment:
+    - MYSQL_DATABASE_1=ipay
+    - MYSQL_DATABASE_2=ibill
     - MYSQL_ROOT_PASSWORD=1234
-    - MYSQL_DATABASE_1=sync-msl-taobao
-    - MYSQL_DATABASE_2=catalog
     image: gruppometasrl/mysql57
     ports:
     - 3306:3306
     restart: always
     volumes:
     - .:/docker-entrypoint-initdb.d
-  sync-msl-taobao:
-    build:
-      context: D:/source/gopath/src/sync-msl-taobao
-      dockerfile: Dockerfile
-    container_name: test-sync-msl-taobao
-    depends_on:
-    - catalog
-    - kafkaserver
-    - mysqlserver
-    environment:
-    - APP_ENV=test
-    - OUTER_TEMP_TOKEN=A0y2JxQy7ibq2hOwTsqsteOfWb7pqARy
-    - APPSECRET_ENV=sandboxbed79ba1720d59717ef7d56e5
-    - MSL_TAOBAO_CONN=root:1234@tcp(test-mysql:3306)/sync-msl-taobao?charset=utf8&parseTime=True&loc=UTC
-    - TAOBAO_STOCK_CRON=@every 10m
-    - TAOBAO_SLEEP=100
-    - ENABLE_LOG=true
-    - ENABLE_AUTO_ADJUST=false
-    - REDIS_AUTH=eland2swzl
-    - SMART_SESSION=EE=610120938e8d4cff21f46c6131ddc37b4329cff1818d0e92649119619
-    - APPSECRET_Wisdom_ENV=23414e054cf7ad1f285158c733d4ea95
-    image: test-sync-msl-taobao
-    ports:
-    - 9040:8080
-    restart: on-failure:5
 version: "3"

@@ -4,9 +4,6 @@
 *.so
 *.dylib
 *.sql
-/*.yml
-!/config.yml
-!/docker-compose.yml
 
 # Test binary, build with `go test -c`
 *.test
