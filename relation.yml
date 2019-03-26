@@ -1,0 +1,5 @@
+name: ibill-api
+gitShortPath: ipay/ibill-api
+subProjects:
+  - name: ipay-api
+    gitShortPath: ipay/ipay-api

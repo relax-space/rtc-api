@@ -53,7 +53,9 @@ func LoadEnv() (c *ConfigDto, err error) {
 	loadEnv(c, updatedStr, shortPath, mysqlPorts, noCahceBool)
 
 	//1.load base info from gitlab
-	c.Project = testProjectDependency(c.Project.GitShortPath)
+	if c.Project, err = testProjectDependency(c.Project.GitShortPath); err != nil {
+		return
+	}
 	if err = loadProjectEnv(c.Project); err != nil {
 		return
 	}
@@ -65,28 +67,29 @@ func LoadEnv() (c *ConfigDto, err error) {
 	return
 }
 
-func testProjectDependency(gitShortPath string) *ProjectDto {
+func testProjectDependency(gitShortPath string) (projectDto *ProjectDto, err error) {
 	// for _, projectDto := range c.Project.SubProjects {
 	// 	c.Project.SubNames = append(c.Project.SubNames, projectDto.Name)
 	// }
 
 	// lastIndex := strings.LastIndex(gitShortPath, "/")
 	// pName := gitShortPath[lastIndex:]
-	return &ProjectDto{
-		Name:         "ibill-api",
-		GitShortPath: "ipay/ibill-api",
-		SubNames:     []string{"ipay-api"},
-		SubProjects: []*ProjectDto{
-			// &ProjectDto{
-			// 	Name:         "pay-api",
-			// 	GitShortPath: "omni/pay-api",
-			// },
-			&ProjectDto{
-				Name:         "ipay-api",
-				GitShortPath: "ipay/ipay-api",
-			},
-		},
+
+	vip := viper.New()
+	vip.AddConfigPath(".")
+	vip.SetConfigName("relation")
+
+	if err = vip.ReadInConfig(); err != nil {
+		err = fmt.Errorf("Fatal error config file: %s \n", err)
+		return
 	}
+	projectDto = &ProjectDto{}
+	if err = vip.Unmarshal(projectDto); err != nil {
+		err = fmt.Errorf("Fatal error config file: %s \n", err)
+		return
+	}
+	return
+
 }
 
 func loadEnv(c *ConfigDto, scope, gitShortPath string, mysqlPorts []string, noCache bool) {
@@ -197,9 +200,7 @@ func loadProjectEnv(projectDto *ProjectDto) (err error) {
 	projectName := projectDto.Name
 	projectDto.GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, projectDto.GitShortPath)
 	urlString := projectDto.GitRaw + "/test_info/project.yml"
-	fmt.Println(urlString)
 	b, err := fetchFromgitlab(urlString, PrivateToken)
-	fmt.Println(string(b))
 	if err = yaml.Unmarshal(b, projectDto); err != nil {
 		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectName, err.Error())
 		return
