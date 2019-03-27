@@ -96,3 +96,13 @@ func fetchTofile(url, fileName, privateToken string) (err error) {
 	_, err = io.Copy(out, resp.Body)
 	return
 }
+
+func writeFile(fileName, content string) (err error) {
+	out, err := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	_, err = out.WriteString(content)
+	return
+}
