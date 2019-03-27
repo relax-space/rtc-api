@@ -64,7 +64,53 @@ func LoadEnv() (c *ConfigDto, err error) {
 	if err = writeConfigYml(c); err != nil {
 		return
 	}
+	if err = setNgnix(c.Project); err != nil {
+		return
+	}
 	return
+}
+
+const (
+	ngnixServer = `server {
+		listen       80;
+		server_name  test.local.com;
+		location / {
+			root   /usr/share/nginx/html;
+			index  index.html index.htm;
+		}
+		`
+	ngnixLocation = `location /$serverName/ {
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header Connection keep-alive;
+		proxy_pass       http://test-$serverName:$port/;
+	}
+	`
+)
+
+func getNginxLocation(serverName, port string) (location string) {
+	location = strings.Replace(ngnixLocation, "$serverName", serverName, -1)
+	location = strings.Replace(location, "$port", port, -1)
+	return
+}
+
+func getContainerPort(port string) (containerPort string) {
+	containerPort = port[strings.LastIndex(port, ":")+1:]
+	return
+}
+
+// setNgnix set nginx default.conf
+func setNgnix(p *ProjectDto) (err error) {
+	var location string
+	location += getNginxLocation(p.Name, getContainerPort(p.Ports[0]))
+
+	for _, sp := range p.SubProjects {
+		location += getNginxLocation(sp.Name, getContainerPort(sp.Ports[0]))
+	}
+
+	return writeFile("default.conf", ngnixServer+location+"\n}")
 }
 
 func testProjectDependency(gitShortPath string) (projectDto *ProjectDto, err error) {

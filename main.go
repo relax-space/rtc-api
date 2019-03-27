@@ -78,6 +78,7 @@ func main() {
 		if shouldStartMysql(c.Mysql.Databases) {
 			setComposeMysql(viper, c.Mysql.Ports, c.Mysql.Databases)
 		}
+		setComposeNginx(viper, c.Project.Name)
 		setComposeApp(viper, c.Project)
 
 		if err = writeConfig(YmlNameDockerCompose+".yml", viper); err != nil {

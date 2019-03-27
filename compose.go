@@ -67,3 +67,17 @@ func setComposeKafka(viper *viper.Viper) {
 	viper.Set("services.kafkaserver.environment", []string{"ADVERTISED_HOST=kafkaserver",
 		"ADVERTISED_PORT=9092"})
 }
+
+func setComposeNginx(viper *viper.Viper, projectName string) {
+	viper.Set("services.nginx.image", "nginx:latest")
+	viper.Set("services.nginx.container_name", "test-nginx")
+	viper.Set("services.nginx.ports", []string{"3001:80"})
+	viper.Set("services.nginx.restart", "on-failure:5")
+	viper.Set("services.nginx.depends_on", []string{projectName})
+	viper.Set("services.nginx.volumes", []string{
+		"./default.conf:/etc/nginx/conf.d/default.conf",
+		"./html:/usr/share/nginx/html",
+		".:/var/log/nginx",
+	})
+
+}
