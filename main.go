@@ -41,7 +41,7 @@ type ConfigDto struct {
 	Project *ProjectDto
 }
 type ProjectDto struct {
-	Name           string //eg. ipay-api
+	ServiceName    string //eg. ipay-api
 	GitShortPath   string //eg. ipay/ipay-api
 	GitRaw         string
 	Envs           []string // from jenkins
@@ -76,7 +76,7 @@ func main() {
 			setComposeKafka(viper)
 		}
 		setComposeMysql(viper, c.Mysql.Ports, c.Mysql.Databases)
-		setComposeNginx(viper, c.Project.Name)
+		setComposeNginx(viper, c.Project.ServiceName)
 		setComposeApp(viper, c.Project)
 
 		if err = writeConfig(YmlNameDockerCompose+".yml", viper); err != nil {
