@@ -104,10 +104,10 @@ func getContainerPort(port string) (containerPort string) {
 // setNgnix set nginx default.conf
 func setNgnix(p *ProjectDto) (err error) {
 	var location string
-	location += getNginxLocation(p.Name, getContainerPort(p.Ports[0]))
+	location += getNginxLocation(p.ServiceName, getContainerPort(p.Ports[0]))
 
 	for _, sp := range p.SubProjects {
-		location += getNginxLocation(sp.Name, getContainerPort(sp.Ports[0]))
+		location += getNginxLocation(sp.ServiceName, getContainerPort(sp.Ports[0]))
 	}
 
 	return writeFile("default.conf", ngnixServer+location+"\n}")
@@ -115,7 +115,7 @@ func setNgnix(p *ProjectDto) (err error) {
 
 func testProjectDependency(gitShortPath string) (projectDto *ProjectDto, err error) {
 	// for _, projectDto := range c.Project.SubProjects {
-	// 	c.Project.SubNames = append(c.Project.SubNames, projectDto.Name)
+	// 	c.Project.SubNames = append(c.Project.SubNames, projectDto.ServiceName)
 	// }
 
 	// lastIndex := strings.LastIndex(gitShortPath, "/")
@@ -185,14 +185,14 @@ func getScope(updated *string) (updatedStr string, err error) {
 
 func fetchsqlTofile(c *ConfigDto) (err error) {
 	urlString := c.Project.GitRaw + "/test_info/table.sql"
-	if err = fetchTofile(urlString, c.Project.Name+".sql", PrivateToken); err != nil {
+	if err = fetchTofile(urlString, c.Project.ServiceName+".sql", PrivateToken); err != nil {
 		err = fmt.Errorf("read table.sql error:%v", err)
 		return
 	}
 	for _, projectDto := range c.Project.SubProjects {
 		urlString := projectDto.GitRaw + "/test_info/table.sql"
-		if err = fetchTofile(urlString, projectDto.Name+".sql", PrivateToken); err != nil {
-			err = fmt.Errorf("read %v.sql error:%v", projectDto.Name, err)
+		if err = fetchTofile(urlString, projectDto.ServiceName+".sql", PrivateToken); err != nil {
+			err = fmt.Errorf("read %v.sql error:%v", projectDto.ServiceName, err)
 			return
 		}
 	}
@@ -243,7 +243,7 @@ func setConfigEnv(c *ConfigDto) {
 
 func loadProjectEnv(projectDto *ProjectDto) (err error) {
 
-	projectName := projectDto.Name
+	projectName := projectDto.ServiceName
 	projectDto.GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, projectDto.GitShortPath)
 	urlString := projectDto.GitRaw + "/test_info/project.yml"
 	b, err := fetchFromgitlab(urlString, PrivateToken)
@@ -258,7 +258,7 @@ func loadProjectEnv(projectDto *ProjectDto) (err error) {
 		urlString := subProject.GitRaw + "/test_info/project.yml"
 		b, err = fetchFromgitlab(urlString, PrivateToken)
 		if err = yaml.Unmarshal(b, projectDto.SubProjects[i]); err != nil {
-			err = fmt.Errorf("parse project.yml error,project:%v,err:%v", subProject.Name, err.Error())
+			err = fmt.Errorf("parse project.yml error,project:%v,err:%v", subProject.ServiceName, err.Error())
 			return
 		}
 		setPort(projectDto.SubProjects[i])
@@ -269,7 +269,7 @@ func loadProjectEnv(projectDto *ProjectDto) (err error) {
 func setPort(projectDto *ProjectDto) {
 	ports, err := freeport.GetFreePorts(len(projectDto.Ports))
 	if err != nil {
-		err = fmt.Errorf("get free port error,project:%v,err:%v", projectDto.Name, err.Error())
+		err = fmt.Errorf("get free port error,project:%v,err:%v", projectDto.ServiceName, err.Error())
 		return
 	}
 	for i, _ := range projectDto.Ports {

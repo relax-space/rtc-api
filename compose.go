@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -16,19 +17,22 @@ func setComposeApp(viper *viper.Viper, project *ProjectDto) {
 }
 
 func appComposeMain(viper *viper.Viper, project *ProjectDto) {
-	servicePre := "services." + project.Name
 
+	lastIndex := strings.LastIndex(project.GitShortPath, "/")
+	pName := project.GitShortPath[lastIndex:]
+
+	servicePre := "services." + project.ServiceName
 	viper.SetConfigName(YmlNameDockerCompose)
 	viper.AddConfigPath(".")
 
 	project.SubNames = append(project.SubNames, "kafkaserver")
 	project.SubNames = append(project.SubNames, "mysqlserver")
-	viper.Set(servicePre+".build.context", os.Getenv("GOPATH")+"/src/"+project.Name)
+	viper.Set(servicePre+".build.context", os.Getenv("GOPATH")+"/src/"+pName)
 	viper.Set(servicePre+".build.dockerfile", "Dockerfile")
-	viper.Set(servicePre+".image", "test-"+project.Name)
+	viper.Set(servicePre+".image", "test-"+project.ServiceName)
 	viper.Set(servicePre+".restart", "on-failure:5")
 
-	viper.Set(servicePre+".container_name", "test-"+project.Name)
+	viper.Set(servicePre+".container_name", "test-"+project.ServiceName)
 	viper.Set(servicePre+".depends_on", project.SubNames)
 	viper.Set(servicePre+".ports", project.Ports)
 	viper.Set(servicePre+".environment", project.Envs)
@@ -36,14 +40,17 @@ func appComposeMain(viper *viper.Viper, project *ProjectDto) {
 
 //env format []string{"MYSQL_ROOT_PASSWORD=1234"}
 func appCompose(viper *viper.Viper, project *ProjectDto) {
-	servicePre := "services." + project.Name
-	viper.Set(servicePre+".build.context", os.Getenv("GOPATH")+"/src/"+project.Name)
+	lastIndex := strings.LastIndex(project.GitShortPath, "/")
+	pName := project.GitShortPath[lastIndex:]
+
+	servicePre := "services." + project.ServiceName
+	viper.Set(servicePre+".build.context", os.Getenv("GOPATH")+"/src/"+pName)
 	viper.Set(servicePre+".build.dockerfile", "Dockerfile")
-	viper.Set(servicePre+".image", "test-"+project.Name)
+	viper.Set(servicePre+".image", "test-"+project.ServiceName)
 	viper.Set(servicePre+".restart", "on-failure:5")
 
 	viper.Set(servicePre+".depends_on", []string{"mysqlserver"})
-	viper.Set(servicePre+".container_name", "test-"+project.Name)
+	viper.Set(servicePre+".container_name", "test-"+project.ServiceName)
 	viper.Set(servicePre+".ports", project.Ports)
 	viper.Set(servicePre+".environment", project.Envs)
 }
