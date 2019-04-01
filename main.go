@@ -41,6 +41,7 @@ type ConfigDto struct {
 	Project *ProjectDto
 }
 type ProjectDto struct {
+	IsComplex      bool   //a git contains multiple microservices
 	ServiceName    string //eg. ipay-api
 	GitShortPath   string //eg. ipay/ipay-api
 	GitRaw         string
