@@ -184,13 +184,17 @@ func getScope(updated *string) (updatedStr string, err error) {
 }
 
 func fetchsqlTofile(c *ConfigDto) (err error) {
-	urlString := c.Project.GitRaw + "/test_info/table.sql"
+	folder := ""
+	if c.Project.IsComplex {
+		folder = "/" + c.Project.ServiceName
+	}
+	urlString := fmt.Sprintf("%v/test_info%v/table.sql", c.Project.GitRaw, folder)
 	if err = fetchTofile(urlString, c.Project.ServiceName+".sql", PrivateToken); err != nil {
 		err = fmt.Errorf("read table.sql error:%v", err)
 		return
 	}
 	for _, projectDto := range c.Project.SubProjects {
-		urlString := projectDto.GitRaw + "/test_info/table.sql"
+		urlString := fmt.Sprintf("%v/test_info%v/table.sql", projectDto.GitRaw, folder)
 		if err = fetchTofile(urlString, projectDto.ServiceName+".sql", PrivateToken); err != nil {
 			err = fmt.Errorf("read %v.sql error:%v", projectDto.ServiceName, err)
 			return
