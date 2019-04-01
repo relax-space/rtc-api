@@ -75,9 +75,7 @@ func main() {
 		if c.IsKafka {
 			setComposeKafka(viper)
 		}
-		if shouldStartMysql(c.Mysql.Databases) {
-			setComposeMysql(viper, c.Mysql.Ports, c.Mysql.Databases)
-		}
+		setComposeMysql(viper, c.Mysql.Ports, c.Mysql.Databases)
 		setComposeNginx(viper, c.Project.Name)
 		setComposeApp(viper, c.Project)
 
@@ -89,7 +87,7 @@ func main() {
 
 	//3. run docker-compose
 	if shouldRestartData(c.Scope, c.NoCache) {
-		if _, err = Cmd("docker-compose", "-f", "docker-compose.yml", "down"); err != nil {
+		if _, err = Cmd("docker-compose", "-f", "docker-compose.yml", "down", "--remove-orphans"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
