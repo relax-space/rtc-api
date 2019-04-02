@@ -106,3 +106,37 @@ func writeFile(fileName, content string) (err error) {
 	_, err = out.WriteString(content)
 	return
 }
+
+type DateBaseType int
+
+const (
+	MYSQL DateBaseType = iota
+	REDIS
+	MONGO
+	SQLSERVER
+)
+
+func (DateBaseType) List() []string {
+	return []string{"mysql", "redis", "mongo", "sqlserver"}
+}
+
+func (d DateBaseType) String() string {
+	return d.List()[d]
+}
+
+type ScopeType int
+
+const (
+	ALL ScopeType = iota
+	DATA
+	APP
+	NONE
+)
+
+func (ScopeType) List() []string {
+	return []string{"all", "data", "app", "none"}
+}
+
+func (d ScopeType) String() string {
+	return d.List()[d]
+}

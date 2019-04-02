@@ -55,22 +55,22 @@ func appCompose(viper *viper.Viper, project *ProjectDto) {
 	viper.Set(servicePre+".environment", project.Envs)
 }
 
-func setComposeMysql(viper *viper.Viper, ports, envs []string) {
-	envs = append(envs, "MYSQL_ROOT_PASSWORD=1234")
+func setComposeMysql(viper *viper.Viper, port string) {
+	envs := []string{"MYSQL_ROOT_PASSWORD=1234"}
 	viper.Set("services.mysqlserver.image", "gruppometasrl/mysql57")
 	viper.Set("services.mysqlserver.container_name", "test-mysql")
 	viper.Set("services.mysqlserver.volumes", []string{".:/docker-entrypoint-initdb.d"})
-	viper.Set("services.mysqlserver.ports", ports)
+	viper.Set("services.mysqlserver.ports", []string{port + ":3306"})
 	viper.Set("services.mysqlserver.restart", "always")
 	viper.Set("services.mysqlserver.environment", envs)
 }
 
-func setComposeKafka(viper *viper.Viper) {
+func setComposeKafka(viper *viper.Viper, port string) {
 	viper.Set("services.kafkaserver.image", "spotify/kafka:latest")
 	viper.Set("services.kafkaserver.container_name", "test-kafka")
 	viper.Set("services.kafkaserver.hostname", "kafkaserver")
 	viper.Set("services.kafkaserver.restart", "always")
-	viper.Set("services.kafkaserver.ports", []string{"2181:2181", "9092:9092"})
+	viper.Set("services.kafkaserver.ports", []string{port + ":9092"})
 	viper.Set("services.kafkaserver.environment", []string{"ADVERTISED_HOST=kafkaserver",
 		"ADVERTISED_PORT=9092"})
 }
