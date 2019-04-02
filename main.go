@@ -19,38 +19,31 @@ const (
 	YmlNameConfig        = "config"
 	YmlNameDockerCompose = "docker-compose"
 )
-const (
-	ScopeALL  = "ALL"
-	ScopeData = "DATA"
-	ScopeAPP  = "APP"
-	ScopeNONE = "NONE"
-)
-
-var (
-	scopes = []string{ScopeALL, ScopeData, ScopeAPP, ScopeNONE}
-)
 
 type ConfigDto struct {
-	Scope   string
-	NoCache bool
-	IsKafka bool
-	Mysql   struct {
-		Databases []string
-		Ports     []string
+	Scope string
+	Port  struct {
+		Mysql     string
+		Redis     string
+		Mongo     string
+		SqlServer string
+		Kafka     string
 	}
 	Project *ProjectDto
 }
 type ProjectDto struct {
-	IsComplex      bool   //a git contains multiple microservices
-	ServiceName    string //eg. ipay-api
-	GitShortPath   string //eg. ipay/ipay-api
-	GitRaw         string
+	IsComplex      bool     //a git contains multiple microservices
+	ServiceName    string   //eg. ipay-api
+	GitShortPath   string   //eg. ipay/ipay-api
 	Envs           []string // from jenkins
 	IsProjectKafka bool
 	Ports          []string
-	Databases      []string
-	SubNames       []string
-	SubProjects    []*ProjectDto
+	Databases      []string //mysql,redis,mongo,sqlserver
+	StreamNames    []string
+
+	GitRaw      string
+	SubNames    []string
+	SubProjects []*ProjectDto
 	//Dependencies []string//delete
 }
 
@@ -73,10 +66,12 @@ func main() {
 	//2. generate docker-compose
 	if shouldUpdateCompose(c.Scope) {
 		viper := viper.New()
-		if c.IsKafka {
-			setComposeKafka(viper)
+		if shouldStartKakfa(c.Project) {
+			setComposeKafka(viper, c.Port.Kafka)
 		}
-		setComposeMysql(viper, c.Mysql.Ports, c.Mysql.Databases)
+		if shouldStartMysql(c.Project) {
+			setComposeMysql(viper, c.Port.Mysql)
+		}
 		setComposeNginx(viper, c.Project.ServiceName)
 		setComposeApp(viper, c.Project)
 
@@ -87,7 +82,7 @@ func main() {
 	}
 
 	//3. run docker-compose
-	if shouldRestartData(c.Scope, c.NoCache) {
+	if shouldRestartData(c.Scope) {
 		if _, err = Cmd("docker-compose", "-f", "docker-compose.yml", "down", "--remove-orphans"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
@@ -95,7 +90,7 @@ func main() {
 		fmt.Println("==> compose downed!")
 	}
 
-	if shouldRestartApp(c.Scope, c.NoCache) {
+	if shouldRestartApp(c.Scope) {
 		if _, err = Cmd("docker-compose", "-f", "docker-compose.yml", "build"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
