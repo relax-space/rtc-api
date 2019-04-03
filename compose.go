@@ -75,6 +75,17 @@ func setComposeKafka(viper *viper.Viper, port string) {
 		"ADVERTISED_PORT=9092"})
 }
 
+func setComposeRedis(viper *viper.Viper, port string) {
+	viper.Set("services.redisserver.image", "redis:latest")
+	viper.Set("services.redisserver.container_name", "test-redis")
+	viper.Set("services.redisserver.hostname", "redisserver")
+	viper.Set("services.redisserver.restart", "always")
+	viper.Set("services.redisserver.ports", []string{port + ":6379"})
+	viper.Set("services.redisserver.volumes", []string{
+		"./redis.conf:/usr/local/etc/redis/redis.conf",
+	})
+}
+
 func setComposeNginx(viper *viper.Viper, projectName string) {
 	viper.Set("services.nginx.image", "nginx:latest")
 	viper.Set("services.nginx.container_name", "test-nginx")

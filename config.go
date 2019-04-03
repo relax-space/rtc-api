@@ -189,8 +189,9 @@ func getScope(updated *string) (updatedStr string, err error) {
 }
 
 func fetchsqlTofile(c *ConfigDto) (err error) {
+
 	folder := ""
-	if c.Project.IsComplex {
+	if c.Project.IsMulti {
 		folder = "/" + c.Project.ServiceName
 	}
 	urlString := fmt.Sprintf("%v/test_info%v/table.sql", c.Project.GitRaw, folder)
@@ -218,22 +219,50 @@ func writeConfig(path string, viper *viper.Viper) (err error) {
 	return
 }
 
-func loadProjectEnv(projectDto *ProjectDto) (err error) {
-
-	projectName := projectDto.ServiceName
+func getFirstProjectEnv(projectDto *ProjectDto) (err error) {
 	projectDto.GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, projectDto.GitShortPath)
-	urlString := projectDto.GitRaw + "/test_info/project.yml"
+	urlString := fmt.Sprintf("%v/test_info/project.yml", projectDto.GitRaw)
+	fmt.Println(urlString)
 	b, err := fetchFromgitlab(urlString, PrivateToken)
 	if err = yaml.Unmarshal(b, projectDto); err != nil {
-		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectName, err.Error())
+		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
 		return
 	}
+	return
+}
+
+func loadProjectEnv(projectDto *ProjectDto) (err error) {
+	if err = getFirstProjectEnv(projectDto); err != nil {
+		return
+	}
+
+	projectDto.GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, projectDto.GitShortPath)
+
+	folder := ""
+	if projectDto.IsMulti {
+		folder = "/" + projectDto.ServiceName
+		urlString := fmt.Sprintf("%v/test_info%v/project.yml", projectDto.GitRaw, folder)
+		b, errd := fetchFromgitlab(urlString, PrivateToken)
+		if errd != nil {
+			err = errd
+			return
+		}
+		if err = yaml.Unmarshal(b, projectDto); err != nil {
+			err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
+			return
+		}
+	}
+
 	setPort(projectDto)
 
 	for i, subProject := range projectDto.SubProjects {
 		projectDto.SubProjects[i].GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, subProject.GitShortPath)
-		urlString := subProject.GitRaw + "/test_info/project.yml"
-		b, err = fetchFromgitlab(urlString, PrivateToken)
+		urlString := fmt.Sprintf("%v/test_info%v/project.yml", subProject.GitRaw, folder)
+		b, errd := fetchFromgitlab(urlString, PrivateToken)
+		if errd != nil {
+			err = errd
+			return
+		}
 		if err = yaml.Unmarshal(b, projectDto.SubProjects[i]); err != nil {
 			err = fmt.Errorf("parse project.yml error,project:%v,err:%v", subProject.ServiceName, err.Error())
 			return
