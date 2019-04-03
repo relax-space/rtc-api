@@ -32,7 +32,7 @@ type ConfigDto struct {
 	Project *ProjectDto
 }
 type ProjectDto struct {
-	IsComplex      bool     //a git contains multiple microservices
+	IsMulti        bool     //a git contains multiple microservices
 	ServiceName    string   //eg. ipay-api
 	GitShortPath   string   //eg. ipay/ipay-api
 	Envs           []string // from jenkins
@@ -71,6 +71,9 @@ func main() {
 		}
 		if shouldStartMysql(c.Project) {
 			setComposeMysql(viper, c.Port.Mysql)
+		}
+		if shouldStartRedis(c.Project) {
+			setComposeRedis(viper, c.Port.Redis)
 		}
 		setComposeNginx(viper, c.Project.ServiceName)
 		setComposeApp(viper, c.Project)
