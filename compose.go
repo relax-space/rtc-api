@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -18,16 +19,18 @@ func setComposeApp(viper *viper.Viper, project *ProjectDto) {
 
 func appComposeMain(viper *viper.Viper, project *ProjectDto) {
 
-	lastIndex := strings.LastIndex(project.GitShortPath, "/")
-	pName := project.GitShortPath[lastIndex:]
-
 	servicePre := "services." + project.ServiceName
 	viper.SetConfigName(YmlNameDockerCompose)
 	viper.AddConfigPath(TEMP_FILE)
 
-	project.SubNames = append(project.SubNames, "kafkaserver")
-	project.SubNames = append(project.SubNames, "mysqlserver")
-	viper.Set(servicePre+".build.context", os.Getenv("GOPATH")+"/src/"+pName)
+	if shouldStartKakfa(project) {
+		project.SubNames = append(project.SubNames, "kafkaserver")
+
+	}
+	if shouldStartKakfa(project) {
+		project.SubNames = append(project.SubNames, "mysqlserver")
+	}
+	viper.Set(servicePre+".build.context", getBuildPath(project))
 	viper.Set(servicePre+".build.dockerfile", "Dockerfile")
 	viper.Set(servicePre+".image", "test-"+project.ServiceName)
 	viper.Set(servicePre+".restart", "on-failure:5")
@@ -38,13 +41,22 @@ func appComposeMain(viper *viper.Viper, project *ProjectDto) {
 	viper.Set(servicePre+".environment", project.Envs)
 }
 
+func getBuildPath(projectDto *ProjectDto) (buildPath string) {
+	path := ""
+	if len(projectDto.ParentFolderName) != 0 {
+		path = "/" + projectDto.ParentFolderName
+	}
+	lastIndex := strings.LastIndex(projectDto.GitShortPath, "/")
+	pName := projectDto.GitShortPath[lastIndex+1:]
+	buildPath = fmt.Sprintf("%v/src%v/%v", os.Getenv("GOPATH"), path, pName)
+	return
+}
+
 //env format []string{"MYSQL_ROOT_PASSWORD=1234"}
 func appCompose(viper *viper.Viper, project *ProjectDto) {
-	lastIndex := strings.LastIndex(project.GitShortPath, "/")
-	pName := project.GitShortPath[lastIndex:]
 
 	servicePre := "services." + project.ServiceName
-	viper.Set(servicePre+".build.context", os.Getenv("GOPATH")+"/src/"+pName)
+	viper.Set(servicePre+".build.context", getBuildPath(project))
 	viper.Set(servicePre+".build.dockerfile", "Dockerfile")
 	viper.Set(servicePre+".image", "test-"+project.ServiceName)
 	viper.Set(servicePre+".restart", "on-failure:5")

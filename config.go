@@ -13,11 +13,8 @@ import (
 
 func LoadEnv() (c *ConfigDto, err error) {
 
-	serviceName := flag.String("serviceName", "ibill-api", "serviceName")
-	updated := flag.String("updated", "all", "updated")
-
-	// serviceName := flag.String("serviceName", os.Getenv("serviceName"), "serviceName")
-	// updated := flag.String("updated", os.Getenv("updated"), "updated")
+	serviceName := flag.String("serviceName", os.Getenv("serviceName"), "serviceName")
+	updated := flag.String("updated", os.Getenv("updated"), "updated")
 	mysqlPort := flag.String("mysqlPort", os.Getenv("mysqlPort"), "mysqlPort")
 	redisPort := flag.String("redisPort", os.Getenv("redisPort"), "redisPort")
 	mongoPort := flag.String("mongoPort", os.Getenv("mongoPort"), "mongoPort")
@@ -194,12 +191,9 @@ func getScope(updated *string) (updatedStr string, err error) {
 
 func fetchsqlTofile(c *ConfigDto) (err error) {
 
-	folder := ""
-	if c.Project.IsMulti {
-		folder = "/" + c.Project.ServiceName
-	}
+	path := getTestInfoPath(c.Project)
 
-	urlString := fmt.Sprintf("%v/test_info%v/table.sql", c.Project.GitRaw, folder)
+	urlString := fmt.Sprintf("%v/test_info%v/table.sql", c.Project.GitRaw, path)
 	if err = fetchTofile(urlString,
 		fmt.Sprintf("%v/%v.sql", TEMP_FILE, c.Project.ServiceName),
 		PrivateToken); err != nil {
@@ -207,7 +201,7 @@ func fetchsqlTofile(c *ConfigDto) (err error) {
 		return
 	}
 	for _, projectDto := range c.Project.SubProjects {
-		urlString := fmt.Sprintf("%v/test_info%v/table.sql", projectDto.GitRaw, folder)
+		urlString := fmt.Sprintf("%v/test_info%v/table.sql", projectDto.GitRaw, path)
 		if err = fetchTofile(urlString,
 			fmt.Sprintf("%v/%v.sql", TEMP_FILE, projectDto.ServiceName),
 			PrivateToken); err != nil {
@@ -229,9 +223,10 @@ func writeConfig(path string, viper *viper.Viper) (err error) {
 }
 
 func getFirstProjectEnv(projectDto *ProjectDto) (err error) {
-	projectDto.GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, projectDto.GitShortPath)
 	urlString := fmt.Sprintf("%v/test_info/project.yml", projectDto.GitRaw)
+	fmt.Println(urlString)
 	b, err := fetchFromgitlab(urlString, PrivateToken)
+	fmt.Println(string(b))
 	if err = yaml.Unmarshal(b, projectDto); err != nil {
 		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
 		return
@@ -239,18 +234,30 @@ func getFirstProjectEnv(projectDto *ProjectDto) (err error) {
 	return
 }
 
+func getTestInfoPath(projectDto *ProjectDto) (path string) {
+
+	// if len(projectDto.ParentFolderName) != 0 {
+	// 	path = "/" + projectDto.ParentFolderName
+	// }
+	if projectDto.IsMulti {
+		path += "/" + projectDto.ServiceName
+	}
+	return
+}
+
 func loadProjectEnv(projectDto *ProjectDto) (err error) {
+	projectDto.GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, projectDto.GitShortPath)
 	if err = getFirstProjectEnv(projectDto); err != nil {
 		return
 	}
 
-	projectDto.GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, projectDto.GitShortPath)
+	path := getTestInfoPath(projectDto)
 
-	folder := ""
 	if projectDto.IsMulti {
-		folder = "/" + projectDto.ServiceName
-		urlString := fmt.Sprintf("%v/test_info%v/project.yml", projectDto.GitRaw, folder)
+		urlString := fmt.Sprintf("%v/test_info%v/project.yml", projectDto.GitRaw, path)
+		fmt.Println(urlString)
 		b, errd := fetchFromgitlab(urlString, PrivateToken)
+		fmt.Println(string(b))
 		if errd != nil {
 			err = errd
 			return
@@ -265,7 +272,7 @@ func loadProjectEnv(projectDto *ProjectDto) (err error) {
 
 	for i, subProject := range projectDto.SubProjects {
 		projectDto.SubProjects[i].GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, subProject.GitShortPath)
-		urlString := fmt.Sprintf("%v/test_info%v/project.yml", subProject.GitRaw, folder)
+		urlString := fmt.Sprintf("%v/test_info%v/project.yml", subProject.GitRaw, path)
 		b, errd := fetchFromgitlab(urlString, PrivateToken)
 		if errd != nil {
 			err = errd
