@@ -5,8 +5,6 @@
 *.so
 *.dylib
 *.sql
-/*.yml
-!/relation.yml
 
 # Test binary, build with `go test -c`
 *.test
@@ -20,3 +18,4 @@
 debug
 tmp/
 swagger-ui
+temp/

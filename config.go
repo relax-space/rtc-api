@@ -12,8 +12,12 @@ import (
 )
 
 func LoadEnv() (c *ConfigDto, err error) {
-	serviceName := flag.String("serviceName", os.Getenv("serviceName"), "serviceName")
-	updated := flag.String("updated", os.Getenv("updated"), "updated")
+
+	serviceName := flag.String("serviceName", "ibill-api", "serviceName")
+	updated := flag.String("updated", "all", "updated")
+
+	// serviceName := flag.String("serviceName", os.Getenv("serviceName"), "serviceName")
+	// updated := flag.String("updated", os.Getenv("updated"), "updated")
 	mysqlPort := flag.String("mysqlPort", os.Getenv("mysqlPort"), "mysqlPort")
 	redisPort := flag.String("redisPort", os.Getenv("redisPort"), "redisPort")
 	mongoPort := flag.String("mongoPort", os.Getenv("mongoPort"), "mongoPort")
@@ -98,7 +102,7 @@ func writeNgnix(p *ProjectDto) (err error) {
 		location += getNginxLocation(sp.ServiceName, getContainerPort(sp.Ports[0]))
 	}
 
-	return writeFile("default.conf", ngnixServer+location+"\n}")
+	return writeFile(TEMP_FILE+"/default.conf", ngnixServer+location+"\n}")
 }
 
 func testProjectDependency(serviceName string) (projectDto *ProjectDto, err error) {
@@ -158,11 +162,11 @@ func loadEnv(c *ConfigDto, scope string,
 func writeConfigYml(c *ConfigDto) (err error) {
 	vip := viper.New()
 	vip.SetConfigName(YmlNameConfig)
-	vip.AddConfigPath(".")
+	vip.AddConfigPath(TEMP_FILE)
 	vip.Set("scope", c.Scope)
 	vip.Set("port", c.Port)
 	vip.Set("project", c.Project)
-	err = writeConfig(YmlNameConfig+".yml", vip)
+	err = writeConfig(TEMP_FILE+"/"+YmlNameConfig+".yml", vip)
 	if err != nil {
 		err = fmt.Errorf("write to config.yml error:%v", err)
 		return
@@ -194,14 +198,19 @@ func fetchsqlTofile(c *ConfigDto) (err error) {
 	if c.Project.IsMulti {
 		folder = "/" + c.Project.ServiceName
 	}
+
 	urlString := fmt.Sprintf("%v/test_info%v/table.sql", c.Project.GitRaw, folder)
-	if err = fetchTofile(urlString, c.Project.ServiceName+".sql", PrivateToken); err != nil {
+	if err = fetchTofile(urlString,
+		fmt.Sprintf("%v/%v.sql", TEMP_FILE, c.Project.ServiceName),
+		PrivateToken); err != nil {
 		err = fmt.Errorf("read table.sql error:%v", err)
 		return
 	}
 	for _, projectDto := range c.Project.SubProjects {
 		urlString := fmt.Sprintf("%v/test_info%v/table.sql", projectDto.GitRaw, folder)
-		if err = fetchTofile(urlString, projectDto.ServiceName+".sql", PrivateToken); err != nil {
+		if err = fetchTofile(urlString,
+			fmt.Sprintf("%v/%v.sql", TEMP_FILE, projectDto.ServiceName),
+			PrivateToken); err != nil {
 			err = fmt.Errorf("read %v.sql error:%v", projectDto.ServiceName, err)
 			return
 		}
@@ -222,7 +231,6 @@ func writeConfig(path string, viper *viper.Viper) (err error) {
 func getFirstProjectEnv(projectDto *ProjectDto) (err error) {
 	projectDto.GitRaw = fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, projectDto.GitShortPath)
 	urlString := fmt.Sprintf("%v/test_info/project.yml", projectDto.GitRaw)
-	fmt.Println(urlString)
 	b, err := fetchFromgitlab(urlString, PrivateToken)
 	if err = yaml.Unmarshal(b, projectDto); err != nil {
 		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
@@ -284,7 +292,7 @@ func setPort(projectDto *ProjectDto) {
 }
 
 func shouldLocalConfig(scope string) (isLocalConfig bool) {
-	if _, err := os.Stat(YmlNameConfig + ".yml"); err != nil {
+	if _, err := os.Stat(TEMP_FILE + "/" + YmlNameConfig + ".yml"); err != nil {
 		isLocalConfig = false
 	} else {
 		if scope == NONE.String() {
