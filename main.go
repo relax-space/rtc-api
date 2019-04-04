@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	TEMP_FILE = "temp"
+	TEMP_FILE        = "temp"
+	EventBroker_Name = "eb"
 )
 
 const (
@@ -27,11 +28,13 @@ const (
 type ConfigDto struct {
 	Scope string
 	Port  struct {
-		Mysql     string
-		Redis     string
-		Mongo     string
-		SqlServer string
-		Kafka     string
+		Mysql       string
+		Redis       string
+		Mongo       string
+		SqlServer   string
+		Kafka       string
+		EventBroker string
+		Nginx       string
 	}
 	Project *ProjectDto
 }
@@ -46,10 +49,10 @@ type ProjectDto struct {
 	StreamNames      []string
 	ParentFolderName string
 
-	GitRaw      string
-	SubNames    []string
-	SubProjects []*ProjectDto
-	//Dependencies []string//delete
+	GitRaw       string
+	SubNames     []string
+	SubProjects  []*ProjectDto
+	Dependencies []string
 }
 
 func main() {
@@ -62,7 +65,7 @@ func main() {
 
 	//1.download sql data
 	if shouldUpdateData(c.Scope) {
-		if err := fetchsqlTofile(c); err != nil {
+		if err := fetchsqlTofile(c.Project); err != nil {
 			fmt.Println(err)
 			return
 		}
@@ -80,8 +83,13 @@ func main() {
 		if shouldStartRedis(c.Project) {
 			setComposeRedis(viper, c.Port.Redis)
 		}
-		setComposeNginx(viper, c.Project.ServiceName)
+
+		if shouldStartEventBroker(c.Project) {
+			streamName := streamList(c.Project)
+			EventBroker{}.SetEventBroker(viper, c.Port.EventBroker, streamName)
+		}
 		setComposeApp(viper, c.Project)
+		setComposeNginx(viper, c.Project.ServiceName, c.Port.Nginx)
 
 		if err = writeConfig(TEMP_FILE+"/"+YmlNameDockerCompose+".yml", viper); err != nil {
 			fmt.Printf("write to config.yml error:%v", err)
