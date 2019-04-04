@@ -39,7 +39,7 @@ func createIfNot(path string) error {
 
 func Read(env string, config interface{}) error {
 	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath(TEMP_FILE)
 
 	if err := viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("Fatal error config file: %s \n", err)

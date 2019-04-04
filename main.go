@@ -11,6 +11,10 @@ import (
 )
 
 const (
+	TEMP_FILE = "temp"
+)
+
+const (
 	Windows              = "windows"
 	Linux                = "linux"
 	PrivateToken         = "Su5_HzvQxtyANyDtzx_P"
@@ -32,14 +36,15 @@ type ConfigDto struct {
 	Project *ProjectDto
 }
 type ProjectDto struct {
-	IsMulti        bool     //a git contains multiple microservices
-	ServiceName    string   //eg. ipay-api
-	GitShortPath   string   //eg. ipay/ipay-api
-	Envs           []string // from jenkins
-	IsProjectKafka bool
-	Ports          []string
-	Databases      []string //mysql,redis,mongo,sqlserver
-	StreamNames    []string
+	IsMulti          bool     //a git contains multiple microservices
+	ServiceName      string   //eg. ipay-api
+	GitShortPath     string   //eg. ipay/ipay-api
+	Envs             []string // from jenkins
+	IsProjectKafka   bool
+	Ports            []string
+	Databases        []string //mysql,redis,mongo,sqlserver
+	StreamNames      []string
+	ParentFolderName string
 
 	GitRaw      string
 	SubNames    []string
@@ -78,15 +83,21 @@ func main() {
 		setComposeNginx(viper, c.Project.ServiceName)
 		setComposeApp(viper, c.Project)
 
-		if err = writeConfig(YmlNameDockerCompose+".yml", viper); err != nil {
+		if err = writeConfig(TEMP_FILE+"/"+YmlNameDockerCompose+".yml", viper); err != nil {
 			fmt.Printf("write to config.yml error:%v", err)
 			return
 		}
 	}
+	// path, err := getCurrentPath()
+	// if err != nil {
+	// 	fmt.Printf("get path failure error:%v", err)
+	// 	return
+	// }
 
+	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
 	//3. run docker-compose
 	if shouldRestartData(c.Scope) {
-		if _, err = Cmd("docker-compose", "-f", "docker-compose.yml", "down", "--remove-orphans"); err != nil {
+		if _, err = Cmd("docker-compose", "-f", dockercompose, "down", "--remove-orphans"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
@@ -94,7 +105,7 @@ func main() {
 	}
 
 	if shouldRestartApp(c.Scope) {
-		if _, err = Cmd("docker-compose", "-f", "docker-compose.yml", "build"); err != nil {
+		if _, err = Cmd("docker-compose", "-f", dockercompose, "build"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
@@ -102,7 +113,7 @@ func main() {
 	}
 
 	go func() {
-		if _, err = Cmd("docker-compose", "-f", "docker-compose.yml", "up"); err != nil {
+		if _, err = Cmd("docker-compose", "-f", dockercompose, "up"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}

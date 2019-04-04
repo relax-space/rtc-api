@@ -23,7 +23,7 @@ func appComposeMain(viper *viper.Viper, project *ProjectDto) {
 
 	servicePre := "services." + project.ServiceName
 	viper.SetConfigName(YmlNameDockerCompose)
-	viper.AddConfigPath(".")
+	viper.AddConfigPath(TEMP_FILE)
 
 	project.SubNames = append(project.SubNames, "kafkaserver")
 	project.SubNames = append(project.SubNames, "mysqlserver")
@@ -59,7 +59,9 @@ func setComposeMysql(viper *viper.Viper, port string) {
 	envs := []string{"MYSQL_ROOT_PASSWORD=1234"}
 	viper.Set("services.mysqlserver.image", "gruppometasrl/mysql57")
 	viper.Set("services.mysqlserver.container_name", "test-mysql")
-	viper.Set("services.mysqlserver.volumes", []string{".:/docker-entrypoint-initdb.d"})
+	viper.Set("services.mysqlserver.volumes", []string{
+		".:/docker-entrypoint-initdb.d",
+	})
 	viper.Set("services.mysqlserver.ports", []string{port + ":3306"})
 	viper.Set("services.mysqlserver.restart", "always")
 	viper.Set("services.mysqlserver.environment", envs)
