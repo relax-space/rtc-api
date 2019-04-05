@@ -20,7 +20,10 @@ func LoadEnv() (c *ConfigDto, err error) {
 	mongoPort := flag.String("mongoPort", os.Getenv("mongoPort"), "mongoPort")
 	sqlServerPort := flag.String("sqlServerPort", os.Getenv("sqlServerPort"), "sqlServerPort")
 	kafkaPort := flag.String("kafkaPort", os.Getenv("kafkaPort"), "kafkaPort")
+	eventBrokerPort := flag.String("eventBrokerPort", os.Getenv("eventBrokerPort"), "eventBrokerPort")
+	nginxPort := flag.String("nginxPort", os.Getenv("nginxPort"), "nginxPort")
 
+	//EventBroker
 	flag.Parse()
 
 	updatedStr, err := getScope(updated)
@@ -31,7 +34,7 @@ func LoadEnv() (c *ConfigDto, err error) {
 
 	c = &ConfigDto{}
 	if err = loadEnv(c, updatedStr, serviceName,
-		mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort); err != nil {
+		mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, eventBrokerPort, nginxPort); err != nil {
 		return
 	}
 	isLocalConfig := shouldLocalConfig(updatedStr)
@@ -53,7 +56,7 @@ func LoadEnv() (c *ConfigDto, err error) {
 	if err = writeConfigYml(c); err != nil {
 		return
 	}
-	if err = writeNgnix(c.Project); err != nil {
+	if err = writeNgnix(c.Project, c.Port.EventBroker); err != nil {
 		return
 	}
 	return
@@ -91,7 +94,7 @@ func getContainerPort(port string) (containerPort string) {
 }
 
 // setNgnix set nginx default.conf
-func writeNgnix(p *ProjectDto) (err error) {
+func writeNgnix(p *ProjectDto, eventBrokerPort string) (err error) {
 	var location string
 	location += getNginxLocation(p.ServiceName, getContainerPort(p.Ports[0]))
 
@@ -99,6 +102,9 @@ func writeNgnix(p *ProjectDto) (err error) {
 		location += getNginxLocation(sp.ServiceName, getContainerPort(sp.Ports[0]))
 	}
 
+	if shouldStartEventBroker(p) {
+		location += getNginxLocation(EventBroker_Name, eventBrokerPort)
+	}
 	return writeFile(TEMP_FILE+"/default.conf", ngnixServer+location+"\n}")
 }
 
@@ -128,7 +134,7 @@ func testProjectDependency(serviceName string) (projectDto *ProjectDto, err erro
 }
 
 func loadEnv(c *ConfigDto, scope string,
-	serviceName, mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort *string) (err error) {
+	serviceName, mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, eventBrokerPort, nginxPort *string) (err error) {
 	if serviceName == nil || len(*serviceName) == 0 {
 		err = fmt.Errorf("read env error:%v", "serviceName is required.")
 		return
@@ -152,6 +158,12 @@ func loadEnv(c *ConfigDto, scope string,
 	}
 	if kafkaPort == nil || len(*kafkaPort) == 0 {
 		c.Port.Kafka = "9092"
+	}
+	if eventBrokerPort == nil || len(*eventBrokerPort) == 0 {
+		c.Port.EventBroker = "3000"
+	}
+	if nginxPort == nil || len(*nginxPort) == 0 {
+		c.Port.Nginx = "3001"
 	}
 	return
 }
@@ -189,18 +201,18 @@ func getScope(updated *string) (updatedStr string, err error) {
 	return
 }
 
-func fetchsqlTofile(c *ConfigDto) (err error) {
+func fetchsqlTofile(project *ProjectDto) (err error) {
 
-	path := getTestInfoPath(c.Project)
+	path := getTestInfoPath(project)
 
-	urlString := fmt.Sprintf("%v/test_info%v/table.sql", c.Project.GitRaw, path)
+	urlString := fmt.Sprintf("%v/test_info%v/table.sql", project.GitRaw, path)
 	if err = fetchTofile(urlString,
-		fmt.Sprintf("%v/%v.sql", TEMP_FILE, c.Project.ServiceName),
+		fmt.Sprintf("%v/%v.sql", TEMP_FILE, project.ServiceName),
 		PrivateToken); err != nil {
 		err = fmt.Errorf("read table.sql error:%v", err)
 		return
 	}
-	for _, projectDto := range c.Project.SubProjects {
+	for _, projectDto := range project.SubProjects {
 		urlString := fmt.Sprintf("%v/test_info%v/table.sql", projectDto.GitRaw, path)
 		if err = fetchTofile(urlString,
 			fmt.Sprintf("%v/%v.sql", TEMP_FILE, projectDto.ServiceName),
@@ -224,9 +236,7 @@ func writeConfig(path string, viper *viper.Viper) (err error) {
 
 func getFirstProjectEnv(projectDto *ProjectDto) (err error) {
 	urlString := fmt.Sprintf("%v/test_info/project.yml", projectDto.GitRaw)
-	fmt.Println(urlString)
 	b, err := fetchFromgitlab(urlString, PrivateToken)
-	fmt.Println(string(b))
 	if err = yaml.Unmarshal(b, projectDto); err != nil {
 		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
 		return
@@ -255,9 +265,7 @@ func loadProjectEnv(projectDto *ProjectDto) (err error) {
 
 	if projectDto.IsMulti {
 		urlString := fmt.Sprintf("%v/test_info%v/project.yml", projectDto.GitRaw, path)
-		fmt.Println(urlString)
 		b, errd := fetchFromgitlab(urlString, PrivateToken)
-		fmt.Println(string(b))
 		if errd != nil {
 			err = errd
 			return
@@ -332,6 +340,9 @@ func shouldRestartApp(scope string) bool {
 }
 
 func shouldStartKakfa(project *ProjectDto) (isKafka bool) {
+	if shouldStartEventBroker(project) {
+		return true
+	}
 	if project.IsProjectKafka {
 		isKafka = true
 	} else {
@@ -346,6 +357,9 @@ func shouldStartKakfa(project *ProjectDto) (isKafka bool) {
 }
 
 func shouldStartMysql(project *ProjectDto) bool {
+	if shouldStartEventBroker(project) {
+		return true
+	}
 	list := databaseList(project)
 	for _, l := range list {
 		if strings.ToLower(l) == MYSQL.String() {
@@ -356,6 +370,9 @@ func shouldStartMysql(project *ProjectDto) bool {
 }
 
 func shouldStartRedis(project *ProjectDto) bool {
+	if shouldStartEventBroker(project) {
+		return true
+	}
 	list := databaseList(project)
 	for _, l := range list {
 		if strings.ToLower(l) == REDIS.String() {
@@ -385,6 +402,13 @@ func shouldStartSqlServer(project *ProjectDto) bool {
 	return false
 }
 
+func shouldStartEventBroker(project *ProjectDto) bool {
+	if list := streamList(project); len(list) != 0 {
+		return true
+	}
+	return false
+}
+
 func databaseList(project *ProjectDto) (list map[string]string) {
 	list = make(map[string]string, 0)
 	for _, d := range project.Databases {
@@ -392,6 +416,19 @@ func databaseList(project *ProjectDto) (list map[string]string) {
 	}
 	for _, subProject := range project.SubProjects {
 		for _, d := range subProject.Databases {
+			list[d] = d
+		}
+	}
+	return
+}
+
+func streamList(project *ProjectDto) (list map[string]string) {
+	list = make(map[string]string, 0)
+	for _, d := range project.StreamNames {
+		list[d] = d
+	}
+	for _, subProject := range project.SubProjects {
+		for _, d := range subProject.StreamNames {
 			list[d] = d
 		}
 	}
