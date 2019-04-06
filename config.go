@@ -105,7 +105,10 @@ func writeNgnix(p *ProjectDto, eventBrokerPort string) (err error) {
 	if shouldStartEventBroker(p) {
 		location += getNginxLocation(EventBroker_Name, eventBrokerPort)
 	}
-	return writeFile(TEMP_FILE+"/default.conf", ngnixServer+location+"\n}")
+	if err = os.MkdirAll(TEMP_FILE+"/nginx", os.ModePerm); err != nil {
+		return
+	}
+	return writeFile(TEMP_FILE+"/nginx/default.conf", ngnixServer+location+"\n}")
 }
 
 func testProjectDependency(serviceName string) (projectDto *ProjectDto, err error) {
@@ -195,7 +198,7 @@ func getScope(updated *string) (updatedStr string, err error) {
 		}
 	}
 	if len(updatedStr) == 0 {
-		err = fmt.Errorf("Parameters(%v) are not supported, only support all, sql, app", *updated)
+		err = fmt.Errorf("Parameters(%v) are not supported, only support %v", *updated, NONE.List())
 		return
 	}
 	return
@@ -225,6 +228,9 @@ func fetchsqlTofile(project *ProjectDto) (err error) {
 }
 
 func writeConfig(path string, viper *viper.Viper) (err error) {
+	if err = os.MkdirAll(TEMP_FILE, os.ModePerm); err != nil {
+		return
+	}
 	if err = createIfNot(path); err != nil {
 		return
 	}
@@ -319,7 +325,7 @@ func shouldLocalConfig(scope string) (isLocalConfig bool) {
 
 func shouldUpdateData(scope string) bool {
 
-	return scope == ALL.String() || scope == DATA.String()
+	return scope == ALL.String()
 }
 func shouldUpdateCompose(scope string) bool {
 	if _, err := os.Stat(YmlNameDockerCompose + ".yml"); err != nil {
@@ -328,15 +334,15 @@ func shouldUpdateCompose(scope string) bool {
 	return scope != NONE.String()
 }
 func shouldUpdateApp(scope string) bool {
-	return scope == ALL.String() || scope == DATA.String()
+	return scope == ALL.String()
 }
 
 func shouldRestartData(scope string) bool {
-	return scope == ALL.String() || scope == DATA.String()
+	return scope == ALL.String()
 }
 
 func shouldRestartApp(scope string) bool {
-	return scope == ALL.String() || scope == DATA.String()
+	return scope == ALL.String()
 }
 
 func shouldStartKakfa(project *ProjectDto) (isKafka bool) {
