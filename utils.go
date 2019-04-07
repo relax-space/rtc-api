@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/spf13/viper"
 )
@@ -128,15 +129,27 @@ type ScopeType int
 
 const (
 	ALL ScopeType = iota
-	DATA
-	APP
 	NONE
 )
 
 func (ScopeType) List() []string {
-	return []string{"all", "data", "app", "none"}
+	return []string{"all", "none"}
 }
 
 func (d ScopeType) String() string {
 	return d.List()[d]
+}
+
+//fileName="/foo/123_*"
+func deleteFileRegex(fileName string) (err error) {
+	files, err := filepath.Glob(fileName)
+	if err != nil {
+		return
+	}
+	for _, f := range files {
+		if err = os.Remove(f); err != nil {
+			return
+		}
+	}
+	return
 }

@@ -65,6 +65,10 @@ func main() {
 
 	//1.download sql data
 	if shouldUpdateData(c.Scope) {
+		if err := deleteFileRegex(TEMP_FILE + "/*.sql"); err != nil {
+			fmt.Println(err)
+			return
+		}
 		if err := fetchsqlTofile(c.Project); err != nil {
 			fmt.Println(err)
 			return
