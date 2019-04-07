@@ -338,7 +338,7 @@ func shouldUpdateApp(scope string) bool {
 }
 
 func shouldRestartData(scope string) bool {
-	return scope == ALL.String()
+	return scope == ALL.String() || scope == LocalData.String()
 }
 
 func shouldRestartApp(scope string) bool {

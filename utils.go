@@ -129,11 +129,12 @@ type ScopeType int
 
 const (
 	ALL ScopeType = iota
+	LocalData
 	NONE
 )
 
 func (ScopeType) List() []string {
-	return []string{"all", "none"}
+	return []string{"all", "localdata", "none"}
 }
 
 func (d ScopeType) String() string {
