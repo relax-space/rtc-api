@@ -74,7 +74,7 @@ func setComposeProducer(viper *viper.Viper, port string, project *ProjectDto) {
 
 func setComposeConsumer(viper *viper.Viper, project *ProjectDto) {
 	project.Dependencies = []string{"kafkaserver"}
-	dockerfile := fmt.Sprintf("%v/src/eventbroker/cmd/kafka-consumer/Dockerfile", os.Getenv("GOPATH"))
+	dockerfile := fmt.Sprintf("%v/src/pangpang/eventbroker/cmd/kafka-consumer/Dockerfile", os.Getenv("GOPATH"))
 	project.Dependencies = []string{"kafkaserver", "mysqlserver", "redisserver"}
 	appCompose(viper, project, dockerfile, "always")
 }
