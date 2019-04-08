@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -152,5 +153,11 @@ func deleteFileRegex(fileName string) (err error) {
 			return
 		}
 	}
+	return
+}
+
+func getGoPath() (gopath string) {
+	gopath = os.Getenv("GOPATH")
+	gopath = strings.Replace(gopath, "\\", "/", -1)
 	return
 }
