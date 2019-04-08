@@ -1,2 +1,5 @@
-serviceName: ipay-api
-gitShortPath: ipay/ipay-api
+serviceName: sync-msl-taobao
+gitShortPath: pangpangjan/sync-msl-taobao
+subProjects:
+  - serviceName: jan-catalog
+    gitShortPath: pangpangjan/catalog
