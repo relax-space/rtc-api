@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -74,7 +73,7 @@ func setComposeProducer(viper *viper.Viper, port string, project *ProjectDto) {
 
 func setComposeConsumer(viper *viper.Viper, project *ProjectDto) {
 	project.Dependencies = []string{"kafkaserver"}
-	dockerfile := fmt.Sprintf("%v/src/pangpang/eventbroker/cmd/kafka-consumer/Dockerfile", os.Getenv("GOPATH"))
+	dockerfile := fmt.Sprintf("%v/src/pangpang/eventbroker/cmd/kafka-consumer/Dockerfile", getGoPath())
 	project.Dependencies = []string{"kafkaserver", "mysqlserver", "redisserver"}
 	appCompose(viper, project, dockerfile, "always")
 }
@@ -113,7 +112,7 @@ func getBuildPath(parentFolderName, gitShortPath string) (buildPath string) {
 	}
 	lastIndex := strings.LastIndex(gitShortPath, "/")
 	pName := gitShortPath[lastIndex+1:]
-	buildPath = fmt.Sprintf("%v/src%v/%v", os.Getenv("GOPATH"), path, pName)
+	buildPath = fmt.Sprintf("%v/src%v/%v", getGoPath(), path, pName)
 	return
 }
 
