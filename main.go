@@ -116,6 +116,11 @@ func main() {
 		}
 		fmt.Println("==> compose downed!")
 	}
+	if _, err = Cmd("docker-compose", "-f", dockercompose, "pull"); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+	fmt.Println("==> compose pulled!")
 
 	if shouldRestartApp(c.Scope) {
 		if _, err = Cmd("docker-compose", "-f", dockercompose, "build"); err != nil {
@@ -142,6 +147,6 @@ func main() {
 		}
 	}()
 	time.Sleep(10 * time.Second)
-	fmt.Println("==> compose may have started !")
+	fmt.Println("==> compose may have been up!")
 	time.Sleep(10 * time.Minute)
 }

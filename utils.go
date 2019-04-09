@@ -69,10 +69,10 @@ func fetchFromgitlab(url, privateToken string) (b []byte, err error) {
 	})
 	req.Req.Header.Set("PRIVATE-TOKEN", privateToken)
 	resp, err := req.RawCall()
-	defer resp.Body.Close()
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 	b, err = ioutil.ReadAll(resp.Body)
 	return
 }
@@ -84,10 +84,10 @@ func fetchTofile(url, fileName, privateToken string) (err error) {
 	})
 	req.Req.Header.Set("PRIVATE-TOKEN", privateToken)
 	resp, err := req.RawCall()
-	defer resp.Body.Close()
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 
 	out, err := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if err != nil {
