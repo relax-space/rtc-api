@@ -12,7 +12,7 @@ import (
 
 const (
 	TEMP_FILE        = "temp"
-	EventBroker_Name = "eb"
+	EventBroker_Name = "event-broker-kafka"
 )
 
 const (
@@ -23,6 +23,7 @@ const (
 	PreGitHttpUrl        = "https://gitlab.p2shop.cn:8443"
 	YmlNameConfig        = "config"
 	YmlNameDockerCompose = "docker-compose"
+	RegistryName         = "registry.elandsystems.cn"
 )
 
 type ConfigDto struct {
