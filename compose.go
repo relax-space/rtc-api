@@ -18,7 +18,7 @@ func setComposeApp(viper *viper.Viper, project *ProjectDto) {
 
 func setComposeMysql(viper *viper.Viper, port string) {
 	envs := []string{"MYSQL_ROOT_PASSWORD=1234"}
-	viper.Set("services.mysqlserver.image", "gruppometasrl/mysql57")
+	viper.Set("services.mysqlserver.image", "mysql:5.7.22")
 	viper.Set("services.mysqlserver.container_name", "test-mysql")
 	viper.Set("services.mysqlserver.volumes", []string{
 		".:/docker-entrypoint-initdb.d",
