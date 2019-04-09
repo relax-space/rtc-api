@@ -67,7 +67,7 @@ func setComposeProducer(viper *viper.Viper, port string, project *ProjectDto) {
 	project.ServiceName = EventBroker_Name
 	project.Ports = []string{port + ":3000"}
 	project.Dependencies = []string{"kafkaserver"}
-	appCompose(viper, project, "Dockerfile", "always")
+	appCompose(viper, project, "Dockerfile", RegistryName+"/"+project.ServiceName+"-qa", "always")
 
 }
 
@@ -75,15 +75,15 @@ func setComposeConsumer(viper *viper.Viper, project *ProjectDto) {
 	project.Dependencies = []string{"kafkaserver"}
 	dockerfile := "./cmd/kafka-consumer/Dockerfile"
 	project.Dependencies = []string{"kafkaserver", "mysqlserver", "redisserver"}
-	appCompose(viper, project, dockerfile, "always")
+	appCompose(viper, project, dockerfile, RegistryName+"/"+project.ServiceName+"-qa", "always")
 }
 
 // utils
-func appCompose(viper *viper.Viper, project *ProjectDto, dockerfile, restart string) {
+func appCompose(viper *viper.Viper, project *ProjectDto, dockerfile, imageName, restart string) {
 	servicePre := "services." + project.ServiceName + "server"
-	viper.Set(servicePre+".build.context", getBuildPath(project.ParentFolderName, project.GitShortPath))
-	viper.Set(servicePre+".build.dockerfile", dockerfile)
-	viper.Set(servicePre+".image", "test-"+project.ServiceName)
+	//viper.Set(servicePre+".build.context", getBuildPath(project.ParentFolderName, project.GitShortPath))
+	//viper.Set(servicePre+".build.dockerfile", dockerfile)
+	viper.Set(servicePre+".image", imageName+":latest")
 	viper.Set(servicePre+".restart", restart)
 
 	viper.Set(servicePre+".container_name", "test-"+project.ServiceName)
@@ -102,7 +102,7 @@ func appComposeMain(viper *viper.Viper, project *ProjectDto) {
 		project.Dependencies = append(project.Dependencies, subName+"server")
 	}
 	appComposeDependency(project)
-	appCompose(viper, project, "Dockerfile", "on-failure:10")
+	appCompose(viper, project, "Dockerfile", RegistryName+"/"+project.ServiceName+"-qa", "on-failure:10")
 }
 
 func getBuildPath(parentFolderName, gitShortPath string) (buildPath string) {
@@ -118,7 +118,7 @@ func getBuildPath(parentFolderName, gitShortPath string) (buildPath string) {
 
 func appComposeSub(viper *viper.Viper, project *ProjectDto) {
 	appComposeDependency(project)
-	appCompose(viper, project, "Dockerfile", "on-failure:10")
+	appCompose(viper, project, "Dockerfile", RegistryName+"/"+project.ServiceName+"-qa", "on-failure:10")
 }
 
 func appComposeDependency(project *ProjectDto) {

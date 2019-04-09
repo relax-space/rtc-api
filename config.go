@@ -13,8 +13,11 @@ import (
 
 func LoadEnv() (c *ConfigDto, err error) {
 
-	serviceName := flag.String("serviceName", os.Getenv("serviceName"), "serviceName")
-	updated := flag.String("updated", os.Getenv("updated"), "updated")
+	serviceName := flag.String("serviceName", "111", "serviceName")
+	updated := flag.String("updated", "all", "updated")
+
+	// serviceName := flag.String("serviceName", os.Getenv("serviceName"), "serviceName")
+	// updated := flag.String("updated", os.Getenv("updated"), "updated")
 	mysqlPort := flag.String("mysqlPort", os.Getenv("mysqlPort"), "mysqlPort")
 	redisPort := flag.String("redisPort", os.Getenv("redisPort"), "redisPort")
 	mongoPort := flag.String("mongoPort", os.Getenv("mongoPort"), "mongoPort")

@@ -56,7 +56,7 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 
 	for _, streamName := range streamNames {
 		d.setConsumerEnv(p.Envs, streamName)
-		p.ServiceName = "consumer-" + streamName
+		p.ServiceName = "event-kafka-consumer-" + streamName
 		p.Ports = []string{}
 		setComposeConsumer(viper, p)
 	}
