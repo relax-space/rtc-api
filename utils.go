@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"goutils/httpreq"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/pangpanglabs/goutils/httpreq"
 
 	"github.com/spf13/viper"
 )
