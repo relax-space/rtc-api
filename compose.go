@@ -31,17 +31,17 @@ func setComposeMysql(viper *viper.Viper, port string) {
 func setComposeKafka(viper *viper.Viper, port string) {
 	viper.Set("services.kafkaserver.image", "spotify/kafka:latest")
 	viper.Set("services.kafkaserver.container_name", "test-kafka")
-	viper.Set("services.kafkaserver.hostname", "kafkaserver")
+	//viper.Set("services.kafkaserver.hostname", "kafkaserver")
 	viper.Set("services.kafkaserver.restart", "always")
 	viper.Set("services.kafkaserver.ports", []string{port + ":9092"})
-	viper.Set("services.kafkaserver.environment", []string{"ADVERTISED_HOST=kafkaserver",
+	viper.Set("services.kafkaserver.environment", []string{
 		"ADVERTISED_PORT=9092"})
 }
 
 func setComposeRedis(viper *viper.Viper, port string) {
 	viper.Set("services.redisserver.image", "redis:latest")
 	viper.Set("services.redisserver.container_name", "test-redis")
-	viper.Set("services.redisserver.hostname", "redisserver")
+	//viper.Set("services.redisserver.hostname", "redisserver")
 	viper.Set("services.redisserver.restart", "always")
 	viper.Set("services.redisserver.ports", []string{port + ":6379"})
 	viper.Set("services.redisserver.volumes", []string{
