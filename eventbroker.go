@@ -12,9 +12,9 @@ type EventBroker struct {
 
 func (EventBroker) fetchProducer() (projectDto *ProjectDto, err error) {
 	projectDto = &ProjectDto{}
-	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/qa", PreGitHttpUrl)
+	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/qa", PREGITHTTPURL)
 	urlString := fmt.Sprintf("%v/test_info/kafka-producer/project.yml", projectDto.GitRaw)
-	b, err := fetchFromgitlab(urlString, PrivateToken)
+	b, err := fetchFromgitlab(urlString, PRIVATETOKEN)
 	if err != nil {
 		return
 	}
@@ -27,9 +27,9 @@ func (EventBroker) fetchProducer() (projectDto *ProjectDto, err error) {
 
 func (EventBroker) fetchConsumer() (projectDto *ProjectDto, err error) {
 	projectDto = &ProjectDto{}
-	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/qa", PreGitHttpUrl)
+	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/qa", PREGITHTTPURL)
 	urlString := fmt.Sprintf("%v/test_info/kafka-consumer/project.yml", projectDto.GitRaw)
-	b, err := fetchFromgitlab(urlString, PrivateToken)
+	b, err := fetchFromgitlab(urlString, PRIVATETOKEN)
 	if err != nil {
 		return
 	}
@@ -46,7 +46,7 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 	if err != nil {
 		return
 	}
-	setComposeProducer(viper, port, project)
+	Compose{}.setComposeProducer(viper, port, project)
 
 	//set consumer
 	p, err := d.fetchConsumer()
@@ -58,7 +58,7 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 		d.setConsumerEnv(p.Envs, streamName)
 		p.ServiceName = "event-kafka-consumer-" + streamName
 		p.Ports = []string{}
-		setComposeConsumer(viper, p)
+		Compose{}.setComposeConsumer(viper, p)
 	}
 
 	//fetch event-broker sql
@@ -67,11 +67,11 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 }
 
 func (EventBroker) fetchSql() (err error) {
-	gitRaw := fmt.Sprintf("%v/%v/raw/qa", PreGitHttpUrl, "infra/eventbroker")
+	gitRaw := fmt.Sprintf("%v/%v/raw/qa", PREGITHTTPURL, "infra/eventbroker")
 	urlString := fmt.Sprintf("%v/test_info%v/table.sql", gitRaw, "/kafka-consumer")
 	if err = fetchTofile(urlString,
 		fmt.Sprintf("%v/%v.sql", TEMP_FILE, EventBroker_Name),
-		PrivateToken); err != nil {
+		PRIVATETOKEN); err != nil {
 		err = fmt.Errorf("read table.sql error:%v", err)
 		return
 	}

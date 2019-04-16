@@ -162,3 +162,22 @@ func getGoPath() (gopath string) {
 	gopath = strings.Replace(gopath, "\\", "/", -1)
 	return
 }
+
+func deleteSlice(chars []string, name string) (newChars []string) {
+	for i := len(chars) - 1; i >= 0; i-- {
+		if chars[i] == name {
+			chars = append(chars[:i], chars[i+1:]...)
+		}
+	}
+	newChars = chars
+	return
+}
+
+func ContainString(chars []string, name string) bool {
+	for _, c := range chars {
+		if strings.ToUpper(c) == strings.ToUpper(name) {
+			return true
+		}
+	}
+	return false
+}
