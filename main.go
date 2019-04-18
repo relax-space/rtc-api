@@ -16,27 +16,41 @@ const (
 )
 
 const (
-	Windows              = "windows"
-	Linux                = "linux"
-	PrivateToken         = "Su5_HzvQxtyANyDtzx_P"
+	PRIVATETOKEN         = "Su5_HzvQxtyANyDtzx_P"
 	PreGitSshUrl         = "ssh://git@gitlab.p2shop.cn:822"
-	PreGitHttpUrl        = "https://gitlab.p2shop.cn:8443"
-	YmlNameConfig        = "config"
-	YmlNameDockerCompose = "docker-compose"
-	RegistryName         = "registry.elandsystems.cn"
+	PREGITHTTPURL        = "https://gitlab.p2shop.cn:8443"
+	YMLNAMECONFIG        = "config"
+	YMLNAMEDOCKERCOMPOSE = "docker-compose"
+	REGISTRYNAME         = "registry.elandsystems.cn"
+	PREWAIT              = "wait-"
+	SUFSERVER            = "-server"
+	PRETEST              = "test-"
 )
 
+var inPort = PortDto{
+	Mysql:     "3306",
+	Redis:     "6379",
+	Mongo:     "27017",
+	SqlServer: "1433",
+	Kafka:     "9092",
+
+	EventBroker: "3000",
+	Nginx:       "80",
+}
+
+type PortDto struct {
+	Mysql     string
+	Redis     string
+	Mongo     string
+	SqlServer string
+	Kafka     string
+
+	EventBroker string
+	Nginx       string
+}
 type ConfigDto struct {
-	Scope string
-	Port  struct {
-		Mysql       string
-		Redis       string
-		Mongo       string
-		SqlServer   string
-		Kafka       string
-		EventBroker string
-		Nginx       string
-	}
+	Scope   string
+	Port    PortDto
 	Project *ProjectDto
 }
 type ProjectDto struct {
@@ -50,10 +64,8 @@ type ProjectDto struct {
 	StreamNames      []string
 	ParentFolderName string
 
-	GitRaw       string
-	SubNames     []string
-	SubProjects  []*ProjectDto
-	Dependencies []string
+	GitRaw      string
+	SubProjects []*ProjectDto
 }
 
 func main() {
@@ -79,24 +91,26 @@ func main() {
 	//2. generate docker-compose
 	if shouldUpdateCompose(c.Scope) {
 		viper := viper.New()
+		compose := Compose{}
 		if shouldStartKakfa(c.Project) {
-			setComposeKafka(viper, c.Port.Kafka)
+			compose.setComposeKafka(viper, c.Port.Kafka)
 		}
 		if shouldStartMysql(c.Project) {
-			setComposeMysql(viper, c.Port.Mysql)
+			compose.setComposeMysql(viper, c.Port.Mysql)
 		}
 		if shouldStartRedis(c.Project) {
-			setComposeRedis(viper, c.Port.Redis)
+			compose.setComposeRedis(viper, c.Port.Redis)
 		}
 
 		if shouldStartEventBroker(c.Project) {
 			streamName := streamList(c.Project)
 			EventBroker{}.SetEventBroker(viper, c.Port.EventBroker, streamName)
 		}
-		setComposeApp(viper, c.Project)
-		setComposeNginx(viper, c.Project.ServiceName, c.Port.Nginx)
+		compose.setComposeApp(viper, c.Project)
+		compose.setComposeNginx(viper, c.Project.ServiceName, c.Port.Nginx)
+		ComposeWait{}.setWaitCompose(viper, c.Project)
 
-		if err = writeConfig(TEMP_FILE+"/"+YmlNameDockerCompose+".yml", viper); err != nil {
+		if err = writeConfig(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", viper); err != nil {
 			fmt.Printf("write to config.yml error:%v", err)
 			return
 		}

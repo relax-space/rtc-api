@@ -7,55 +7,85 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Compose struct {
+	ServiceName string
+	ImageName   string
+	Restart     string
+	Environment []string
+	Ports       []string
+
+	DependsOn []string
+	Build     struct {
+		Context    string
+		Dockerfile string
+	}
+}
+
 // generate docker-compose
-func setComposeApp(viper *viper.Viper, project *ProjectDto) {
-	appComposeMain(viper, project)
+func (d Compose) setComposeApp(viper *viper.Viper, project *ProjectDto) {
+	d.appComposeMain(viper, project)
 	for _, project := range project.SubProjects {
-		appComposeSub(viper, project)
+		d.appComposeSub(viper, project)
 	}
 	viper.Set("version", "3")
 }
 
-func setComposeMysql(viper *viper.Viper, port string) {
-	envs := []string{"MYSQL_ROOT_PASSWORD=1234"}
-	viper.Set("services.mysqlserver.image", "mysql:5.7.22")
-	viper.Set("services.mysqlserver.container_name", "test-mysql")
-	viper.Set("services.mysqlserver.volumes", []string{
+func (d Compose) setComposeMysql(viper *viper.Viper, port string) {
+
+	serviceName := "mysql"
+	servicePre := Compose{}.getServicePre(serviceName)
+
+	viper.Set(servicePre+".image", "mysql:5.7.22")
+	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
+	viper.Set(servicePre+".volumes", []string{
 		".:/docker-entrypoint-initdb.d",
 	})
-	viper.Set("services.mysqlserver.ports", []string{port + ":3306"})
-	viper.Set("services.mysqlserver.restart", "always")
-	viper.Set("services.mysqlserver.environment", envs)
+	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Mysql})
+	//viper.Set("services.mysqlserver.restart", "always")
+	viper.Set(servicePre+".environment", []string{"MYSQL_ROOT_PASSWORD=1234"})
 }
 
-func setComposeKafka(viper *viper.Viper, port string) {
-	viper.Set("services.kafkaserver.image", "spotify/kafka:latest")
-	viper.Set("services.kafkaserver.container_name", "test-kafka")
-	//viper.Set("services.kafkaserver.hostname", "kafkaserver")
-	viper.Set("services.kafkaserver.restart", "always")
-	viper.Set("services.kafkaserver.ports", []string{port + ":9092"})
-	viper.Set("services.kafkaserver.environment", []string{
-		"ADVERTISED_PORT=9092"})
+func (d Compose) setComposeKafka(viper *viper.Viper, port string) {
+
+	serviceName := "kafka"
+	servicePre := Compose{}.getServicePre(serviceName)
+	containerName := d.getContainerName(serviceName)
+
+	viper.Set(servicePre+".image", "spotify/kafka:latest")
+	viper.Set(servicePre+".container_name", containerName)
+	viper.Set(servicePre+".hostname", containerName)
+	//viper.Set("services.kafkaserver.restart", "always")
+	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Kafka})
+	viper.Set(servicePre+".environment", []string{"ADVERTISED_HOST=" + containerName,
+		"ADVERTISED_PORT=" + inPort.Kafka})
 }
 
-func setComposeRedis(viper *viper.Viper, port string) {
-	viper.Set("services.redisserver.image", "redis:latest")
-	viper.Set("services.redisserver.container_name", "test-redis")
-	//viper.Set("services.redisserver.hostname", "redisserver")
-	viper.Set("services.redisserver.restart", "always")
-	viper.Set("services.redisserver.ports", []string{port + ":6379"})
-	viper.Set("services.redisserver.volumes", []string{
+func (d Compose) setComposeRedis(viper *viper.Viper, port string) {
+
+	serviceName := "redis"
+	servicePre := Compose{}.getServicePre(serviceName)
+
+	viper.Set(servicePre+".image", "redis:latest")
+	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
+	viper.Set(servicePre+".hostname", d.getContainerName(serviceName))
+	//	viper.Set("services.redisserver.restart", "always")
+	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Nginx})
+	viper.Set(servicePre+".volumes", []string{
 		"./redis/redis.conf:/usr/local/etc/redis/redis.conf",
 	})
 }
 
-func setComposeNginx(viper *viper.Viper, projectName, port string) {
-	viper.Set("services.nginx.image", "nginx:latest")
-	viper.Set("services.nginx.container_name", "test-nginx")
-	viper.Set("services.nginx.ports", []string{port + ":80"})
-	viper.Set("services.nginx.restart", "on-failure:20")
-	viper.Set("services.nginx.depends_on", []string{projectName + "server"})
-	viper.Set("services.nginx.volumes", []string{
+func (d Compose) setComposeNginx(viper *viper.Viper, projectName, port string) {
+
+	serviceName := "nginx"
+	servicePre := Compose{}.getServicePre(serviceName)
+
+	viper.Set(servicePre+".image", "nginx:latest")
+	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
+	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Nginx})
+	//viper.Set("services.nginx.restart", "on-failure:20")
+	viper.Set(servicePre+".depends_on", []string{d.getServiceServer(projectName)})
+	viper.Set(servicePre+".volumes", []string{
 		"./nginx/default.conf:/etc/nginx/conf.d/default.conf",
 		"./nginx/html:/usr/share/nginx/html",
 		"./nginx:/var/log/nginx",
@@ -63,49 +93,85 @@ func setComposeNginx(viper *viper.Viper, projectName, port string) {
 
 }
 
-func setComposeProducer(viper *viper.Viper, port string, project *ProjectDto) {
-	project.ServiceName = EventBroker_Name
-	project.Ports = []string{port + ":3000"}
-	project.Dependencies = []string{"kafkaserver"}
-	appCompose(viper, project, "Dockerfile", RegistryName+"/"+project.ServiceName+"-qa", "always")
+func (d Compose) setComposeProducer(viper *viper.Viper, port string, project *ProjectDto) {
+	serviceName := EventBroker_Name
+	compose := &Compose{
+		ServiceName: serviceName,
+		ImageName:   REGISTRYNAME + "/" + serviceName + "-qa",
+		//Restart:     "always",
+		Environment: project.Envs,
+		Ports:       []string{port + ":3000"},
+		DependsOn:   []string{d.getWaitName(serviceName)},
+	}
+	compose.appCompose(viper)
+	ComposeWait{}.waitCompose(viper, EventBroker_Name, map[string]NamePortDto{
+		"kafka": NamePortDto{Name: "kafka", Port: "9092"},
+	})
 
 }
 
-func setComposeConsumer(viper *viper.Viper, project *ProjectDto) {
-	project.Dependencies = []string{"kafkaserver"}
-	dockerfile := "./cmd/kafka-consumer/Dockerfile"
-	project.Dependencies = []string{"kafkaserver", "mysqlserver", "redisserver"}
-	appCompose(viper, project, dockerfile, RegistryName+"/"+project.ServiceName+"-qa", "always")
+func (d Compose) setComposeConsumer(viper *viper.Viper, project *ProjectDto) {
+	compose := &Compose{
+		ServiceName: project.ServiceName,
+		ImageName:   REGISTRYNAME + "/" + project.ServiceName + "-qa",
+		//Restart:     "always",
+		Environment: project.Envs,
+		Ports:       project.Ports,
+		DependsOn:   []string{d.getWaitName(project.ServiceName)},
+	}
+	compose.appCompose(viper)
+
+	ComposeWait{}.waitCompose(viper, project.ServiceName, map[string]NamePortDto{
+		"kafka": NamePortDto{Name: "kafka", Port: inPort.Kafka},
+		"mysql": NamePortDto{Name: "mysql", Port: inPort.Mysql},
+		"redis": NamePortDto{Name: "redis", Port: inPort.Redis},
+	})
 }
 
 // utils
-func appCompose(viper *viper.Viper, project *ProjectDto, dockerfile, imageName, restart string) {
-	servicePre := "services." + project.ServiceName + "server"
-	//viper.Set(servicePre+".build.context", getBuildPath(project.ParentFolderName, project.GitShortPath))
-	//viper.Set(servicePre+".build.dockerfile", dockerfile)
-	viper.Set(servicePre+".image", imageName+":latest")
-	viper.Set(servicePre+".restart", restart)
 
-	viper.Set(servicePre+".container_name", "test-"+project.ServiceName)
-	viper.Set(servicePre+".environment", project.Envs)
-	viper.Set(servicePre+".ports", project.Ports)
-	viper.Set(servicePre+".depends_on", project.Dependencies)
+func (d Compose) getServicePre(serviceName string) string {
+	return "services." + d.getServiceServer(serviceName)
 }
 
-func appComposeMain(viper *viper.Viper, project *ProjectDto) {
+func (Compose) getServiceServer(serviceName string) string {
+	return serviceName + SUFSERVER
+}
 
-	viper.SetConfigName(YmlNameDockerCompose)
-	viper.AddConfigPath(TEMP_FILE)
+func (Compose) getContainerName(serviceName string) string {
+	return PRETEST + serviceName
+}
+func (d *Compose) appCompose(viper *viper.Viper) {
+	servicePre := Compose{}.getServicePre(d.ServiceName)
 
-	project.Dependencies = project.SubNames
-	for _, subName := range project.SubNames {
-		project.Dependencies = append(project.Dependencies, subName+"server")
+	viper.Set(servicePre+".image", d.ImageName+":latest")
+	if len(d.Restart) != 0 {
+		viper.Set(servicePre+".restart", d.Restart)
 	}
-	appComposeDependency(project)
-	appCompose(viper, project, "Dockerfile", RegistryName+"/"+project.ServiceName+"-qa", "on-failure:10")
+	viper.Set(servicePre+".container_name", d.getContainerName(d.ServiceName))
+	viper.Set(servicePre+".environment", d.Environment)
+	viper.Set(servicePre+".ports", d.Ports)
+
+	viper.Set(servicePre+".depends_on", d.DependsOn)
 }
 
-func getBuildPath(parentFolderName, gitShortPath string) (buildPath string) {
+func (d Compose) appComposeMain(viper *viper.Viper, project *ProjectDto) {
+
+	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
+	viper.AddConfigPath(TEMP_FILE)
+	compose := &Compose{
+		ServiceName: project.ServiceName,
+		ImageName:   REGISTRYNAME + "/" + project.ServiceName + "-qa",
+		//Restart:     "on-failure:10",
+		Environment: project.Envs,
+		Ports:       project.Ports,
+
+		DependsOn: []string{d.getWaitName(project.ServiceName)},
+	}
+	compose.appCompose(viper)
+}
+
+func (Compose) getBuildPath(parentFolderName, gitShortPath string) (buildPath string) {
 	path := ""
 	if len(parentFolderName) != 0 {
 		path = "/" + parentFolderName
@@ -116,26 +182,18 @@ func getBuildPath(parentFolderName, gitShortPath string) (buildPath string) {
 	return
 }
 
-func appComposeSub(viper *viper.Viper, project *ProjectDto) {
-	appComposeDependency(project)
-	appCompose(viper, project, "Dockerfile", RegistryName+"/"+project.ServiceName+"-qa", "on-failure:10")
+func (d Compose) appComposeSub(viper *viper.Viper, project *ProjectDto) {
+	compose := &Compose{
+		ServiceName: project.ServiceName,
+		ImageName:   REGISTRYNAME + "/" + project.ServiceName + "-qa",
+		//Restart:     "on-failure:10",
+		Environment: project.Envs,
+		Ports:       project.Ports,
+
+		DependsOn: []string{d.getWaitName(project.ServiceName)},
+	}
+	compose.appCompose(viper)
 }
-
-func appComposeDependency(project *ProjectDto) {
-	if shouldStartMysql(project) {
-		project.Dependencies = append(project.Dependencies, "mysqlserver")
-	}
-	if shouldStartRedis(project) {
-		project.Dependencies = append(project.Dependencies, "redisserver")
-	}
-	if shouldStartMongo(project) {
-		project.Dependencies = append(project.Dependencies, "mongoserver")
-	}
-	if shouldStartSqlServer(project) {
-		project.Dependencies = append(project.Dependencies, "sqlServerserver")
-	}
-	if shouldStartKakfa(project) {
-		project.Dependencies = append(project.Dependencies, "kafkaserver")
-	}
-
+func (Compose) getWaitName(serviceName string) string {
+	return PREWAIT + serviceName + SUFSERVER
 }
