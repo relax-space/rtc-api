@@ -47,17 +47,35 @@ func (d Compose) setComposeMysql(viper *viper.Viper, port string) {
 
 func (d Compose) setComposeKafka(viper *viper.Viper, port string) {
 
+	d.setComposeZookeeper(viper, "2181")
+
 	serviceName := "kafka"
 	servicePre := Compose{}.getServicePre(serviceName)
 	containerName := d.getContainerName(serviceName)
 
-	viper.Set(servicePre+".image", "spotify/kafka:latest")
+	viper.Set(servicePre+".image", "wurstmeister/kafka")
 	viper.Set(servicePre+".container_name", containerName)
 	viper.Set(servicePre+".hostname", containerName)
 	//viper.Set("services.kafkaserver.restart", "always")
-	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Kafka})
-	viper.Set(servicePre+".environment", []string{"ADVERTISED_HOST=" + containerName,
-		"ADVERTISED_PORT=" + inPort.Kafka})
+	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Kafka, outPort.Kafka + ":" + outPort.Kafka})
+
+	viper.Set(servicePre+".environment.KAFKA_LISTENERS", fmt.Sprintf("INSIDE://:%v,OUTSIDE://:%v", inPort.Kafka, outPort.Kafka))
+	viper.Set(servicePre+".environment.KAFKA_INTER_BROKER_LISTENER_NAME", "INSIDE")
+	viper.Set(servicePre+".environment.KAFKA_ADVERTISED_LISTENERS", fmt.Sprintf("INSIDE://test-kafka:%v,OUTSIDE://localhost:%v", inPort.Kafka, outPort.Kafka))
+	viper.Set(servicePre+".environment.KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT")
+	viper.Set(servicePre+".environment.KAFKA_ZOOKEEPER_CONNECT", "test-zookeeper:2181")
+
+}
+
+func (d Compose) setComposeZookeeper(viper *viper.Viper, port string) {
+
+	serviceName := "zookeeper"
+	servicePre := Compose{}.getServicePre(serviceName)
+	containerName := d.getContainerName(serviceName)
+
+	viper.Set(servicePre+".image", "wurstmeister/zookeeper:latest")
+	viper.Set(servicePre+".container_name", containerName)
+	viper.Set(servicePre+".ports", []string{port + ":" + port})
 }
 
 func (d Compose) setComposeRedis(viper *viper.Viper, port string) {
