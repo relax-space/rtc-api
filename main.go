@@ -140,11 +140,8 @@ func main() {
 	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
 	//3. run docker-compose
 	if shouldRestartData(c.Scope) {
-		if _, err = Cmd("docker-compose", "-f", dockercompose, "down", "--remove-orphans"); err != nil {
-			fmt.Printf("err:%v", err)
-			return
-		}
-		if _, err = Cmd("docker", "system", "prune", "--volumes", "-f"); err != nil {
+		//delete volume
+		if _, err = Cmd("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
