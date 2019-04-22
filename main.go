@@ -1,12 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/go-xorm/core"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-xorm/xorm"
+
+	kafkautil "github.com/segmentio/kafka-go"
 
 	"github.com/spf13/viper"
 )
@@ -40,7 +48,14 @@ var inPort = PortDto{
 }
 
 var outPort = PortDto{
-	Kafka: "29092",
+	Mysql:     "3306",
+	Redis:     "6379",
+	Mongo:     "27017",
+	SqlServer: "1433",
+	Kafka:     "29092",
+
+	EventBroker: "3000",
+	Nginx:       "3001",
 }
 
 type PortDto struct {
@@ -160,13 +175,19 @@ func main() {
 		}
 		fmt.Println("==> compose builded!")
 	}
-
-	go func() {
-		if _, err = Cmd("docker-compose", "-f", dockercompose, "up"); err != nil {
+	project := *(c.Project)
+	go func(p ProjectDto, composePath string) {
+		if err = checkAll(p, composePath); err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("check is ok.")
+		if _, err = Cmd("docker-compose", "-f", composePath, "up", "-d"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
-	}()
+		time.Sleep(10 * time.Second)
+		fmt.Println("==> compose may have been up!")
+	}(project, dockercompose)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Kill, os.Interrupt)
 	go func() {
@@ -177,7 +198,84 @@ func main() {
 			}
 		}
 	}()
-	time.Sleep(10 * time.Second)
-	fmt.Println("==> compose may have been up!")
-	time.Sleep(10 * time.Minute)
+	time.Sleep(100 * time.Hour)
+}
+
+func checkAll(project ProjectDto, dockercompose string) (err error) {
+
+	if shouldStartMysql(&project) {
+		if err = checkMysql(dockercompose); err != nil {
+			return
+		}
+	}
+	if shouldStartKakfa(&project) {
+		if err = checkKafka(dockercompose); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func checkMysql(dockercompose string) (err error) {
+
+	if _, err = Cmd("docker-compose", "-f", dockercompose, "up", "--detach", "mysql"+SUFSERVER); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+	db, err := xorm.NewEngine("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", outPort.Mysql))
+	if err != nil {
+		fmt.Println("mysql", err)
+		return
+	}
+
+	db.SetLogLevel(core.LOG_OFF)
+
+	fmt.Println("begin ping db")
+	for index := 0; index < 300; index++ {
+		err = db.Ping()
+		if err != nil {
+			//fmt.Println("error ping db", err)
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		err = nil
+		break
+	}
+	if err != nil {
+		fmt.Println("error ping db")
+		return
+	}
+	fmt.Println("finish ping db")
+	return
+}
+
+func checkKafka(dockercompose string) (err error) {
+
+	if _, err = Cmd("docker-compose", "-f", dockercompose, "up", "--detach", "zookeeper"+SUFSERVER); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+
+	if _, err = Cmd("docker-compose", "-f", dockercompose, "up", "--detach", "kafka"+SUFSERVER); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+
+	fmt.Println("begin ping kafka")
+	for index := 0; index < 300; index++ {
+		_, err = kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+outPort.Kafka, "ping", 0)
+		if err != nil {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		err = nil
+		break
+	}
+	if err != nil {
+		fmt.Println("error ping kafka")
+		return
+	}
+	fmt.Println("finish ping kafka")
+	return
 }
