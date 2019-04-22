@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -36,6 +37,10 @@ var inPort = PortDto{
 
 	EventBroker: "3000",
 	Nginx:       "80",
+}
+
+var outPort = PortDto{
+	Kafka: "29092",
 }
 
 type PortDto struct {
@@ -110,16 +115,28 @@ func main() {
 		compose.setComposeNginx(viper, c.Project.ServiceName, c.Port.Nginx)
 		ComposeWait{}.setWaitCompose(viper, c.Project)
 
-		if err = writeConfig(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", viper); err != nil {
-			fmt.Printf("write to config.yml error:%v", err)
-			return
+		// if err := writeConfig(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", viper); err != nil {
+		// 	fmt.Printf("write to %v error:%v", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
+		// 	return
+		// }
+
+		ymlStr, err := yamlStringSettings(viper)
+		if err != nil {
+			fmt.Printf("write to %v error:%v\n", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
 		}
+		fmt.Println(ymlStr, err)
+
+		ymlStr = strings.Replace(ymlStr, "kafka_advertised_listeners", "KAFKA_ADVERTISED_LISTENERS", -1)
+		ymlStr = strings.Replace(ymlStr, "kafka_inter_broker_listener_name", "KAFKA_INTER_BROKER_LISTENER_NAME", -1)
+		ymlStr = strings.Replace(ymlStr, "kafka_listener_security_protocol_map", "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", -1)
+		ymlStr = strings.Replace(ymlStr, "kafka_listeners", "KAFKA_LISTENERS", -1)
+		ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connect", "KAFKA_ZOOKEEPER_CONNECT", -1)
+
+		if writeFile(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", ymlStr); err != nil {
+			fmt.Printf("write to %v error:%v", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
+		}
+		//writeFile
 	}
-	// path, err := getCurrentPath()
-	// if err != nil {
-	// 	fmt.Printf("get path failure error:%v", err)
-	// 	return
-	// }
 
 	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
 	//3. run docker-compose

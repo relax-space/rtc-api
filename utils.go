@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ghodss/yaml"
+
 	"github.com/pangpanglabs/goutils/httpreq"
 
 	"github.com/spf13/viper"
@@ -180,4 +182,14 @@ func ContainString(chars []string, name string) bool {
 		}
 	}
 	return false
+}
+
+func yamlStringSettings(vip *viper.Viper) (ymlString string, err error) {
+	c := vip.AllSettings()
+	bs, err := yaml.Marshal(c)
+	if err != nil {
+		return
+	}
+	ymlString = string(bs)
+	return
 }
