@@ -124,7 +124,6 @@ func main() {
 		if err != nil {
 			fmt.Printf("write to %v error:%v\n", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
 		}
-		fmt.Println(ymlStr, err)
 
 		ymlStr = strings.Replace(ymlStr, "kafka_advertised_listeners", "KAFKA_ADVERTISED_LISTENERS", -1)
 		ymlStr = strings.Replace(ymlStr, "kafka_inter_broker_listener_name", "KAFKA_INTER_BROKER_LISTENER_NAME", -1)
@@ -142,6 +141,10 @@ func main() {
 	//3. run docker-compose
 	if shouldRestartData(c.Scope) {
 		if _, err = Cmd("docker-compose", "-f", dockercompose, "down", "--remove-orphans"); err != nil {
+			fmt.Printf("err:%v", err)
+			return
+		}
+		if _, err = Cmd("docker", "system", "prune", "--volumes", "-f"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
