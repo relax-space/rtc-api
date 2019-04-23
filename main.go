@@ -34,6 +34,8 @@ const (
 	PREWAIT              = "wait-"
 	SUFSERVER            = "-server"
 	PRETEST              = "test-"
+	P2SHOPHOST           = "https://gateway.p2shop.com.cn"
+	QAREGISTRY           = "registry.p2shop.com.cn"
 )
 
 var inPort = PortDto{
@@ -74,15 +76,17 @@ type ConfigDto struct {
 	Project *ProjectDto
 }
 type ProjectDto struct {
-	IsMulti          bool     //a git contains multiple microservices
-	ServiceName      string   //eg. ipay-api
-	GitShortPath     string   //eg. ipay/ipay-api
-	Envs             []string // from jenkins
-	IsProjectKafka   bool
+	IsMulti        bool     //a git contains multiple microservices
+	ServiceName    string   //eg. ipay-api
+	GitShortPath   string   //eg. ipay/ipay-api
+	Envs           []string // from jenkins
+	IsProjectKafka bool
+
 	Ports            []string
 	Databases        []string //mysql,redis,mongo,sqlserver
 	StreamNames      []string
 	ParentFolderName string
+	Registry         string
 
 	GitRaw      string
 	SubProjects []*ProjectDto

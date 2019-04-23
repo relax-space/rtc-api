@@ -179,7 +179,7 @@ func (d Compose) appComposeMain(viper *viper.Viper, project *ProjectDto) {
 	viper.AddConfigPath(TEMP_FILE)
 	compose := &Compose{
 		ServiceName: project.ServiceName,
-		ImageName:   REGISTRYNAME + "/" + project.ServiceName + "-qa",
+		ImageName:   project.Registry,
 		//Restart:     "on-failure:10",
 		Environment: project.Envs,
 		Ports:       project.Ports,
@@ -203,7 +203,7 @@ func (Compose) getBuildPath(parentFolderName, gitShortPath string) (buildPath st
 func (d Compose) appComposeSub(viper *viper.Viper, project *ProjectDto) {
 	compose := &Compose{
 		ServiceName: project.ServiceName,
-		ImageName:   REGISTRYNAME + "/" + project.ServiceName + "-qa",
+		ImageName:   project.Registry,
 		//Restart:     "on-failure:10",
 		Environment: project.Envs,
 		Ports:       project.Ports,
