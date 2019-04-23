@@ -47,9 +47,12 @@ func LoadEnv() (c *ConfigDto, err error) {
 	}
 
 	//1.load base info from gitlab
-	if c.Project, err = testProjectDependency(c.Project.ServiceName); err != nil {
+	if c.Project, err = (Relation{}).FetchRalation(c.Project.ServiceName); err != nil {
 		return
 	}
+	// if c.Project, err = testProjectDependency(c.Project.ServiceName); err != nil {
+	// 	return
+	// }
 	if err = loadProjectEnv(c.Project); err != nil {
 		return
 	}

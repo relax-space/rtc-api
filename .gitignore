@@ -20,3 +20,4 @@ tmp/
 swagger-ui
 temp/
 run-test-container
+*.exe
