@@ -174,7 +174,7 @@ func (d Relation) setSubProject(relations map[string]Relation, project *ProjectD
 }
 
 func (Relation) getRegistry(image string) (registry string) {
-	registry = strings.Replace(image, QAREGISTRY, REGISTRYNAME, -1)
+	registry = strings.Replace(image, REGISTRYQA, REGISTRYELAND, -1)
 
 	i := strings.LastIndex(registry, "-")
 	if i > 0 {
