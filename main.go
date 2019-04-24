@@ -36,6 +36,7 @@ const (
 	PRETEST              = "test-"
 	P2SHOPHOST           = "https://gateway.p2shop.com.cn"
 	QAREGISTRY           = "registry.p2shop.com.cn"
+	WAITIMAGE            = "waisbrot/wait" //xiaoxinmiao/wait:0.0.2
 )
 
 var inPort = PortDto{
@@ -106,7 +107,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		if err := fetchsqlTofile(c.Project); err != nil {
+		if err := (Relation{}).FetchsqlTofile(c.Project); err != nil {
 			fmt.Println(err)
 			return
 		}
@@ -139,21 +140,10 @@ func main() {
 		// 	return
 		// }
 
-		ymlStr, err := yamlStringSettings(viper)
-		if err != nil {
-			fmt.Printf("write to %v error:%v\n", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
+		if err = writeToCompose(viper); err != nil {
+			fmt.Println(err)
+			return
 		}
-
-		ymlStr = strings.Replace(ymlStr, "kafka_advertised_listeners", "KAFKA_ADVERTISED_LISTENERS", -1)
-		ymlStr = strings.Replace(ymlStr, "kafka_inter_broker_listener_name", "KAFKA_INTER_BROKER_LISTENER_NAME", -1)
-		ymlStr = strings.Replace(ymlStr, "kafka_listener_security_protocol_map", "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", -1)
-		ymlStr = strings.Replace(ymlStr, "kafka_listeners", "KAFKA_LISTENERS", -1)
-		ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connect", "KAFKA_ZOOKEEPER_CONNECT", -1)
-
-		if writeFile(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", ymlStr); err != nil {
-			fmt.Printf("write to %v error:%v", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
-		}
-		//writeFile
 	}
 
 	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
@@ -203,6 +193,26 @@ func main() {
 		}
 	}()
 	time.Sleep(100 * time.Hour)
+}
+
+func writeToCompose(viper *viper.Viper) (err error) {
+	ymlStr, err := yamlStringSettings(viper)
+	if err != nil {
+		err = fmt.Errorf("write to %v error:%v\n", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
+		return
+	}
+
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_listeners", "KAFKA_ADVERTISED_LISTENERS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_inter_broker_listener_name", "KAFKA_INTER_BROKER_LISTENER_NAME", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_listener_security_protocol_map", "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_listeners", "KAFKA_LISTENERS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connect", "KAFKA_ZOOKEEPER_CONNECT", -1)
+
+	if writeFile(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", ymlStr); err != nil {
+		err = fmt.Errorf("write to %v error:%v", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
+		return
+	}
+	return
 }
 
 func checkAll(project ProjectDto, dockercompose string) (err error) {

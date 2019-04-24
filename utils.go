@@ -75,6 +75,10 @@ func fetchFromgitlab(url, privateToken string) (b []byte, err error) {
 	if err != nil {
 		return
 	}
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("request gitlab error:%v", url)
+		return
+	}
 	defer resp.Body.Close()
 	b, err = ioutil.ReadAll(resp.Body)
 	return
