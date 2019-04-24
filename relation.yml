@@ -1,5 +1,0 @@
-serviceName: sync-msl-taobao
-gitShortPath: pangpangjan/sync-msl-taobao
-subProjects:
-  - serviceName: jan-catalog
-    gitShortPath: pangpangjan/catalog

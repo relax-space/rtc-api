@@ -94,7 +94,7 @@ func (d ComposeWait) waitCompose(viper *viper.Viper, serviceName string, deps ma
 	for _, dep := range deps {
 		depends = append(depends, Compose{}.getServiceServer(dep.Name))
 	}
-	viper.Set(servicePre+".image", "xiaoxinmiao/wait:0.0.2")
+	viper.Set(servicePre+".image", WAITIMAGE)
 	viper.Set(servicePre+".container_name", Compose{}.getContainerName(waitName))
 	viper.Set(servicePre+".environment", environments)
 	viper.Set(servicePre+".depends_on", depends)

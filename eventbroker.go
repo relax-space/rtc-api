@@ -14,12 +14,13 @@ func (EventBroker) fetchProducer() (projectDto *ProjectDto, err error) {
 	projectDto = &ProjectDto{}
 	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/qa", PREGITHTTPURL)
 	urlString := fmt.Sprintf("%v/test_info/kafka-producer/project.yml", projectDto.GitRaw)
-	b, err := fetchFromgitlab(urlString, PRIVATETOKEN)
-	if err != nil {
+	b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
+	if errd != nil {
+		err = fmt.Errorf("fetch test_info error,url:%v,err:%v", urlString, errd.Error())
 		return
 	}
 	if err = yaml.Unmarshal(b, projectDto); err != nil {
-		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
+		err = fmt.Errorf("parse test_info error,project:%v,err:%v", projectDto.ServiceName, err.Error())
 		return
 	}
 	return
@@ -29,12 +30,10 @@ func (EventBroker) fetchConsumer() (projectDto *ProjectDto, err error) {
 	projectDto = &ProjectDto{}
 	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/qa", PREGITHTTPURL)
 	urlString := fmt.Sprintf("%v/test_info/kafka-consumer/project.yml", projectDto.GitRaw)
-	b, err := fetchFromgitlab(urlString, PRIVATETOKEN)
-	if err != nil {
-		return
-	}
-	if err = yaml.Unmarshal(b, &projectDto); err != nil {
-		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
+	b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
+
+	if err = yaml.Unmarshal(b, &projectDto); errd != nil {
+		err = fmt.Errorf("parse test_info error,project:%v,err:%v", projectDto.ServiceName, err.Error())
 		return
 	}
 	return

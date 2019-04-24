@@ -6,8 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ghodss/yaml"
-	"github.com/phayes/freeport"
 	"github.com/spf13/viper"
 )
 
@@ -48,12 +46,6 @@ func LoadEnv() (c *ConfigDto, err error) {
 
 	//1.load base info from gitlab
 	if c.Project, err = (Relation{}).FetchRalation(c.Project.ServiceName); err != nil {
-		return
-	}
-	// if c.Project, err = testProjectDependency(c.Project.ServiceName); err != nil {
-	// 	return
-	// }
-	if err = loadProjectEnv(c.Project); err != nil {
 		return
 	}
 	if err = writeConfigYml(c); err != nil {
@@ -203,29 +195,6 @@ func getScope(updated *string) (updatedStr string, err error) {
 	return
 }
 
-func fetchsqlTofile(project *ProjectDto) (err error) {
-
-	path := getTestInfoPath(project)
-
-	urlString := fmt.Sprintf("%v/test_info%v/table.sql", project.GitRaw, path)
-	if err = fetchTofile(urlString,
-		fmt.Sprintf("%v/%v.sql", TEMP_FILE, project.ServiceName),
-		PRIVATETOKEN); err != nil {
-		err = fmt.Errorf("read table.sql error:%v", err)
-		return
-	}
-	for _, projectDto := range project.SubProjects {
-		urlString := fmt.Sprintf("%v/test_info%v/table.sql", projectDto.GitRaw, path)
-		if err = fetchTofile(urlString,
-			fmt.Sprintf("%v/%v.sql", TEMP_FILE, projectDto.ServiceName),
-			PRIVATETOKEN); err != nil {
-			err = fmt.Errorf("read %v.sql error:%v", projectDto.ServiceName, err)
-			return
-		}
-	}
-	return
-}
-
 func writeConfig(path string, viper *viper.Viper) (err error) {
 	if err = os.MkdirAll(TEMP_FILE, os.ModePerm); err != nil {
 		return
@@ -237,78 +206,6 @@ func writeConfig(path string, viper *viper.Viper) (err error) {
 		return
 	}
 	return
-}
-
-func getFirstProjectEnv(projectDto *ProjectDto) (err error) {
-	urlString := fmt.Sprintf("%v/test_info/project.yml", projectDto.GitRaw)
-	b, err := fetchFromgitlab(urlString, PRIVATETOKEN)
-	if err = yaml.Unmarshal(b, projectDto); err != nil {
-		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
-		return
-	}
-	return
-}
-
-func getTestInfoPath(projectDto *ProjectDto) (path string) {
-
-	// if len(projectDto.ParentFolderName) != 0 {
-	// 	path = "/" + projectDto.ParentFolderName
-	// }
-	if projectDto.IsMulti {
-		path += "/" + projectDto.ServiceName
-	}
-	return
-}
-
-func loadProjectEnv(projectDto *ProjectDto) (err error) {
-	projectDto.GitRaw = fmt.Sprintf("%v/%v/raw/qa", PREGITHTTPURL, projectDto.GitShortPath)
-	if err = getFirstProjectEnv(projectDto); err != nil {
-		return
-	}
-
-	path := getTestInfoPath(projectDto)
-
-	if projectDto.IsMulti {
-		urlString := fmt.Sprintf("%v/test_info%v/project.yml", projectDto.GitRaw, path)
-		b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
-		if errd != nil {
-			err = errd
-			return
-		}
-		if err = yaml.Unmarshal(b, projectDto); err != nil {
-			err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
-			return
-		}
-	}
-
-	setPort(projectDto)
-
-	for i, subProject := range projectDto.SubProjects {
-		projectDto.SubProjects[i].GitRaw = fmt.Sprintf("%v/%v/raw/qa", PREGITHTTPURL, subProject.GitShortPath)
-		urlString := fmt.Sprintf("%v/test_info%v/project.yml", subProject.GitRaw, path)
-		b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
-		if errd != nil {
-			err = errd
-			return
-		}
-		if err = yaml.Unmarshal(b, projectDto.SubProjects[i]); err != nil {
-			err = fmt.Errorf("parse project.yml error,project:%v,err:%v", subProject.ServiceName, err.Error())
-			return
-		}
-		setPort(projectDto.SubProjects[i])
-	}
-	return
-}
-
-func setPort(projectDto *ProjectDto) {
-	ports, err := freeport.GetFreePorts(len(projectDto.Ports))
-	if err != nil {
-		err = fmt.Errorf("get free port error,project:%v,err:%v", projectDto.ServiceName, err.Error())
-		return
-	}
-	for i, _ := range projectDto.Ports {
-		projectDto.Ports[i] = fmt.Sprintf("%v:%v", ports[i], projectDto.Ports[i])
-	}
 }
 
 func shouldLocalConfig(scope string) (isLocalConfig bool) {
