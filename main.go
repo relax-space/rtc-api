@@ -30,12 +30,12 @@ const (
 	PREGITHTTPURL        = "https://gitlab.p2shop.cn:8443"
 	YMLNAMECONFIG        = "config"
 	YMLNAMEDOCKERCOMPOSE = "docker-compose"
-	REGISTRYNAME         = "registry.elandsystems.cn"
+	REGISTRYELAND        = "registry.elandsystems.cn"
 	PREWAIT              = "wait-"
 	SUFSERVER            = "-server"
 	PRETEST              = "test-"
 	P2SHOPHOST           = "https://gateway.p2shop.com.cn"
-	QAREGISTRY           = "registry.p2shop.com.cn"
+	REGISTRYQA           = "registry.p2shop.com.cn"
 	WAITIMAGE            = "waisbrot/wait" //xiaoxinmiao/wait:0.0.2
 )
 
@@ -118,7 +118,7 @@ func main() {
 		viper := viper.New()
 		compose := Compose{}
 		if shouldStartKakfa(c.Project) {
-			compose.setComposeKafka(viper, c.Port.Kafka)
+			compose.setComposeKafkaEland(viper, c.Port.Kafka)
 		}
 		if shouldStartMysql(c.Project) {
 			compose.setComposeMysql(viper, c.Port.Mysql)
@@ -207,6 +207,8 @@ func writeToCompose(viper *viper.Viper) (err error) {
 	ymlStr = strings.Replace(ymlStr, "kafka_listener_security_protocol_map", "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", -1)
 	ymlStr = strings.Replace(ymlStr, "kafka_listeners", "KAFKA_LISTENERS", -1)
 	ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connect", "KAFKA_ZOOKEEPER_CONNECT", -1)
+
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_port", "KAFKA_ADVERTISED_PORT", -1)
 
 	if writeFile(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", ymlStr); err != nil {
 		err = fmt.Errorf("write to %v error:%v", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
