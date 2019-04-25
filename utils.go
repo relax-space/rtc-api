@@ -30,6 +30,9 @@ func Cmd(name string, arg ...string) (result string, err error) {
 		return
 	}
 	result = out.String()
+	if len(result) != 0 {
+		fmt.Println(result)
+	}
 	return
 }
 

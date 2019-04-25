@@ -179,8 +179,7 @@ func main() {
 			fmt.Printf("err:%v", err)
 			return
 		}
-		time.Sleep(10 * time.Second)
-		fmt.Println("==> compose may have been up!")
+		fmt.Println("==> compose up!")
 	}(project, dockercompose)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Kill, os.Interrupt)
