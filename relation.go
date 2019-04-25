@@ -40,7 +40,7 @@ func (d Relation) FetchRalation(serviceName string) (project *ProjectDto, err er
 		return
 	}
 	if apiResult.Success == false {
-		err = fmt.Errorf("no data from mingbao api by serviceName:%v.", serviceName)
+		err = fmt.Errorf("no data from mingbai api ,url:%v", url)
 		return
 	}
 
