@@ -36,6 +36,56 @@ func Cmd(name string, arg ...string) (result string, err error) {
 	return
 }
 
+func CmdRealtime(name string, arg ...string) (result string, err error) {
+	cmd := exec.Command(name, arg...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// func CmdRealtime(name string, args ...string) (result string, err error) {
+// 	cmd := exec.Command(name, args...)
+// 	var stdBuffer bytes.Buffer
+// 	mw := io.MultiWriter(os.Stdout, &stdBuffer)
+
+// 	cmd.Stdout = mw
+// 	cmd.Stderr = mw
+
+// 	// Execute the command
+// 	if err = cmd.Run(); err != nil {
+// 		return
+// 	}
+// 	result = stdBuffer.String()
+// 	if len(result) != 0 {
+// 		fmt.Println(result)
+// 	}
+// 	return
+// }
+
+// func CmdRealtime(name string, args ...string) (result string, err error) {
+// 	cmd := exec.Command(name, args...)
+// 	var stdBuffer bytes.Buffer
+// 	mw := io.MultiWriter(os.Stdout, &stdBuffer)
+
+// 	cmd.Stdout = mw
+// 	cmd.Stderr = mw
+
+// 	// Execute the command
+// 	if err = cmd.Run(); err != nil {
+// 		return
+// 	}
+// 	result = stdBuffer.String()
+// 	if len(result) != 0 {
+// 		fmt.Println(result)
+// 	}
+// 	return
+// }
+
 func createIfNot(path string) error {
 	if _, err := os.Stat(path); err != nil {
 		if _, err = os.Create(path); err != nil {

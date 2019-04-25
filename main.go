@@ -150,20 +150,20 @@ func main() {
 	//3. run docker-compose
 	if shouldRestartData(c.Scope) {
 		//delete volume
-		if _, err = Cmd("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
+		if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
 		fmt.Println("==> compose downed!")
 	}
-	if _, err = Cmd("docker-compose", "-f", dockercompose, "pull"); err != nil {
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "pull"); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
 	fmt.Println("==> compose pulled!")
 
 	if shouldRestartApp(c.Scope) {
-		if _, err = Cmd("docker-compose", "-f", dockercompose, "build"); err != nil {
+		if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "build"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
@@ -175,7 +175,7 @@ func main() {
 			fmt.Println(err)
 		}
 		fmt.Println("check is ok.")
-		if _, err = Cmd("docker-compose", "-f", composePath, "up", "-d"); err != nil {
+		if _, err = CmdRealtime("docker-compose", "-f", composePath, "up", "-d"); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
@@ -234,7 +234,7 @@ func checkAll(project ProjectDto, dockercompose string) (err error) {
 
 func checkMysql(dockercompose string) (err error) {
 
-	if _, err = Cmd("docker-compose", "-f", dockercompose, "up", "--detach", "mysql"+SUFSERVER); err != nil {
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "mysql"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
@@ -267,12 +267,12 @@ func checkMysql(dockercompose string) (err error) {
 
 func checkKafka(dockercompose string) (err error) {
 
-	if _, err = Cmd("docker-compose", "-f", dockercompose, "up", "--detach", "zookeeper"+SUFSERVER); err != nil {
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "zookeeper"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
 
-	if _, err = Cmd("docker-compose", "-f", dockercompose, "up", "--detach", "kafka"+SUFSERVER); err != nil {
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "kafka"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
