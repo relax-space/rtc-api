@@ -1,18 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/go-xorm/core"
-
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/xorm"
+
+	mysql "github.com/go-sql-driver/mysql"
 
 	kafkautil "github.com/segmentio/kafka-go"
 
@@ -238,13 +240,16 @@ func checkMysql(dockercompose string) (err error) {
 		fmt.Printf("err:%v", err)
 		return
 	}
-	db, err := xorm.NewEngine("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", outPort.Mysql))
+
+	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", outPort.Mysql))
 	if err != nil {
 		fmt.Println("mysql", err)
 		return
 	}
-
-	db.SetLogLevel(core.LOG_OFF)
+	//remove mysql log
+	buffer := bytes.NewBuffer(make([]byte, 0, 64))
+	logger := log.New(buffer, "prefix: ", 0)
+	mysql.SetLogger(logger)
 
 	fmt.Println("begin ping db")
 	for index := 0; index < 300; index++ {
