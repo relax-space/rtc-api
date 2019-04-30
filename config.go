@@ -18,8 +18,10 @@ func LoadEnv() (c *ConfigDto, err error) {
 	mongoPort := flag.String("mongoPort", os.Getenv("mongoPort"), "mongoPort")
 	sqlServerPort := flag.String("sqlServerPort", os.Getenv("sqlServerPort"), "sqlServerPort")
 	kafkaPort := flag.String("kafkaPort", os.Getenv("kafkaPort"), "kafkaPort")
+	kafkaSecondPort := flag.String("kafkaSecondPort", os.Getenv("kafkaSecondPort"), "kafkaSecondPort")
 	eventBrokerPort := flag.String("eventBrokerPort", os.Getenv("eventBrokerPort"), "eventBrokerPort")
 	nginxPort := flag.String("nginxPort", os.Getenv("nginxPort"), "nginxPort")
+	zookeeperPort := flag.String("zookeeperPort", os.Getenv("zookeeperPort"), "zookeeperPort")
 
 	//EventBroker
 	flag.Parse()
@@ -32,7 +34,7 @@ func LoadEnv() (c *ConfigDto, err error) {
 
 	c = &ConfigDto{}
 	if err = loadEnv(c, updatedStr, serviceName,
-		mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, eventBrokerPort, nginxPort); err != nil {
+		mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort, eventBrokerPort, nginxPort, zookeeperPort); err != nil {
 		return
 	}
 	isLocalConfig := shouldLocalConfig(updatedStr)
@@ -127,7 +129,7 @@ func testProjectDependency(serviceName string) (projectDto *ProjectDto, err erro
 }
 
 func loadEnv(c *ConfigDto, scope string,
-	serviceName, mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, eventBrokerPort, nginxPort *string) (err error) {
+	serviceName, mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort, eventBrokerPort, nginxPort, zookeeperPort *string) (err error) {
 	if serviceName == nil || len(*serviceName) == 0 {
 		err = fmt.Errorf("read env error:%v", "serviceName is required.")
 		return
@@ -139,26 +141,52 @@ func loadEnv(c *ConfigDto, scope string,
 	c.Project.ServiceName = *serviceName
 	if mysqlPort == nil || len(*mysqlPort) == 0 {
 		c.Port.Mysql = inPort.Mysql
+	} else {
+		c.Port.Mysql = *mysqlPort
 	}
 	if redisPort == nil || len(*redisPort) == 0 {
 		c.Port.Redis = inPort.Redis
+	} else {
+		c.Port.Mysql = *mysqlPort
 	}
 	if mongoPort == nil || len(*mongoPort) == 0 {
 		c.Port.Mongo = inPort.Mongo
+	} else {
+		c.Port.Mongo = *mongoPort
 	}
 	if sqlServerPort == nil || len(*sqlServerPort) == 0 {
 		c.Port.SqlServer = inPort.SqlServer
+	} else {
+		c.Port.SqlServer = *sqlServerPort
 	}
 	if kafkaPort == nil || len(*kafkaPort) == 0 {
 		c.Port.Kafka = inPort.Kafka
+	} else {
+		c.Port.Kafka = *kafkaPort
 	}
+	if kafkaSecondPort == nil || len(*kafkaSecondPort) == 0 {
+		c.Port.KafkaSecond = inPort.KafkaSecond
+	} else {
+		c.Port.KafkaSecond = *kafkaSecondPort
+	}
+	if zookeeperPort == nil || len(*zookeeperPort) == 0 {
+		c.Port.Zookeeper = inPort.Zookeeper
+	} else {
+		c.Port.Zookeeper = *zookeeperPort
+	}
+
 	if eventBrokerPort == nil || len(*eventBrokerPort) == 0 {
 		c.Port.EventBroker = inPort.EventBroker
+	} else {
+		c.Port.EventBroker = *eventBrokerPort
 	}
 	// nginx default outPort:3001
 	if nginxPort == nil || len(*nginxPort) == 0 {
 		c.Port.Nginx = "3001"
+	} else {
+		c.Port.Nginx = *nginxPort
 	}
+
 	return
 }
 
