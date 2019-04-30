@@ -135,12 +135,6 @@ func main() {
 		}
 		compose.setComposeApp(viper, c.Project)
 		compose.setComposeNginx(viper, c.Project.ServiceName, c.Port.Nginx)
-		ComposeWait{}.setWaitCompose(viper, c.Project)
-
-		// if err := writeConfig(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", viper); err != nil {
-		// 	fmt.Printf("write to %v error:%v", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
-		// 	return
-		// }
 
 		if err = writeToCompose(viper); err != nil {
 			fmt.Println(err)

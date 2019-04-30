@@ -21,13 +21,20 @@ type Compose struct {
 	}
 }
 
+type NamePortDto struct {
+	Name string
+	Port string
+}
+
 // generate docker-compose
 func (d Compose) setComposeApp(viper *viper.Viper, project *ProjectDto) {
-	d.appComposeMain(viper, project)
-	for _, project := range project.SubProjects {
-		d.appComposeSub(viper, project)
-	}
 	viper.Set("version", "3")
+	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
+	viper.AddConfigPath(TEMP_FILE)
+	d.appCompose(viper, project)
+	for _, sub := range project.SubProjects {
+		d.appCompose(viper, sub)
+	}
 }
 
 func (d Compose) setComposeMysql(viper *viper.Viper, port string) {
@@ -156,13 +163,9 @@ func (d Compose) setComposeProducer(viper *viper.Viper, port string, project *Pr
 		//Restart:     "always",
 		Environment: project.Envs,
 		Ports:       []string{port + ":3000"},
-		DependsOn:   []string{d.getWaitName(serviceName)},
+		DependsOn:   []string{d.getServiceServer("kafka")},
 	}
-	compose.appCompose(viper)
-	ComposeWait{}.waitCompose(viper, EventBroker_Name, map[string]NamePortDto{
-		"kafka": NamePortDto{Name: "kafka", Port: "9092"},
-	})
-
+	compose.setCompose(viper)
 }
 
 func (d Compose) setComposeConsumer(viper *viper.Viper, project *ProjectDto) {
@@ -172,15 +175,10 @@ func (d Compose) setComposeConsumer(viper *viper.Viper, project *ProjectDto) {
 		//Restart:     "always",
 		Environment: project.Envs,
 		Ports:       project.Ports,
-		DependsOn:   []string{d.getWaitName(project.ServiceName)},
+		DependsOn: []string{d.getServiceServer("kafka"),
+			d.getServiceServer("mysql"), d.getServiceServer("redis")},
 	}
-	compose.appCompose(viper)
-
-	ComposeWait{}.waitCompose(viper, project.ServiceName, map[string]NamePortDto{
-		"kafka": NamePortDto{Name: "kafka", Port: inPort.Kafka},
-		"mysql": NamePortDto{Name: "mysql", Port: inPort.Mysql},
-		"redis": NamePortDto{Name: "redis", Port: inPort.Redis},
-	})
+	compose.setCompose(viper)
 }
 
 // utils
@@ -196,7 +194,7 @@ func (Compose) getServiceServer(serviceName string) string {
 func (Compose) getContainerName(serviceName string) string {
 	return PRETEST + serviceName
 }
-func (d *Compose) appCompose(viper *viper.Viper) {
+func (d *Compose) setCompose(viper *viper.Viper) {
 	servicePre := Compose{}.getServicePre(d.ServiceName)
 
 	viper.Set(servicePre+".image", d.ImageName+":latest")
@@ -210,22 +208,6 @@ func (d *Compose) appCompose(viper *viper.Viper) {
 	viper.Set(servicePre+".depends_on", d.DependsOn)
 }
 
-func (d Compose) appComposeMain(viper *viper.Viper, project *ProjectDto) {
-
-	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
-	viper.AddConfigPath(TEMP_FILE)
-	compose := &Compose{
-		ServiceName: project.ServiceName,
-		ImageName:   project.Registry,
-		//Restart:     "on-failure:10",
-		Environment: project.Envs,
-		Ports:       project.Ports,
-
-		DependsOn: []string{d.getWaitName(project.ServiceName)},
-	}
-	compose.appCompose(viper)
-}
-
 func (Compose) getBuildPath(parentFolderName, gitShortPath string) (buildPath string) {
 	path := ""
 	if len(parentFolderName) != 0 {
@@ -237,7 +219,9 @@ func (Compose) getBuildPath(parentFolderName, gitShortPath string) (buildPath st
 	return
 }
 
-func (d Compose) appComposeSub(viper *viper.Viper, project *ProjectDto) {
+func (d Compose) appCompose(viper *viper.Viper, project *ProjectDto) {
+
+	deps := d.dependency(project)
 	compose := &Compose{
 		ServiceName: project.ServiceName,
 		ImageName:   project.Registry,
@@ -245,10 +229,72 @@ func (d Compose) appComposeSub(viper *viper.Viper, project *ProjectDto) {
 		Environment: project.Envs,
 		Ports:       project.Ports,
 
-		DependsOn: []string{d.getWaitName(project.ServiceName)},
+		DependsOn: deps,
 	}
-	compose.appCompose(viper)
+	compose.setCompose(viper)
 }
-func (Compose) getWaitName(serviceName string) string {
-	return PREWAIT + serviceName + SUFSERVER
+
+func (d Compose) dependency(project *ProjectDto) (depends []string) {
+	deps := d.setComposeDependency(project)
+	depends = make([]string, 0)
+	for _, dep := range deps {
+		depends = append(depends, d.getServiceServer(dep.Name))
+	}
+	return
+}
+
+func (d Compose) setComposeDependency(project *ProjectDto) (deps map[string]NamePortDto) {
+
+	deps = make(map[string]NamePortDto, 0)
+
+	for _, sub := range project.SubProjects {
+		deps[sub.ServiceName] = NamePortDto{
+			Name: sub.ServiceName,
+			Port: d.getIntranetPort(sub.Ports[0]),
+		}
+	}
+
+	if shouldStartMysql(project) {
+		serviceName := "mysql"
+		deps[serviceName] = NamePortDto{
+			Name: serviceName,
+			Port: inPort.Mysql,
+		}
+	}
+	if shouldStartRedis(project) {
+		serviceName := "redis"
+		deps[serviceName] = NamePortDto{
+			Name: serviceName,
+			Port: inPort.Redis,
+		}
+	}
+	if shouldStartMongo(project) {
+		serviceName := "mongo"
+		deps[serviceName] = NamePortDto{
+			Name: serviceName,
+			Port: inPort.Mongo,
+		}
+	}
+	if shouldStartSqlServer(project) {
+		serviceName := "sqlServer"
+		deps[serviceName] = NamePortDto{
+			Name: serviceName,
+			Port: inPort.SqlServer,
+		}
+	}
+	if shouldStartKakfa(project) {
+		serviceName := "kafka"
+		deps[serviceName] = NamePortDto{
+			Name: serviceName,
+			Port: inPort.Kafka,
+		}
+	}
+	return
+}
+
+func (Compose) getIntranetPort(port string) (newPort string) {
+	if strings.Contains(port, ":") {
+		newPort = port[strings.Index(port, ":")+1:]
+	}
+	return
 }
