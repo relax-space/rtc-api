@@ -33,7 +33,7 @@ type ApiError struct {
 
 //https://gateway.p2shop.com.cn/mingbai-api/service_groups/docker?name=OrderShipping
 func (d Relation) FetchRalation(serviceName string) (project *ProjectDto, err error) {
-	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v", P2SHOPHOST, serviceName)
+	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v&namespace=%v", P2SHOPHOST, serviceName, "qa")
 	var apiResult ApiResult
 	_, err = httpreq.New(http.MethodGet, url, nil).Call(&apiResult)
 	if err != nil {
