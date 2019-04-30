@@ -48,8 +48,10 @@ var inPort = PortDto{
 	SqlServer: "1433",
 	Kafka:     "9092",
 
+	KafkaSecond: "29092",
 	EventBroker: "3000",
 	Nginx:       "80",
+	Zookeeper:   "2181",
 }
 
 var outPort = PortDto{
@@ -57,21 +59,25 @@ var outPort = PortDto{
 	Redis:     "6379",
 	Mongo:     "27017",
 	SqlServer: "1433",
-	Kafka:     "29092",
+	Kafka:     "9092",
 
+	KafkaSecond: "29092",
 	EventBroker: "3000",
 	Nginx:       "3001",
+	Zookeeper:   "2181",
 }
 
 type PortDto struct {
-	Mysql     string
-	Redis     string
-	Mongo     string
-	SqlServer string
-	Kafka     string
+	Mysql       string
+	Redis       string
+	Mongo       string
+	SqlServer   string
+	Kafka       string
+	KafkaSecond string
 
 	EventBroker string
 	Nginx       string
+	Zookeeper   string
 }
 type ConfigDto struct {
 	Scope   string
@@ -120,7 +126,7 @@ func main() {
 		viper := viper.New()
 		compose := Compose{}
 		if shouldStartKakfa(c.Project) {
-			compose.setComposeKafkaEland(viper, c.Port.Kafka)
+			compose.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper)
 		}
 		if shouldStartMysql(c.Project) {
 			compose.setComposeMysql(viper, c.Port.Mysql)
@@ -278,7 +284,7 @@ func checkKafka(dockercompose string) (err error) {
 
 	fmt.Println("begin ping kafka")
 	for index := 0; index < 300; index++ {
-		_, err = kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+outPort.Kafka, "ping", 0)
+		_, err = kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+outPort.KafkaSecond, "ping", 0)
 		if err != nil {
 			time.Sleep(1 * time.Second)
 			continue
