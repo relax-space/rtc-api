@@ -11,6 +11,7 @@ import (
 
 func LoadEnv() (c *ConfigDto, err error) {
 
+	appEnv := flag.String("appEnv", os.Getenv("appEnv"), "appEnv")
 	serviceName := flag.String("serviceName", os.Getenv("serviceName"), "serviceName")
 	updated := flag.String("updated", os.Getenv("updated"), "updated")
 	mysqlPort := flag.String("mysqlPort", os.Getenv("mysqlPort"), "mysqlPort")
@@ -33,7 +34,7 @@ func LoadEnv() (c *ConfigDto, err error) {
 	}
 
 	c = &ConfigDto{}
-	if err = loadEnv(c, updatedStr, serviceName,
+	if err = loadEnv(c, updatedStr, appEnv, serviceName,
 		mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort, eventBrokerPort, nginxPort, zookeeperPort); err != nil {
 		return
 	}
@@ -128,12 +129,19 @@ func testProjectDependency(serviceName string) (projectDto *ProjectDto, err erro
 
 }
 
-func loadEnv(c *ConfigDto, scope string,
+func loadEnv(c *ConfigDto, scope string, appEnv,
 	serviceName, mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort, eventBrokerPort, nginxPort, zookeeperPort *string) (err error) {
 	if serviceName == nil || len(*serviceName) == 0 {
 		err = fmt.Errorf("read env error:%v", "serviceName is required.")
 		return
 	}
+
+	if appEnv != nil && len(*appEnv) != 0 {
+		app_env = *appEnv
+	} else {
+		app_env = "qa"
+	}
+
 	c.Scope = scope
 	if c.Project == nil {
 		c.Project = &ProjectDto{}

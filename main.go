@@ -21,6 +21,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	app_env = ""
+)
+
 const (
 	TEMP_FILE        = "temp"
 	EventBroker_Name = "event-broker-kafka"

@@ -33,7 +33,8 @@ type ApiError struct {
 
 //https://gateway.p2shop.com.cn/mingbai-api/service_groups/docker?name=OrderShipping
 func (d Relation) FetchRalation(serviceName string) (project *ProjectDto, err error) {
-	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v&namespace=%v", P2SHOPHOST, serviceName, "qa")
+	//strings.ToUpper(app_env)
+	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v&namespace=%v", P2SHOPHOST, serviceName, "")
 	var apiResult ApiResult
 	_, err = httpreq.New(http.MethodGet, url, nil).Call(&apiResult)
 	if err != nil {
@@ -67,7 +68,7 @@ func (d Relation) setProjectDetail(projectDto *ProjectDto) (err error) {
 	if len(projectDto.ServiceName) == 0 {
 		return
 	}
-	gitRaw := fmt.Sprintf("%v/%v/raw/qa", PREGITHTTPURL, projectDto.GitShortPath)
+	gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env)
 	urlString := fmt.Sprintf("%v/test_info/project.yml", gitRaw)
 	projectDto.GitRaw = gitRaw
 	if err = d.getTestInfo(projectDto, urlString); err != nil {
@@ -178,7 +179,7 @@ func (Relation) getRegistry(image string) (registry string) {
 
 	i := strings.LastIndex(registry, "-")
 	if i > 0 {
-		registry = registry[0:i] + "-qa"
+		registry = registry[0:i] + "-" + app_env
 	}
 	return
 }

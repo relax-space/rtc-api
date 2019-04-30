@@ -12,7 +12,7 @@ type EventBroker struct {
 
 func (EventBroker) fetchProducer() (projectDto *ProjectDto, err error) {
 	projectDto = &ProjectDto{}
-	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/qa", PREGITHTTPURL)
+	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/%v", PREGITHTTPURL, app_env)
 	urlString := fmt.Sprintf("%v/test_info/kafka-producer/project.yml", projectDto.GitRaw)
 	b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
 	if errd != nil {
@@ -28,7 +28,7 @@ func (EventBroker) fetchProducer() (projectDto *ProjectDto, err error) {
 
 func (EventBroker) fetchConsumer() (projectDto *ProjectDto, err error) {
 	projectDto = &ProjectDto{}
-	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/qa", PREGITHTTPURL)
+	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/%v", PREGITHTTPURL, app_env)
 	urlString := fmt.Sprintf("%v/test_info/kafka-consumer/project.yml", projectDto.GitRaw)
 	b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
 
@@ -66,7 +66,7 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 }
 
 func (EventBroker) fetchSql() (err error) {
-	gitRaw := fmt.Sprintf("%v/%v/raw/qa", PREGITHTTPURL, "infra/eventbroker")
+	gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, "infra/eventbroker",app_env)
 	urlString := fmt.Sprintf("%v/test_info%v/table.sql", gitRaw, "/kafka-consumer")
 	if err = fetchTofile(urlString,
 		fmt.Sprintf("%v/%v.sql", TEMP_FILE, EventBroker_Name),
