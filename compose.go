@@ -162,7 +162,7 @@ func (d Compose) setComposeProducer(viper *viper.Viper, port string, project *Pr
 	serviceName := EventBroker_Name
 	compose := &Compose{
 		ServiceName: serviceName,
-		ImageName:   REGISTRYELAND + "/" + serviceName + "-qa",
+		ImageName:   REGISTRYELAND + "/" + serviceName + "-" + app_env,
 		//Restart:     "always",
 		Environment: project.Envs,
 		Ports:       []string{port + ":" + inPort.EventBroker},
@@ -174,7 +174,7 @@ func (d Compose) setComposeProducer(viper *viper.Viper, port string, project *Pr
 func (d Compose) setComposeConsumer(viper *viper.Viper, project *ProjectDto) {
 	compose := &Compose{
 		ServiceName: project.ServiceName,
-		ImageName:   REGISTRYELAND + "/" + project.ServiceName + "-qa",
+		ImageName:   REGISTRYELAND + "/" + project.ServiceName + "-" + app_env,
 		//Restart:     "always",
 		Environment: project.Envs,
 		Ports:       project.Ports,
