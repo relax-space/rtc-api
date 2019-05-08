@@ -241,7 +241,7 @@ func (d Compose) appCompose(viper *viper.Viper, project *ProjectDto) {
 	compose := &Compose{
 		ServiceName: project.ServiceName,
 		ImageName:   project.Registry,
-		//Restart:     "on-failure:10",
+		Restart:     "on-failure:10",
 		Environment: project.Envs,
 		Ports:       project.Ports,
 
