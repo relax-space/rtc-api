@@ -14,6 +14,8 @@ func LoadEnv() (c *ConfigDto, err error) {
 	appEnv := flag.String("appEnv", os.Getenv("appEnv"), "appEnv")
 	serviceName := flag.String("serviceName", os.Getenv("serviceName"), "serviceName")
 	updated := flag.String("updated", os.Getenv("updated"), "updated")
+	ip := flag.String("ip", os.Getenv("ip"), "ip")
+
 	mysqlPort := flag.String("mysqlPort", os.Getenv("mysqlPort"), "mysqlPort")
 	redisPort := flag.String("redisPort", os.Getenv("redisPort"), "redisPort")
 	mongoPort := flag.String("mongoPort", os.Getenv("mongoPort"), "mongoPort")
@@ -34,8 +36,9 @@ func LoadEnv() (c *ConfigDto, err error) {
 	}
 
 	c = &ConfigDto{}
-	if err = loadEnv(c, updatedStr, appEnv, serviceName,
-		mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort, eventBrokerPort, nginxPort, zookeeperPort); err != nil {
+	if err = loadEnv(c, updatedStr, ip, appEnv, serviceName,
+		mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort,
+		eventBrokerPort, nginxPort, zookeeperPort); err != nil {
 		return
 	}
 	isLocalConfig := shouldLocalConfig(updatedStr)
@@ -129,7 +132,7 @@ func testProjectDependency(serviceName string) (projectDto *ProjectDto, err erro
 
 }
 
-func loadEnv(c *ConfigDto, scope string, appEnv,
+func loadEnv(c *ConfigDto, scope string, ip, appEnv,
 	serviceName, mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort, eventBrokerPort, nginxPort, zookeeperPort *string) (err error) {
 	if serviceName == nil || len(*serviceName) == 0 {
 		err = fmt.Errorf("read env error:%v", "serviceName is required.")
@@ -142,6 +145,7 @@ func loadEnv(c *ConfigDto, scope string, appEnv,
 		app_env = "qa"
 	}
 
+	c.Ip = getIp(ip)
 	c.Scope = scope
 	if c.Project == nil {
 		c.Project = &ProjectDto{}

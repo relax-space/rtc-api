@@ -85,6 +85,7 @@ type PortDto struct {
 }
 type ConfigDto struct {
 	Scope   string
+	Ip      string
 	Port    PortDto
 	Project *ProjectDto
 }
@@ -130,7 +131,7 @@ func main() {
 		viper := viper.New()
 		compose := Compose{}
 		if shouldStartKakfa(c.Project) {
-			compose.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper)
+			compose.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)
 		}
 		if shouldStartMysql(c.Project) {
 			compose.setComposeMysql(viper, c.Port.Mysql)
@@ -176,8 +177,8 @@ func main() {
 		fmt.Println("==> compose builded!")
 	}
 	project := *(c.Project)
-	go func(p ProjectDto, composePath string) {
-		if err = checkAll(p, composePath); err != nil {
+	go func(p ProjectDto, portD PortDto, composePath string) {
+		if err = checkAll(p, portD, composePath); err != nil {
 			fmt.Println(err)
 		}
 		fmt.Println("check is ok.")
@@ -186,7 +187,7 @@ func main() {
 			return
 		}
 		fmt.Println("==> compose up!")
-	}(project, dockercompose)
+	}(project, c.Port, dockercompose)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Kill, os.Interrupt)
 	go func() {
@@ -207,13 +208,7 @@ func writeToCompose(viper *viper.Viper) (err error) {
 		return
 	}
 
-	ymlStr = strings.Replace(ymlStr, "kafka_advertised_listeners", "KAFKA_ADVERTISED_LISTENERS", -1)
-	ymlStr = strings.Replace(ymlStr, "kafka_inter_broker_listener_name", "KAFKA_INTER_BROKER_LISTENER_NAME", -1)
-	ymlStr = strings.Replace(ymlStr, "kafka_listener_security_protocol_map", "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", -1)
-	ymlStr = strings.Replace(ymlStr, "kafka_listeners", "KAFKA_LISTENERS", -1)
-	ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connect", "KAFKA_ZOOKEEPER_CONNECT", -1)
-
-	ymlStr = strings.Replace(ymlStr, "kafka_advertised_port", "KAFKA_ADVERTISED_PORT", -1)
+	ymlStr = UpperKafkaEnvEland(ymlStr)
 
 	if writeFile(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", ymlStr); err != nil {
 		err = fmt.Errorf("write to %v error:%v", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
@@ -222,15 +217,52 @@ func writeToCompose(viper *viper.Viper) (err error) {
 	return
 }
 
-func checkAll(project ProjectDto, dockercompose string) (err error) {
+func UpperKafkaEnvEland(ymlStr string) string {
+	ymlStr = strings.Replace(ymlStr, "kafka_broker_id", "KAFKA_BROKER_ID", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_host_name", "KAFKA_ADVERTISED_HOST_NAME", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_port", "KAFKA_ADVERTISED_PORT", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connect", "KAFKA_ZOOKEEPER_CONNECT", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connection_timeout_ms", "KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS", -1)
+
+	ymlStr = strings.Replace(ymlStr, "kafka_delete_topic_enable", "KAFKA_DELETE_TOPIC_ENABLE", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_log_dirs", "KAFKA_LOG_DIRS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_log_retention_hours", "KAFKA_LOG_RETENTION_HOURS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_log_cleanup_policy", "KAFKA_LOG_CLEANUP_POLICY", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_log_cleaner_enable", "KAFKA_LOG_CLEANER_ENABLE", -1)
+
+	ymlStr = strings.Replace(ymlStr, "kafka_jvm_performance_opts", "KAFKA_JVM_PERFORMANCE_OPTS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_heap_opts", "KAFKA_HEAP_OPTS", -1)
+	ymlStr = strings.Replace(ymlStr, "jmx_port", "JMX_PORT", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_jmx_opts", "KAFKA_JMX_OPTS", -1)
+
+	ymlStr = strings.Replace(ymlStr, "zoo_my_id", "ZOO_MY_ID", -1)
+	ymlStr = strings.Replace(ymlStr, "zoo_servers", "ZOO_SERVERS", -1)
+
+	ymlStr = UpperKafkaEnv(ymlStr)
+
+	return ymlStr
+}
+
+func UpperKafkaEnv(ymlStr string) string {
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_listeners", "KAFKA_ADVERTISED_LISTENERS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_inter_broker_listener_name", "KAFKA_INTER_BROKER_LISTENER_NAME", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_listener_security_protocol_map", "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_listeners", "KAFKA_LISTENERS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connect", "KAFKA_ZOOKEEPER_CONNECT", -1)
+
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_port", "KAFKA_ADVERTISED_PORT", -1)
+	return ymlStr
+}
+
+func checkAll(project ProjectDto, port PortDto, dockercompose string) (err error) {
 
 	if shouldStartMysql(&project) {
-		if err = checkMysql(dockercompose); err != nil {
+		if err = checkMysql(dockercompose, port.Mysql); err != nil {
 			return
 		}
 	}
 	if shouldStartKakfa(&project) {
-		if err = checkKafka(dockercompose); err != nil {
+		if err = checkKafka(dockercompose, port.Kafka); err != nil {
 			return
 		}
 	}
@@ -238,14 +270,14 @@ func checkAll(project ProjectDto, dockercompose string) (err error) {
 	return
 }
 
-func checkMysql(dockercompose string) (err error) {
+func checkMysql(dockercompose, port string) (err error) {
 
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "mysql"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
 
-	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", outPort.Mysql))
+	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", port))
 	if err != nil {
 		fmt.Println("mysql", err)
 		return
@@ -274,7 +306,7 @@ func checkMysql(dockercompose string) (err error) {
 	return
 }
 
-func checkKafka(dockercompose string) (err error) {
+func checkKafka(dockercompose, port string) (err error) {
 
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "zookeeper"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
@@ -286,9 +318,9 @@ func checkKafka(dockercompose string) (err error) {
 		return
 	}
 
-	fmt.Println("begin ping kafka")
+	fmt.Println("begin ping kafka,localhost:" + port)
 	for index := 0; index < 300; index++ {
-		_, err = kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+outPort.KafkaSecond, "ping", 0)
+		_, err = kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+port, "ping", 0)
 		if err != nil {
 			time.Sleep(1 * time.Second)
 			continue

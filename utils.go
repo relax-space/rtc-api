@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -248,5 +249,37 @@ func yamlStringSettings(vip *viper.Viper) (ymlString string, err error) {
 		return
 	}
 	ymlString = string(bs)
+	return
+}
+
+func inIps() (ips []string) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	ips = make([]string, 0)
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				ips = append(ips, ipnet.IP.String())
+			}
+		}
+	}
+	return
+}
+
+func getIp(ipParam *string) (currentIp string) {
+	if ipParam != nil && len(*ipParam) != 0 {
+		currentIp = *ipParam
+		return
+	}
+	ips := inIps()
+	for _, ip := range ips {
+		if strings.HasPrefix(ip, "10.202.101.") {
+			currentIp = ip
+			break
+		}
+	}
 	return
 }
