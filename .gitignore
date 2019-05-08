@@ -21,3 +21,4 @@ swagger-ui
 temp/
 run-test-container
 *.exe
+*.exe~

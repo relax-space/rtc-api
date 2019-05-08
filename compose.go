@@ -69,9 +69,9 @@ func (d Compose) setComposeKafkaEland(viper *viper.Viper, port, secondPort, zook
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Kafka, fmt.Sprintf("%v:%v", jmxPort, jmxPort)})
 
 	viper.Set(servicePre+".environment.KAFKA_BROKER_ID", 1)
-	viper.Set(servicePre+".environment.KAFKA_ADVERTISED_HOST_NAME", ip)
+	viper.Set(servicePre+".environment.KAFKA_ADVERTISED_HOST_NAME", "test-kafka")
 	viper.Set(servicePre+".environment.KAFKA_ADVERTISED_PORT", portInt)
-	viper.Set(servicePre+".environment.KAFKA_ZOOKEEPER_CONNECT", "zoo1:"+inPort.Zookeeper)
+	viper.Set(servicePre+".environment.KAFKA_ZOOKEEPER_CONNECT", "test-kafka:"+inPort.Zookeeper)
 	viper.Set(servicePre+".environment.KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS", 60000)
 
 	viper.Set(servicePre+".environment.KAFKA_DELETE_TOPIC_ENABLE", "true")
@@ -86,7 +86,7 @@ func (d Compose) setComposeKafkaEland(viper *viper.Viper, port, secondPort, zook
 	viper.Set(servicePre+".environment.KAFKA_JMX_OPTS",
 		fmt.Sprintf("-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.rmi.port=%v -Djava.rmi.server.hostname=%v", jmxPort, ip))
 
-	viper.Set(servicePre+".extra_hosts", []string{fmt.Sprintf("zoo1:%v", ip)})
+	viper.Set(servicePre+".extra_hosts", []string{fmt.Sprintf("test-kafka:%v", ip)})
 
 }
 
@@ -101,7 +101,7 @@ func (d Compose) setComposeZookeeperEland(viper *viper.Viper, port, ip string) {
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Zookeeper, "2888:2888", "3888:3888"})
 	viper.Set(servicePre+".environment.ZOO_MY_ID", 1)
 	viper.Set(servicePre+".environment.ZOO_SERVERS", "server.1=0.0.0.0:2888:3888")
-	viper.Set(servicePre+".extra_hosts", []string{fmt.Sprintf("zoo1:%v", ip)})
+	viper.Set(servicePre+".extra_hosts", []string{fmt.Sprintf("test-kafka:%v", ip)})
 }
 
 func (d Compose) setComposeKafka(viper *viper.Viper, port, secondPort, zookeeperPort, ip string) {
