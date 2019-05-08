@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -15,14 +16,9 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 
-	//kafkautil "github.com/segmentio/kafka-go"
-
-	"github.com/pangpanglabs/goutils/kafka"
+	kafkautil "github.com/segmentio/kafka-go"
 
 	"github.com/spf13/viper"
-
-	"github.com/Shopify/sarama"
-	"github.com/pangpanglabs/goutils/echomiddleware"
 )
 
 var (
@@ -135,7 +131,7 @@ func main() {
 		viper := viper.New()
 		compose := Compose{}
 		if shouldStartKakfa(c.Project) {
-			compose.setComposeKafka(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)
+			compose.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)
 		}
 		if shouldStartMysql(c.Project) {
 			compose.setComposeMysql(viper, c.Port.Mysql)
@@ -270,7 +266,7 @@ func checkAll(project ProjectDto, port PortDto, dockercompose string) (err error
 		}
 	}
 	if shouldStartKakfa(&project) {
-		if err = checkKafka(dockercompose, port.KafkaSecond); err != nil {
+		if err = checkKafka(dockercompose, port.Kafka); err != nil {
 			return
 		}
 	}
@@ -343,53 +339,10 @@ func checkKafka(dockercompose, port string) (err error) {
 	return
 }
 
-// func dailKafka(port string) (err error) {
-
-// 	topic := "my-topic"
-// 	partition := 0
-
-// 	conn, err := kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+port, topic, partition)
-// 	if err != nil {
-// 		return
-// 	}
-// 	err = conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-// 	if err != nil {
-// 		conn.Close()
-// 		return
-// 	}
-// 	_, err = conn.WriteMessages(
-// 		kafkautil.Message{Value: []byte("one!")},
-// 		kafkautil.Message{Value: []byte("two!")},
-// 		kafkautil.Message{Value: []byte("three!")},
-// 	)
-// 	if err != nil {
-// 		conn.Close()
-// 		return
-// 	}
-// 	conn.Close()
-// 	return
-// }
-
 func dailKafka(port string) (err error) {
-	config := echomiddleware.KafkaConfig{
-		Topic:   "ping",
-		Brokers: []string{"localhost:" + port},
-	}
-	var producer *kafka.Producer
-	if p, errd := kafka.NewProducer(config.Brokers, config.Topic, func(c *sarama.Config) {
-		c.Producer.RequiredAcks = sarama.WaitForLocal       // Only wait for the leader to ack
-		c.Producer.Compression = sarama.CompressionGZIP     // Compress messages
-		c.Producer.Flush.Frequency = 500 * time.Millisecond // Flush batches every 500ms
-
-	}); errd != nil {
-		err = errd
-		return
-	} else {
-		producer = p
-	}
-	if err = producer.Send("ping"); err != nil {
+	_, err = kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+port, "ping", 0)
+	if err != nil {
 		return
 	}
-	producer.Close()
 	return
 }
