@@ -131,7 +131,7 @@ func main() {
 		viper := viper.New()
 		compose := Compose{}
 		if shouldStartKakfa(c.Project) {
-			compose.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)
+			compose.setComposeKafka(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)
 		}
 		if shouldStartMysql(c.Project) {
 			compose.setComposeMysql(viper, c.Port.Mysql)
@@ -262,7 +262,7 @@ func checkAll(project ProjectDto, port PortDto, dockercompose string) (err error
 		}
 	}
 	if shouldStartKakfa(&project) {
-		if err = checkKafka(dockercompose, port.Kafka); err != nil {
+		if err = checkKafka(dockercompose, port.KafkaSecond); err != nil {
 			return
 		}
 	}
