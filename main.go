@@ -22,7 +22,8 @@ import (
 )
 
 var (
-	app_env = ""
+	app_env       = ""
+	updatedConfig = ""
 )
 
 const (
@@ -115,7 +116,7 @@ func main() {
 	}
 
 	//1.download sql data
-	if shouldUpdateData(c.Scope) {
+	if shouldLocalConfig() == false {
 		if err := deleteFileRegex(TEMP_FILE + "/*.sql"); err != nil {
 			fmt.Println(err)
 			return
@@ -155,43 +156,36 @@ func main() {
 
 	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
 	//3. run docker-compose
-	if shouldRestartData(c.Scope) {
-		//delete volume
-		if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
-			fmt.Printf("err:%v", err)
-			return
-		}
-		fmt.Println("==> compose downed!")
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
+		fmt.Printf("err:%v", err)
+		return
 	}
+	fmt.Println("==> compose downed!")
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "pull"); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
 	fmt.Println("==> compose pulled!")
 
-	if shouldRestartApp(c.Scope) {
-		if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "build"); err != nil {
-			fmt.Printf("err:%v", err)
-			return
-		}
-		fmt.Println("==> compose builded!")
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "build"); err != nil {
+		fmt.Printf("err:%v", err)
+		return
 	}
+	fmt.Println("==> compose builded!")
 	project := *(c.Project)
-	go func(p ProjectDto, portD PortDto, composePath string) {
-		if err = checkAll(p, portD, composePath); err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println("check is ok.")
-		if _, err = CmdRealtime("docker-compose", "-f", composePath, "up", "-d"); err != nil {
-			fmt.Printf("err:%v", err)
-			return
-		}
-		if _, err = CmdRealtime("docker", "ps", "-a"); err != nil {
-			fmt.Printf("err:%v", err)
-			return
-		}
-		fmt.Println("==> compose up!")
-	}(project, c.Port, dockercompose)
+	if err = checkAll(project, c.Port, dockercompose); err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("check is ok.")
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d"); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+	if _, err = CmdRealtime("docker", "ps", "-a"); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+	fmt.Println("==> compose up!")
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Kill, os.Interrupt)
 	go func() {

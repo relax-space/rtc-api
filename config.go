@@ -12,8 +12,8 @@ import (
 func LoadEnv() (c *ConfigDto, err error) {
 
 	appEnv := flag.String("appEnv", os.Getenv("appEnv"), "appEnv")
-	serviceName := flag.String("serviceName", os.Getenv("serviceName"), "serviceName")
-	updated := flag.String("updated", os.Getenv("updated"), "updated")
+	serviceName := flag.String("s", os.Getenv("s"), "serviceName from mingbai")
+	updated := flag.String("u", os.Getenv("u"), "updated")
 	ip := flag.String("ip", os.Getenv("ip"), "ip")
 
 	mysqlPort := flag.String("mysqlPort", os.Getenv("mysqlPort"), "mysqlPort")
@@ -31,7 +31,7 @@ func LoadEnv() (c *ConfigDto, err error) {
 
 	updatedStr, err := getScope(updated)
 	if err != nil {
-		err = fmt.Errorf("read env error:%v", err)
+		err = fmt.Errorf("read env updated error:%v", err)
 		return
 	}
 
@@ -41,7 +41,7 @@ func LoadEnv() (c *ConfigDto, err error) {
 		eventBrokerPort, nginxPort, zookeeperPort); err != nil {
 		return
 	}
-	isLocalConfig := shouldLocalConfig(updatedStr)
+	isLocalConfig := scopeSettings(updatedStr)
 	if isLocalConfig {
 		if err = Read("", c); err != nil {
 			err = fmt.Errorf("read config error:%v", err)
@@ -145,7 +145,10 @@ func loadEnv(c *ConfigDto, scope string, ip, appEnv,
 		app_env = "qa"
 	}
 
-	c.Ip = getIp(ip)
+	c.Ip, err = getIp(ip)
+	if err != nil {
+		return
+	}
 	c.Scope = scope
 	if c.Project == nil {
 		c.Project = &ProjectDto{}
@@ -248,7 +251,7 @@ func writeConfig(path string, viper *viper.Viper) (err error) {
 	return
 }
 
-func shouldLocalConfig(scope string) (isLocalConfig bool) {
+func scopeSettings(scope string) (isLocalConfig bool) {
 	if _, err := os.Stat(TEMP_FILE + "/" + YMLNAMECONFIG + ".yml"); err != nil {
 		isLocalConfig = false
 	} else {
@@ -256,29 +259,22 @@ func shouldLocalConfig(scope string) (isLocalConfig bool) {
 			isLocalConfig = true
 		}
 	}
+	updatedConfig = scope
 	return
 }
 
-func shouldUpdateData(scope string) bool {
-
-	return scope == ALL.String()
+func shouldLocalConfig() bool {
+	if updatedConfig == "" || updatedConfig == NONE.String() {
+		return true
+	}
+	return false
 }
+
 func shouldUpdateCompose(scope string) bool {
 	if _, err := os.Stat(YMLNAMEDOCKERCOMPOSE + ".yml"); err != nil {
 		return true
 	}
 	return scope != NONE.String()
-}
-func shouldUpdateApp(scope string) bool {
-	return scope == ALL.String()
-}
-
-func shouldRestartData(scope string) bool {
-	return scope == ALL.String() || scope == LocalData.String()
-}
-
-func shouldRestartApp(scope string) bool {
-	return scope == ALL.String()
 }
 
 func shouldStartKakfa(project *ProjectDto) (isKafka bool) {
