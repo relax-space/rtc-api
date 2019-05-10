@@ -160,6 +160,16 @@ func fetchTofile(url, fileName, privateToken string) (err error) {
 	return
 }
 
+func fetchSqlTofile(projectDto *ProjectDto, privateToken string) (err error) {
+	urlString := fmt.Sprintf("%v/test_info%v/table.sql", projectDto.GitRaw, getPathWhenMulti(projectDto))
+	filePath := fmt.Sprintf("%v/%v.sql", TEMP_FILE, projectDto.ServiceName)
+	if err = fetchTofile(urlString, filePath, PRIVATETOKEN); err != nil {
+		err = fmt.Errorf("download sql error,url:%v,err:%v", urlString, err)
+		return
+	}
+	return
+}
+
 func writeFile(fileName, content string) (err error) {
 	out, err := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if err != nil {
@@ -280,6 +290,32 @@ func getIp(ipParam *string) (currentIp string) {
 			currentIp = ip
 			break
 		}
+	}
+	return
+}
+
+func getProjectEnv(projectDto *ProjectDto) (err error) {
+	gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env)
+	urlString := fmt.Sprintf("%v/test_info%v/project.yml", gitRaw, getPathWhenMulti(projectDto))
+	projectDto.GitRaw = gitRaw
+	b, err := fetchFromgitlab(urlString, PRIVATETOKEN)
+	if err != nil {
+		err = fmt.Errorf("read project.yml error:%v,url:%v", err, urlString)
+		return
+	}
+	if err = yaml.Unmarshal(b, projectDto); err != nil {
+		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
+		return
+	}
+	if projectDto.IsMulti && len(projectDto.Envs) == 0 {
+		getProjectEnv(projectDto)
+	}
+	return
+}
+
+func getPathWhenMulti(projectDto *ProjectDto) (path string) {
+	if projectDto.IsMulti {
+		path += "/" + projectDto.ServiceName
 	}
 	return
 }
