@@ -13,7 +13,7 @@ func LoadEnv() (c *ConfigDto, err error) {
 
 	appEnv := flag.String("appEnv", os.Getenv("appEnv"), "appEnv")
 	serviceName := flag.String("s", os.Getenv("s"), "serviceName from mingbai")
-	updated := flag.String("u", os.Getenv("u"), "updated")
+	updated := flag.String("u", os.Getenv("u"), "remote or local")
 	ip := flag.String("ip", os.Getenv("ip"), "ip")
 
 	mysqlPort := flag.String("mysqlPort", os.Getenv("mysqlPort"), "mysqlPort")
@@ -222,17 +222,17 @@ func writeConfigYml(c *ConfigDto) (err error) {
 
 func getScope(updated *string) (updatedStr string, err error) {
 	if updated == nil || len(*updated) == 0 {
-		updatedStr = NONE.String()
+		updatedStr = LOCAL.String()
 		return
 	}
-	for _, s := range NONE.List() {
+	for _, s := range LOCAL.List() {
 		if strings.ToLower(*updated) == s {
 			updatedStr = s
 			break
 		}
 	}
 	if len(updatedStr) == 0 {
-		err = fmt.Errorf("Parameters(%v) are not supported, only support %v", *updated, NONE.List())
+		err = fmt.Errorf("Parameters(%v) are not supported, only support %v", *updated, LOCAL.List())
 		return
 	}
 	return
@@ -255,120 +255,10 @@ func scopeSettings(scope string) (isLocalConfig bool) {
 	if _, err := os.Stat(TEMP_FILE + "/" + YMLNAMECONFIG + ".yml"); err != nil {
 		isLocalConfig = false
 	} else {
-		if scope == NONE.String() {
+		if scope == LOCAL.String() {
 			isLocalConfig = true
 		}
 	}
 	updatedConfig = scope
-	return
-}
-
-func shouldLocalConfig() bool {
-	if updatedConfig == "" || updatedConfig == NONE.String() {
-		return true
-	}
-	return false
-}
-
-func shouldUpdateCompose(scope string) bool {
-	if _, err := os.Stat(YMLNAMEDOCKERCOMPOSE + ".yml"); err != nil {
-		return true
-	}
-	return scope != NONE.String()
-}
-
-func shouldStartKakfa(project *ProjectDto) (isKafka bool) {
-	if shouldStartEventBroker(project) {
-		return true
-	}
-	if project.IsProjectKafka {
-		isKafka = true
-	} else {
-		for _, subProject := range project.SubProjects {
-			if subProject.IsProjectKafka {
-				isKafka = true
-				break
-			}
-		}
-	}
-	return
-}
-
-func shouldStartMysql(project *ProjectDto) bool {
-	if shouldStartEventBroker(project) {
-		return true
-	}
-	list := databaseList(project)
-	for _, l := range list {
-		if strings.ToLower(l) == MYSQL.String() {
-			return true
-		}
-	}
-	return false
-}
-
-func shouldStartRedis(project *ProjectDto) bool {
-	if shouldStartEventBroker(project) {
-		return true
-	}
-	list := databaseList(project)
-	for _, l := range list {
-		if strings.ToLower(l) == REDIS.String() {
-			return true
-		}
-	}
-	return false
-}
-
-func shouldStartMongo(project *ProjectDto) bool {
-	list := databaseList(project)
-	for _, l := range list {
-		if strings.ToLower(l) == MONGO.String() {
-			return true
-		}
-	}
-	return false
-}
-
-func shouldStartSqlServer(project *ProjectDto) bool {
-	list := databaseList(project)
-	for _, l := range list {
-		if strings.ToLower(l) == SQLSERVER.String() {
-			return true
-		}
-	}
-	return false
-}
-
-func shouldStartEventBroker(project *ProjectDto) bool {
-	if list := streamList(project); len(list) != 0 {
-		return true
-	}
-	return false
-}
-
-func databaseList(project *ProjectDto) (list map[string]string) {
-	list = make(map[string]string, 0)
-	for _, d := range project.Databases {
-		list[d] = d
-	}
-	for _, subProject := range project.SubProjects {
-		for _, d := range subProject.Databases {
-			list[d] = d
-		}
-	}
-	return
-}
-
-func streamList(project *ProjectDto) (list map[string]string) {
-	list = make(map[string]string, 0)
-	for _, d := range project.StreamNames {
-		list[d] = d
-	}
-	for _, subProject := range project.SubProjects {
-		for _, d := range subProject.StreamNames {
-			list[d] = d
-		}
-	}
 	return
 }

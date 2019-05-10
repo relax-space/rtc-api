@@ -161,7 +161,10 @@ func fetchTofile(url, fileName, privateToken string) (err error) {
 }
 
 func fetchSqlTofile(projectDto *ProjectDto, privateToken string) (err error) {
-	urlString := fmt.Sprintf("%v/test_info%v/table.sql", projectDto.GitRaw, getPathWhenMulti(projectDto))
+	if shouldLocalFetchsql(projectDto.ServiceName) == true {
+		return
+	}
+	urlString := fmt.Sprintf("%v/test_info%v/table.sql", preGitlab(projectDto.GitShortPath), getPathWhenMulti(projectDto))
 	filePath := fmt.Sprintf("%v/%v.sql", TEMP_FILE, projectDto.ServiceName)
 	if err = fetchTofile(urlString, filePath, PRIVATETOKEN); err != nil {
 		err = fmt.Errorf("download sql error,url:%v,err:%v", urlString, err)
@@ -169,6 +172,10 @@ func fetchSqlTofile(projectDto *ProjectDto, privateToken string) (err error) {
 	}
 
 	return
+}
+
+func preGitlab(gitShortPath string) string {
+	return fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, gitShortPath, app_env)
 }
 
 func writeFile(fileName, content string) (err error) {
@@ -202,11 +209,11 @@ type ScopeType int
 
 const (
 	REMOTE ScopeType = iota
-	NONE
+	LOCAL
 )
 
 func (ScopeType) List() []string {
-	return []string{"remote", "none"}
+	return []string{"remote", "local"}
 }
 
 func (d ScopeType) String() string {
@@ -297,10 +304,11 @@ func getIp(ipParam *string) (currentIp string, err error) {
 }
 
 func getProjectEnv(projectDto *ProjectDto) (err error) {
-	if shouldLocalConfig() {
+	if shouldLocalProjectYml(projectDto.ServiceName) {
+		path := fmt.Sprintf("%v/%v", TEMP_FILE, projectDto.ServiceName)
 		v := viper.New()
-		v.SetConfigName("project")
-		v.AddConfigPath(projectDto.ServiceName)
+		v.SetConfigName(YMLNAMEPROJEC)
+		v.AddConfigPath(path)
 
 		if err := v.ReadInConfig(); err != nil {
 			return fmt.Errorf("Fatal error config file: %s \n", err)
@@ -308,11 +316,9 @@ func getProjectEnv(projectDto *ProjectDto) (err error) {
 		if err := v.Unmarshal(projectDto); err != nil {
 			return fmt.Errorf("Fatal error config file: %s \n", err)
 		}
-		return
 	} else {
 		gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env)
 		urlString := fmt.Sprintf("%v/test_info%v/project.yml", gitRaw, getPathWhenMulti(projectDto))
-		projectDto.GitRaw = gitRaw
 		b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
 		if errd != nil {
 			err = fmt.Errorf("read project.yml error:%v,url:%v", errd, urlString)
@@ -322,7 +328,9 @@ func getProjectEnv(projectDto *ProjectDto) (err error) {
 			err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
 			return
 		}
-		writeProjectYml(projectDto.ServiceName, "project.yml", string(b))
+		if shouldWriteProjectYml(projectDto) {
+			writeProjectYml(projectDto.ServiceName, "project.yml", string(b))
+		}
 	}
 	if projectDto.IsMulti && len(projectDto.Envs) == 0 {
 		getProjectEnv(projectDto)

@@ -13,6 +13,7 @@ func (EventBroker) fetchProducer() (projectDto *ProjectDto, err error) {
 	projectDto = &ProjectDto{
 		GitShortPath: "infra/eventbroker",
 		ServiceName:  "kafka-producer",
+		IsMulti:      true,
 	}
 	if err = getProjectEnv(projectDto); err != nil {
 		return
@@ -24,6 +25,7 @@ func (EventBroker) fetchConsumer() (projectDto *ProjectDto, err error) {
 	projectDto = &ProjectDto{
 		GitShortPath: "infra/eventbroker",
 		ServiceName:  "kafka-consumer",
+		IsMulti:      true,
 	}
 	if err = getProjectEnv(projectDto); err != nil {
 		return
