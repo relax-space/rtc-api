@@ -176,7 +176,7 @@ func (d Compose) setComposeProducer(viper *viper.Viper, port string, project *Pr
 	compose := &Compose{
 		ServiceName: serviceName,
 		ImageName:   REGISTRYELAND + "/" + serviceName + "-" + app_env,
-		//Restart:     "always",
+		Restart:     "on-failure:10",
 		Environment: project.Envs,
 		Ports:       []string{port + ":" + inPort.EventBroker},
 		DependsOn:   []string{d.getServiceServer("kafka")},
@@ -184,11 +184,11 @@ func (d Compose) setComposeProducer(viper *viper.Viper, port string, project *Pr
 	compose.setCompose(viper)
 }
 
-func (d Compose) setComposeConsumer(viper *viper.Viper, project *ProjectDto) {
+func (d Compose) setComposeConsumer(viper *viper.Viper, project *ProjectDto, serverName string) {
 	compose := &Compose{
-		ServiceName: project.ServiceName,
-		ImageName:   REGISTRYELAND + "/" + project.ServiceName + "-" + app_env,
-		//Restart:     "always",
+		ServiceName: serverName,
+		ImageName:   REGISTRYELAND + "/" + serverName + "-" + app_env,
+		Restart:     "on-failure:10",
 		Environment: project.Envs,
 		Ports:       project.Ports,
 		DependsOn: []string{d.getServiceServer("kafka"),

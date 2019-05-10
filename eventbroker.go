@@ -47,13 +47,14 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 
 	for _, streamName := range streamNames {
 		d.setConsumerEnv(p.Envs, streamName)
-		p.ServiceName = "event-kafka-consumer-" + streamName
+		//p.ServiceName = "event-kafka-consumer-" + streamName
 		p.Ports = []string{}
-		Compose{}.setComposeConsumer(viper, p)
+		Compose{}.setComposeConsumer(viper, p, "event-kafka-consumer-"+streamName)
 	}
 
 	//fetch event-broker sql
-	err = d.fetchSql()
+	//err = d.fetchSql()
+	err = fetchSqlTofile(p, PRIVATETOKEN)
 	return
 }
 

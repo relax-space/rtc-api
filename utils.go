@@ -97,7 +97,7 @@ func createIfNot(path string) error {
 }
 
 func Read(env string, config interface{}) error {
-	viper.SetConfigName("config")
+	viper.SetConfigName(YMLNAMECONFIG)
 	viper.AddConfigPath(TEMP_FILE)
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -167,6 +167,7 @@ func fetchSqlTofile(projectDto *ProjectDto, privateToken string) (err error) {
 		err = fmt.Errorf("download sql error,url:%v,err:%v", urlString, err)
 		return
 	}
+
 	return
 }
 
@@ -200,13 +201,12 @@ func (d DateBaseType) String() string {
 type ScopeType int
 
 const (
-	ALL ScopeType = iota
-	LocalData
+	REMOTE ScopeType = iota
 	NONE
 )
 
 func (ScopeType) List() []string {
-	return []string{"all", "localdata", "none"}
+	return []string{"remote", "none"}
 }
 
 func (d ScopeType) String() string {
@@ -262,11 +262,10 @@ func yamlStringSettings(vip *viper.Viper) (ymlString string, err error) {
 	return
 }
 
-func inIps() (ips []string) {
+func inIps() (ips []string, err error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
+		return
 	}
 	ips = make([]string, 0)
 	for _, addr := range addrs {
@@ -279,12 +278,15 @@ func inIps() (ips []string) {
 	return
 }
 
-func getIp(ipParam *string) (currentIp string) {
+func getIp(ipParam *string) (currentIp string, err error) {
 	if ipParam != nil && len(*ipParam) != 0 {
 		currentIp = *ipParam
 		return
 	}
-	ips := inIps()
+	ips, err := inIps()
+	if err != nil {
+		return
+	}
 	for _, ip := range ips {
 		if strings.HasPrefix(ip, "10.202.101.") {
 			currentIp = ip
@@ -295,20 +297,51 @@ func getIp(ipParam *string) (currentIp string) {
 }
 
 func getProjectEnv(projectDto *ProjectDto) (err error) {
-	gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env)
-	urlString := fmt.Sprintf("%v/test_info%v/project.yml", gitRaw, getPathWhenMulti(projectDto))
-	projectDto.GitRaw = gitRaw
-	b, err := fetchFromgitlab(urlString, PRIVATETOKEN)
-	if err != nil {
-		err = fmt.Errorf("read project.yml error:%v,url:%v", err, urlString)
+	if shouldLocalConfig() {
+		v := viper.New()
+		v.SetConfigName("project")
+		v.AddConfigPath(projectDto.ServiceName)
+
+		if err := v.ReadInConfig(); err != nil {
+			return fmt.Errorf("Fatal error config file: %s \n", err)
+		}
+		if err := v.Unmarshal(projectDto); err != nil {
+			return fmt.Errorf("Fatal error config file: %s \n", err)
+		}
 		return
-	}
-	if err = yaml.Unmarshal(b, projectDto); err != nil {
-		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
-		return
+	} else {
+		gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env)
+		urlString := fmt.Sprintf("%v/test_info%v/project.yml", gitRaw, getPathWhenMulti(projectDto))
+		projectDto.GitRaw = gitRaw
+		b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
+		if errd != nil {
+			err = fmt.Errorf("read project.yml error:%v,url:%v", errd, urlString)
+			return
+		}
+		if err = yaml.Unmarshal(b, projectDto); err != nil {
+			err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
+			return
+		}
+		writeProjectYml(projectDto.ServiceName, "project.yml", string(b))
 	}
 	if projectDto.IsMulti && len(projectDto.Envs) == 0 {
 		getProjectEnv(projectDto)
+	}
+	return
+}
+
+func writeProjectYml(serviceName, fileName, ymlStr string) (err error) {
+	path := fmt.Sprintf("%v/%v", TEMP_FILE, serviceName)
+	if err = os.MkdirAll(path, os.ModePerm); err != nil {
+		return
+	}
+	path = fmt.Sprintf("%v/%v", path, fileName)
+	if err = createIfNot(path); err != nil {
+		return
+	}
+	if writeFile(path, ymlStr); err != nil {
+		err = fmt.Errorf("write to %v error:%v", path, err)
+		return
 	}
 	return
 }
