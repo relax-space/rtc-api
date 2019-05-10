@@ -7,7 +7,6 @@ import (
 
 	"github.com/phayes/freeport"
 
-	"github.com/ghodss/yaml"
 	"github.com/pangpanglabs/goutils/httpreq"
 )
 
@@ -68,20 +67,8 @@ func (d Relation) setProjectDetail(projectDto *ProjectDto) (err error) {
 	if len(projectDto.ServiceName) == 0 {
 		return
 	}
-	gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env)
-	urlString := fmt.Sprintf("%v/test_info/project.yml", gitRaw)
-	projectDto.GitRaw = gitRaw
-	if err = d.getTestInfo(projectDto, urlString); err != nil {
+	if err = getProjectEnv(projectDto); err != nil {
 		return
-	}
-
-	path := d.getTestInfoPath(projectDto)
-
-	if projectDto.IsMulti {
-		urlString := fmt.Sprintf("%v/test_info%v/project.yml", projectDto.GitRaw, path)
-		if err = d.getTestInfo(projectDto, urlString); err != nil {
-			return
-		}
 	}
 	d.setPort(projectDto)
 	return
@@ -99,12 +86,7 @@ func (d Relation) setPort(projectDto *ProjectDto) {
 }
 
 func (d Relation) FetchsqlTofile(project *ProjectDto) (err error) {
-
-	path := d.getTestInfoPath(project)
-	urlString := fmt.Sprintf("%v/test_info%v/table.sql", project.GitRaw, path)
-	filePath := fmt.Sprintf("%v/%v.sql", TEMP_FILE, project.ServiceName)
-	if err = fetchTofile(urlString, filePath, PRIVATETOKEN); err != nil {
-		err = fmt.Errorf("download sql error,url:%v,err:%v", urlString, err)
+	if err = fetchSqlTofile(project, PRIVATETOKEN); err != nil {
 		return
 	}
 	if err = d.fetchSubsqlTofile(project.SubProjects); err != nil {
@@ -114,16 +96,11 @@ func (d Relation) FetchsqlTofile(project *ProjectDto) (err error) {
 }
 
 func (d Relation) fetchSubsqlTofile(projects []*ProjectDto) (err error) {
-
 	for _, projectDto := range projects {
 		if len(projectDto.ServiceName) == 0 {
 			continue
 		}
-		path := d.getTestInfoPath(projectDto)
-		urlString := fmt.Sprintf("%v/test_info%v/table.sql", projectDto.GitRaw, path)
-		filePath := fmt.Sprintf("%v/%v.sql", TEMP_FILE, projectDto.ServiceName)
-		if err = fetchTofile(urlString, filePath, PRIVATETOKEN); err != nil {
-			err = fmt.Errorf("download sql error,url:%v,err:%v", urlString, err)
+		if err = fetchSqlTofile(projectDto, PRIVATETOKEN); err != nil {
 			return
 		}
 		if len(projectDto.SubProjects) != 0 {
@@ -131,25 +108,6 @@ func (d Relation) fetchSubsqlTofile(projects []*ProjectDto) (err error) {
 				return
 			}
 		}
-	}
-	return
-}
-
-func (d Relation) getTestInfo(projectDto *ProjectDto, urlString string) (err error) {
-	b, err := fetchFromgitlab(urlString, PRIVATETOKEN)
-	if err != nil {
-		return
-	}
-	if err = yaml.Unmarshal(b, projectDto); err != nil {
-		err = fmt.Errorf("parse test_info error,project:%v,err:%v", projectDto.ServiceName, err.Error())
-		return
-	}
-	return
-}
-
-func (d Relation) getTestInfoPath(projectDto *ProjectDto) (path string) {
-	if projectDto.IsMulti {
-		path += "/" + projectDto.ServiceName
 	}
 	return
 }

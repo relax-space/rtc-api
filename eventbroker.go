@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/ghodss/yaml"
 	"github.com/spf13/viper"
 )
 
@@ -11,29 +10,22 @@ type EventBroker struct {
 }
 
 func (EventBroker) fetchProducer() (projectDto *ProjectDto, err error) {
-	projectDto = &ProjectDto{}
-	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/%v", PREGITHTTPURL, app_env)
-	urlString := fmt.Sprintf("%v/test_info/kafka-producer/project.yml", projectDto.GitRaw)
-	b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
-	if errd != nil {
-		err = fmt.Errorf("fetch test_info error,url:%v,err:%v", urlString, errd.Error())
-		return
+	projectDto = &ProjectDto{
+		GitShortPath: "infra/eventbroker",
+		ServiceName:  "kafka-producer",
 	}
-	if err = yaml.Unmarshal(b, projectDto); err != nil {
-		err = fmt.Errorf("parse test_info error,project:%v,err:%v", projectDto.ServiceName, err.Error())
+	if err = getProjectEnv(projectDto); err != nil {
 		return
 	}
 	return
 }
 
 func (EventBroker) fetchConsumer() (projectDto *ProjectDto, err error) {
-	projectDto = &ProjectDto{}
-	projectDto.GitRaw = fmt.Sprintf("%v/infra/eventbroker/raw/%v", PREGITHTTPURL, app_env)
-	urlString := fmt.Sprintf("%v/test_info/kafka-consumer/project.yml", projectDto.GitRaw)
-	b, errd := fetchFromgitlab(urlString, PRIVATETOKEN)
-
-	if err = yaml.Unmarshal(b, &projectDto); errd != nil {
-		err = fmt.Errorf("parse test_info error,project:%v,err:%v", projectDto.ServiceName, err.Error())
+	projectDto = &ProjectDto{
+		GitShortPath: "infra/eventbroker",
+		ServiceName:  "kafka-consumer",
+	}
+	if err = getProjectEnv(projectDto); err != nil {
 		return
 	}
 	return
@@ -66,7 +58,7 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 }
 
 func (EventBroker) fetchSql() (err error) {
-	gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, "infra/eventbroker",app_env)
+	gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, "infra/eventbroker", app_env)
 	urlString := fmt.Sprintf("%v/test_info%v/table.sql", gitRaw, "/kafka-consumer")
 	if err = fetchTofile(urlString,
 		fmt.Sprintf("%v/%v.sql", TEMP_FILE, EventBroker_Name),
