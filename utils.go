@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -189,38 +191,6 @@ func writeFile(fileName, content string) (err error) {
 	return
 }
 
-type DateBaseType int
-
-const (
-	MYSQL DateBaseType = iota
-	REDIS
-	MONGO
-	SQLSERVER
-)
-
-func (DateBaseType) List() []string {
-	return []string{"mysql", "redis", "mongo", "sqlserver"}
-}
-
-func (d DateBaseType) String() string {
-	return d.List()[d]
-}
-
-type ScopeType int
-
-const (
-	REMOTE ScopeType = iota
-	LOCAL
-)
-
-func (ScopeType) List() []string {
-	return []string{"remote", "local"}
-}
-
-func (d ScopeType) String() string {
-	return d.List()[d]
-}
-
 //fileName="/foo/123_*"
 func deleteFileRegex(fileName string) (err error) {
 	files, err := filepath.Glob(fileName)
@@ -373,5 +343,25 @@ func getPathWhenMulti(projectDto *ProjectDto) (path string) {
 	if projectDto.IsMulti {
 		path += "/" + projectDto.ServiceName
 	}
+	return
+}
+
+func scan(message string) (err error) {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print(message + ": ")
+	b, _, err := reader.ReadLine()
+	if err != nil {
+		return
+	}
+	text := string(b)
+	text = strings.ToLower(text)
+	if ContainString(N.List(), text) == false {
+		scan(message)
+	}
+	if text == N.String() {
+		err = errors.New("user canceled! ")
+		return
+	}
+	err = nil
 	return
 }
