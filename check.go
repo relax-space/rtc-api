@@ -6,7 +6,7 @@ import (
 )
 
 func shouldLocalConfig() bool {
-	if updatedConfig == "" || updatedConfig == LOCAL.String() {
+	if updatedConfig == LOCAL.String() {
 		return true
 	}
 	return false

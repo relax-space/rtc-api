@@ -54,13 +54,28 @@ func LoadEnv() (c *ConfigDto, err error) {
 			err = fmt.Errorf("read config error:%v", err)
 			return
 		}
-		if len(c.Project.GitShortPath) == 0 {
-			fmt.Printf("no data from local temp/config.yml,please check param -s=%v", c.Project.ServiceName)
+		s := ""
+		if serviceName != nil && len(*serviceName) != 0 {
+			s = *serviceName
+		}
+		if s != c.Project.ServiceName {
+			warning := `WARNING! 
+  This will remove all files in temp
+Are you sure you want to continue? [y/N]`
+			if err = scan(warning); err != nil {
+				return
+			}
 			return
 		}
+		err = loadEnvRemote(serviceName, c)
 		return
 	}
 
+	err = loadEnvRemote(serviceName, c)
+	return
+}
+
+func loadEnvRemote(serviceName *string, c *ConfigDto) (err error) {
 	if serviceName == nil || len(*serviceName) == 0 {
 		err = fmt.Errorf("read env error:%v", "serviceName is required.")
 		return
@@ -236,7 +251,7 @@ func writeConfigYml(c *ConfigDto) (err error) {
 
 func getScope(updated *string) (updatedStr string, err error) {
 	if updated == nil || len(*updated) == 0 {
-		updatedStr = LOCAL.String()
+		updatedStr = REMOTE.String()
 		return
 	}
 	for _, s := range LOCAL.List() {
