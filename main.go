@@ -108,6 +108,10 @@ type ProjectDto struct {
 }
 
 func main() {
+	if err := deleteAllFile("./" + TEMP_FILE); err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	c, err := LoadEnv()
 	if err != nil {
