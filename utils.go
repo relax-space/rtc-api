@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -228,6 +229,20 @@ func deleteFileRegex(fileName string) (err error) {
 	}
 	for _, f := range files {
 		if err = os.Remove(f); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func deleteAllFile(fileName string) (err error) {
+	if _, err = os.Stat(fileName); err != nil {
+		err = nil
+		return
+	}
+	dir, err := ioutil.ReadDir(fileName)
+	for _, d := range dir {
+		if err = os.RemoveAll(path.Join([]string{fileName, d.Name()}...)); err != nil {
 			return
 		}
 	}
