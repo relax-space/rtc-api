@@ -36,22 +36,41 @@ func LoadEnv() (c *ConfigDto, err error) {
 	}
 
 	c = &ConfigDto{}
-	if err = loadEnv(c, updatedStr, ip, appEnv, serviceName,
+	if err = loadEnv(c, updatedStr, ip, appEnv,
 		mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort,
 		eventBrokerPort, nginxPort, zookeeperPort); err != nil {
 		return
 	}
 	isLocalConfig := scopeSettings(updatedStr)
+
+	if isLocalConfig {
+		fmt.Printf("current:%v \n", LOCAL.String())
+	} else {
+		fmt.Printf("current:%v \n", REMOTE.String())
+	}
+
 	if isLocalConfig {
 		if err = Read("", c); err != nil {
 			err = fmt.Errorf("read config error:%v", err)
 			return
 		}
+		if len(c.Project.GitShortPath) == 0 {
+			fmt.Printf("no data from local temp/config.yml,please check param -s=%v", c.Project.ServiceName)
+			return
+		}
 		return
 	}
 
+	if serviceName == nil || len(*serviceName) == 0 {
+		err = fmt.Errorf("read env error:%v", "serviceName is required.")
+		return
+	}
+	if err = deleteAllFile("./" + TEMP_FILE + "/"); err != nil {
+		fmt.Println(err)
+		return
+	}
 	//1.load base info from gitlab
-	if c.Project, err = (Relation{}).FetchRalation(c.Project.ServiceName); err != nil {
+	if c.Project, err = (Relation{}).FetchRalation(*serviceName); err != nil {
 		return
 	}
 	if err = writeConfigYml(c); err != nil {
@@ -133,11 +152,7 @@ func testProjectDependency(serviceName string) (projectDto *ProjectDto, err erro
 }
 
 func loadEnv(c *ConfigDto, scope string, ip, appEnv,
-	serviceName, mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort, eventBrokerPort, nginxPort, zookeeperPort *string) (err error) {
-	if serviceName == nil || len(*serviceName) == 0 {
-		err = fmt.Errorf("read env error:%v", "serviceName is required.")
-		return
-	}
+	mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort, eventBrokerPort, nginxPort, zookeeperPort *string) (err error) {
 
 	if appEnv != nil && len(*appEnv) != 0 {
 		app_env = *appEnv
@@ -153,7 +168,6 @@ func loadEnv(c *ConfigDto, scope string, ip, appEnv,
 	if c.Project == nil {
 		c.Project = &ProjectDto{}
 	}
-	c.Project.ServiceName = *serviceName
 	if mysqlPort == nil || len(*mysqlPort) == 0 {
 		c.Port.Mysql = inPort.Mysql
 	} else {

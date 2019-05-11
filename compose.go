@@ -166,7 +166,7 @@ func (d Compose) setComposeNginx(viper *viper.Viper, projectName, port string) {
 	viper.Set(servicePre+".volumes", []string{
 		"./nginx/default.conf:/etc/nginx/conf.d/default.conf",
 		"./nginx/html:/usr/share/nginx/html",
-		"./nginx:/var/log/nginx",
+		//"./nginx:/var/log/nginx",
 	})
 
 }
