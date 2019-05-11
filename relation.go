@@ -70,7 +70,7 @@ func (d Relation) setProjectDetail(projectDto *ProjectDto) (err error) {
 	if err = getProjectEnv(projectDto); err != nil {
 		return
 	}
-	d.setPort(projectDto)
+	//d.setPort(projectDto)
 	return
 }
 

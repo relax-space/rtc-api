@@ -98,20 +98,15 @@ type ProjectDto struct {
 	Envs           []string // from jenkins
 	IsProjectKafka bool
 
-	Ports            []string
-	Databases        []string //mysql,redis,mongo,sqlserver
-	StreamNames      []string
-	ParentFolderName string
-	Registry         string
+	Ports       []string
+	Databases   []string //mysql,redis,mongo,sqlserver
+	StreamNames []string
+	Registry    string
 
 	SubProjects []*ProjectDto
 }
 
 func main() {
-	if err := deleteAllFile("./" + TEMP_FILE); err != nil {
-		fmt.Println(err)
-		return
-	}
 
 	c, err := LoadEnv()
 	if err != nil {
@@ -183,10 +178,6 @@ func main() {
 	}
 	fmt.Println("check is ok.")
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d"); err != nil {
-		fmt.Printf("err:%v", err)
-		return
-	}
-	if _, err = CmdRealtime("docker", "ps", "-a"); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
@@ -294,8 +285,7 @@ func checkMysql(dockercompose, port string) (err error) {
 	for index := 0; index < 300; index++ {
 		err = db.Ping()
 		if err != nil {
-			//fmt.Println("error ping db", err)
-			time.Sleep(1 * time.Second)
+			time.Sleep(2 * time.Second)
 			continue
 		}
 		err = nil
@@ -324,7 +314,7 @@ func checkKafka(dockercompose, port string) (err error) {
 	fmt.Println("begin ping kafka,localhost:" + port)
 	for index := 0; index < 300; index++ {
 		if err = dailKafka(port); err != nil {
-			time.Sleep(5 * time.Second)
+			time.Sleep(2 * time.Second)
 			continue
 		}
 		err = nil
