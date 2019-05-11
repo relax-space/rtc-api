@@ -161,7 +161,7 @@ func (d Compose) setComposeNginx(viper *viper.Viper, projectName, port string) {
 	viper.Set(servicePre+".image", "nginx:1.16")
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Nginx})
-	//viper.Set("services.nginx.restart", "on-failure:20")
+	viper.Set(servicePre+".restart", "on-failure:10")
 	viper.Set(servicePre+".depends_on", []string{d.getServiceServer(projectName)})
 	viper.Set(servicePre+".volumes", []string{
 		"./nginx/default.conf:/etc/nginx/conf.d/default.conf",

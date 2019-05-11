@@ -36,6 +36,7 @@ const (
 	PreGitSshUrl         = "ssh://git@gitlab.p2shop.cn:822"
 	PREGITHTTPURL        = "https://gitlab.p2shop.cn:8443"
 	YMLNAMECONFIG        = "config"
+	YMLNAMEPROJEC        = "project"
 	YMLNAMEDOCKERCOMPOSE = "docker-compose"
 	REGISTRYELAND        = "registry.elandsystems.cn"
 	PREWAIT              = "wait-"
@@ -103,7 +104,6 @@ type ProjectDto struct {
 	ParentFolderName string
 	Registry         string
 
-	GitRaw      string
 	SubProjects []*ProjectDto
 }
 
@@ -121,10 +121,11 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		if err := (Relation{}).FetchsqlTofile(c.Project); err != nil {
-			fmt.Println(err)
-			return
-		}
+	}
+
+	if err := (Relation{}).FetchsqlTofile(c.Project); err != nil {
+		fmt.Println(err)
+		return
 	}
 
 	//2. generate docker-compose
