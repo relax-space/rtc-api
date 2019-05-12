@@ -9,239 +9,87 @@ import (
 	"github.com/spf13/viper"
 )
 
-func LoadEnv() (c *ConfigDto, err error) {
+type Config struct {
+	AppEnv      *string
+	ServiceName *string
+	Updated     *string
+	Ip          *string
+	MysqlPort   *string
+
+	RedisPort       *string
+	MongoPort       *string
+	SqlServerPort   *string
+	KafkaPort       *string
+	KafkaSecondPort *string
+
+	EventBrokerPort *string
+	NginxPort       *string
+	ZookeeperPort   *string
+}
+
+func (d Config) LoadEnv() (c *FullDto, err error) {
 
 	appEnv := flag.String("appEnv", os.Getenv("appEnv"), "appEnv")
 	serviceName := flag.String("s", os.Getenv("s"), "serviceName from mingbai")
 	updated := flag.String("u", os.Getenv("u"), "remote or local")
 	ip := flag.String("ip", os.Getenv("ip"), "ip")
-
 	mysqlPort := flag.String("mysqlPort", os.Getenv("mysqlPort"), "mysqlPort")
+
 	redisPort := flag.String("redisPort", os.Getenv("redisPort"), "redisPort")
 	mongoPort := flag.String("mongoPort", os.Getenv("mongoPort"), "mongoPort")
 	sqlServerPort := flag.String("sqlServerPort", os.Getenv("sqlServerPort"), "sqlServerPort")
 	kafkaPort := flag.String("kafkaPort", os.Getenv("kafkaPort"), "kafkaPort")
 	kafkaSecondPort := flag.String("kafkaSecondPort", os.Getenv("kafkaSecondPort"), "kafkaSecondPort")
+
 	eventBrokerPort := flag.String("eventBrokerPort", os.Getenv("eventBrokerPort"), "eventBrokerPort")
 	nginxPort := flag.String("nginxPort", os.Getenv("nginxPort"), "nginxPort")
 	zookeeperPort := flag.String("zookeeperPort", os.Getenv("zookeeperPort"), "zookeeperPort")
 
-	//EventBroker
 	flag.Parse()
 
-	updatedStr, err := getScope(updated)
-	if err != nil {
-		err = fmt.Errorf("read env updated error:%v", err)
+	if err = d.confirm(serviceName); err != nil {
 		return
 	}
 
-	c = &ConfigDto{}
-	if err = loadEnv(c, updatedStr, ip, appEnv,
-		mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort,
-		eventBrokerPort, nginxPort, zookeeperPort); err != nil {
-		return
-	}
-	isLocalConfig := scopeSettings(updatedStr)
+	c = &FullDto{}
+	config := &Config{
+		AppEnv:      appEnv,
+		ServiceName: serviceName,
+		Updated:     updated,
+		Ip:          ip,
+		MysqlPort:   mysqlPort,
 
-	if isLocalConfig {
-		fmt.Printf("current:%v \n", LOCAL.String())
-	} else {
-		fmt.Printf("current:%v \n", REMOTE.String())
-	}
+		RedisPort:       redisPort,
+		MongoPort:       mongoPort,
+		SqlServerPort:   sqlServerPort,
+		KafkaPort:       kafkaPort,
+		KafkaSecondPort: kafkaSecondPort,
 
-	if isLocalConfig {
-		if err = Read("", c); err != nil {
-			err = fmt.Errorf("read config error:%v", err)
-			return
-		}
-		s := ""
-		if serviceName != nil && len(*serviceName) != 0 {
-			s = *serviceName
-		}
-		if s != c.Project.ServiceName {
-			warning := `WARNING! 
-  This will remove all files in temp
-Are you sure you want to continue? [y/N]`
-			if err = scan(warning); err != nil {
-				return
-			}
-			return
-		}
-		err = loadEnvRemote(serviceName, c)
+		EventBrokerPort: eventBrokerPort,
+		NginxPort:       nginxPort,
+		ZookeeperPort:   zookeeperPort,
+	}
+	if err = config.loadEnv(c); err != nil {
 		return
 	}
 
-	err = loadEnvRemote(serviceName, c)
-	return
-}
-
-func loadEnvRemote(serviceName *string, c *ConfigDto) (err error) {
-	if serviceName == nil || len(*serviceName) == 0 {
-		err = fmt.Errorf("read env error:%v", "serviceName is required.")
-		return
-	}
-	if err = deleteAllFile("./" + TEMP_FILE + "/"); err != nil {
-		fmt.Println(err)
-		return
-	}
-	//1.load base info from gitlab
-	if c.Project, err = (Relation{}).FetchRalation(*serviceName); err != nil {
-		return
-	}
-	if err = writeConfigYml(c); err != nil {
-		return
-	}
-	if err = writeNgnix(c.Project, c.Port.EventBroker); err != nil {
-		return
-	}
-	return
-}
-
-const (
-	ngnixServer = `server {
-		listen       80;
-		server_name  test.local.com;
-		location / {
-			root   /usr/share/nginx/html;
-			index  index.html index.htm;
-		}
-		`
-	ngnixLocation = `location /$serverName/ {
-		proxy_set_header Host $host;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-		proxy_set_header X-Forwarded-Proto $scheme;
-		proxy_set_header Connection keep-alive;
-		proxy_pass       http://$containerName:$port/;
-	}
-	`
-)
-
-func getNginxLocation(serverName, port string) (location string) {
-	location = strings.Replace(ngnixLocation, "$serverName", serverName, -1)
-	location = strings.Replace(location, "$containerName", Compose{}.getContainerName(serverName), -1)
-	location = strings.Replace(location, "$port", port, -1)
-	return
-}
-
-func getContainerPort(port string) (containerPort string) {
-	containerPort = port[strings.LastIndex(port, ":")+1:]
-	return
-}
-
-// setNgnix set nginx default.conf
-func writeNgnix(p *ProjectDto, eventBrokerPort string) (err error) {
-	var location string
-	location += getNginxLocation(p.ServiceName, getContainerPort(p.Ports[0]))
-
-	for _, sp := range p.SubProjects {
-		location += getNginxLocation(sp.ServiceName, getContainerPort(sp.Ports[0]))
-	}
-
-	if shouldStartEventBroker(p) {
-		location += getNginxLocation(EventBroker_Name, eventBrokerPort)
-	}
-	if err = os.MkdirAll(TEMP_FILE+"/nginx", os.ModePerm); err != nil {
-		return
-	}
-	return writeFile(TEMP_FILE+"/nginx/default.conf", ngnixServer+location+"\n}")
-}
-
-func testProjectDependency(serviceName string) (projectDto *ProjectDto, err error) {
-
-	vip := viper.New()
-	vip.AddConfigPath(".")
-	vip.SetConfigName("relation")
-
-	if err = vip.ReadInConfig(); err != nil {
-		err = fmt.Errorf("Fatal error config file: %s \n", err)
-		return
-	}
-	projectDto = &ProjectDto{}
-	if err = vip.Unmarshal(projectDto); err != nil {
-		err = fmt.Errorf("Fatal error config file: %s \n", err)
-		return
-	}
-	return
-
-}
-
-func loadEnv(c *ConfigDto, scope string, ip, appEnv,
-	mysqlPort, redisPort, mongoPort, sqlServerPort, kafkaPort, kafkaSecondPort, eventBrokerPort, nginxPort, zookeeperPort *string) (err error) {
-
-	if appEnv != nil && len(*appEnv) != 0 {
-		app_env = *appEnv
-	} else {
-		app_env = "qa"
-	}
-
-	c.Ip, err = getIp(ip)
+	err = d.readYml(serviceName, c)
 	if err != nil {
 		return
 	}
-	c.Scope = scope
-	if c.Project == nil {
-		c.Project = &ProjectDto{}
-	}
-	if mysqlPort == nil || len(*mysqlPort) == 0 {
-		c.Port.Mysql = inPort.Mysql
-	} else {
-		c.Port.Mysql = *mysqlPort
-	}
-	if redisPort == nil || len(*redisPort) == 0 {
-		c.Port.Redis = inPort.Redis
-	} else {
-		c.Port.Mysql = *mysqlPort
-	}
-	if mongoPort == nil || len(*mongoPort) == 0 {
-		c.Port.Mongo = inPort.Mongo
-	} else {
-		c.Port.Mongo = *mongoPort
-	}
-	if sqlServerPort == nil || len(*sqlServerPort) == 0 {
-		c.Port.SqlServer = inPort.SqlServer
-	} else {
-		c.Port.SqlServer = *sqlServerPort
-	}
-	if kafkaPort == nil || len(*kafkaPort) == 0 {
-		c.Port.Kafka = inPort.Kafka
-	} else {
-		c.Port.Kafka = *kafkaPort
-	}
-	if kafkaSecondPort == nil || len(*kafkaSecondPort) == 0 {
-		c.Port.KafkaSecond = inPort.KafkaSecond
-	} else {
-		c.Port.KafkaSecond = *kafkaSecondPort
-	}
-	if zookeeperPort == nil || len(*zookeeperPort) == 0 {
-		c.Port.Zookeeper = inPort.Zookeeper
-	} else {
-		c.Port.Zookeeper = *zookeeperPort
-	}
-
-	if eventBrokerPort == nil || len(*eventBrokerPort) == 0 {
-		c.Port.EventBroker = inPort.EventBroker
-	} else {
-		c.Port.EventBroker = *eventBrokerPort
-	}
-	// nginx default outPort:3001
-	if nginxPort == nil || len(*nginxPort) == 0 {
-		c.Port.Nginx = "3001"
-	} else {
-		c.Port.Nginx = *nginxPort
-	}
-
 	return
 }
 
-func writeConfigYml(c *ConfigDto) (err error) {
+func (Config) WriteYml(c *FullDto) (err error) {
+
+	fileName := TEMP_FILE + "/" + YMLNAMECONFIG + ".yml"
 	vip := viper.New()
 	vip.SetConfigName(YMLNAMECONFIG)
 	vip.AddConfigPath(TEMP_FILE)
-	vip.Set("scope", c.Scope)
+	vip.Set("ip", c.Ip)
 	vip.Set("port", c.Port)
 	vip.Set("project", c.Project)
-	err = writeConfig(TEMP_FILE+"/"+YMLNAMECONFIG+".yml", vip)
+	err = File{}.WriteViper(fileName, vip)
 	if err != nil {
 		err = fmt.Errorf("write to config.yml error:%v", err)
 		return
@@ -249,8 +97,30 @@ func writeConfigYml(c *ConfigDto) (err error) {
 	return
 }
 
-func getScope(updated *string) (updatedStr string, err error) {
+// private method ===========
+
+func (Config) readYmlRemote(serviceName *string, c *FullDto) (err error) {
+	if serviceName == nil || len(*serviceName) == 0 {
+		err = fmt.Errorf("read env error:%v", "serviceName is required.")
+		return
+	}
+	//1.load base info from gitlab
+	if c.Project, err = (Relation{}).FetchRelation(*serviceName); err != nil {
+		return
+	}
+	return
+}
+
+func (Config) currentScope(updated *string) (updatedStr string, err error) {
 	if updated == nil || len(*updated) == 0 {
+		updatedStr = REMOTE.String()
+		return
+	}
+	has, err := (File{}).IsExist(TEMP_FILE + "/" + YMLNAMECONFIG + ".yml")
+	if err != nil {
+		return
+	}
+	if has == false {
 		updatedStr = REMOTE.String()
 		return
 	}
@@ -264,30 +134,135 @@ func getScope(updated *string) (updatedStr string, err error) {
 		err = fmt.Errorf("Parameters(%v) are not supported, only support %v", *updated, LOCAL.List())
 		return
 	}
+	fmt.Printf("current:%v \n", updatedStr)
 	return
 }
 
-func writeConfig(path string, viper *viper.Viper) (err error) {
-	if err = os.MkdirAll(TEMP_FILE, os.ModePerm); err != nil {
-		return
-	}
-	if err = createIfNot(path); err != nil {
-		return
-	}
-	if err = viper.WriteConfig(); err != nil {
-		return
-	}
-	return
-}
-
-func scopeSettings(scope string) (isLocalConfig bool) {
-	if _, err := os.Stat(TEMP_FILE + "/" + YMLNAMECONFIG + ".yml"); err != nil {
-		isLocalConfig = false
-	} else {
-		if scope == LOCAL.String() {
-			isLocalConfig = true
+func (d Config) readYml(serviceName *string, c *FullDto) (err error) {
+	if scope == LOCAL.String() {
+		if err = (File{}).ReadViper("", c); err != nil {
+			return
+		}
+		if serviceName != nil && len(*serviceName) != 0 {
+			c.Project.ServiceName = *serviceName
 		}
 	}
-	updatedConfig = scope
+
+	if err = d.readYmlRemote(serviceName, c); err != nil {
+		return
+	}
+	return
+}
+
+func (d *Config) loadEnv(c *FullDto) (err error) {
+
+	updatedStr, err := Config{}.currentScope(d.Updated)
+	if err != nil {
+		err = fmt.Errorf("read env updated error:%v", err)
+		return
+	}
+	scope = updatedStr
+
+	if d.AppEnv != nil && len(*d.AppEnv) != 0 {
+		app_env = *d.AppEnv
+	} else {
+		app_env = "qa"
+	}
+
+	c.Ip, err = getIp(d.Ip)
+	if err != nil {
+		return
+	}
+	if c.Project == nil {
+		c.Project = &ProjectDto{}
+	}
+	if d.MysqlPort == nil || len(*d.MysqlPort) == 0 {
+		c.Port.Mysql = inPort.Mysql
+	} else {
+		c.Port.Mysql = *d.MysqlPort
+	}
+	if d.RedisPort == nil || len(*d.RedisPort) == 0 {
+		c.Port.Redis = inPort.Redis
+	} else {
+		c.Port.Mysql = *d.RedisPort
+	}
+	if d.MongoPort == nil || len(*d.MongoPort) == 0 {
+		c.Port.Mongo = inPort.Mongo
+	} else {
+		c.Port.Mongo = *d.MongoPort
+	}
+	if d.SqlServerPort == nil || len(*d.SqlServerPort) == 0 {
+		c.Port.SqlServer = inPort.SqlServer
+	} else {
+		c.Port.SqlServer = *d.SqlServerPort
+	}
+	if d.KafkaPort == nil || len(*d.KafkaPort) == 0 {
+		c.Port.Kafka = inPort.Kafka
+	} else {
+		c.Port.Kafka = *d.KafkaPort
+	}
+	if d.KafkaSecondPort == nil || len(*d.KafkaSecondPort) == 0 {
+		c.Port.KafkaSecond = inPort.KafkaSecond
+	} else {
+		c.Port.KafkaSecond = *d.KafkaSecondPort
+	}
+	if d.ZookeeperPort == nil || len(*d.ZookeeperPort) == 0 {
+		c.Port.Zookeeper = inPort.Zookeeper
+	} else {
+		c.Port.Zookeeper = *d.ZookeeperPort
+	}
+
+	if d.EventBrokerPort == nil || len(*d.EventBrokerPort) == 0 {
+		c.Port.EventBroker = inPort.EventBroker
+	} else {
+		c.Port.EventBroker = *d.EventBrokerPort
+	}
+	// nginx default outPort:3001
+	if d.NginxPort == nil || len(*d.NginxPort) == 0 {
+		c.Port.Nginx = "3001"
+	} else {
+		c.Port.Nginx = *d.NginxPort
+	}
+
+	return
+}
+
+func (d Config) confirm(serviceName *string) (err error) {
+	localServiceName, err := d.getServiceNameLocal()
+	if err != nil {
+		return
+	}
+	if len(localServiceName) == 0 {
+		return
+	}
+	if serviceName == nil || len(*serviceName) == 0 {
+		return
+	}
+	if *serviceName != localServiceName {
+		warning := `WARNING! This will remove all files in temp [y/N]?`
+		if err = scan(warning); err != nil {
+			return
+		}
+		if err = (File{}).DeleteAll("./" + TEMP_FILE + "/"); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (Config) getServiceNameLocal() (serviceName string, err error) {
+	has, err := File{}.IsExist(TEMP_FILE + "/" + YMLNAMECONFIG + ".yml")
+	if err != nil {
+		return
+	}
+	if has == false {
+		return
+	}
+	c := &FullDto{}
+	if err = (File{}).ReadViper("", c); err != nil {
+		err = fmt.Errorf("read config error:%v", err)
+		return
+	}
+	serviceName = c.Project.ServiceName
 	return
 }
