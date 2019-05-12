@@ -1,10 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
+	"time"
 
+	mysql "github.com/go-sql-driver/mysql"
+	kafkautil "github.com/segmentio/kafka-go"
 	"github.com/spf13/viper"
 )
 
@@ -27,7 +34,50 @@ type NamePortDto struct {
 	Port string
 }
 
-// generate docker-compose
+func (d Compose) WriteYml(viper *viper.Viper) (err error) {
+
+	ymlStr, err := getStringViper(viper)
+	if err != nil {
+		err = fmt.Errorf("write to %v error:%v", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
+		return
+	}
+
+	ymlStr = d.upperKafkaEnvEland(ymlStr)
+
+	if (File{}).WriteString(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", ymlStr); err != nil {
+		err = fmt.Errorf("write to %v error:%v", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", err)
+		return
+	}
+	return
+}
+
+func (d Compose) Exec(c *FullDto) (err error) {
+	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
+		return
+	}
+	fmt.Println("==> compose downed!")
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "pull"); err != nil {
+		return
+	}
+	fmt.Println("==> compose pulled!")
+
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "build"); err != nil {
+		return
+	}
+	fmt.Println("==> compose builded!")
+	project := *(c.Project)
+	if err = d.checkAll(project, c.Port, dockercompose); err != nil {
+		return
+	}
+	fmt.Println("check is ok.")
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d"); err != nil {
+		return
+	}
+	fmt.Println("==> compose up!")
+	return
+}
+
 func (d Compose) setComposeApp(viper *viper.Viper, project *ProjectDto) {
 	viper.Set("version", "3")
 	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
@@ -171,34 +221,6 @@ func (d Compose) setComposeNginx(viper *viper.Viper, projectName, port string) {
 
 }
 
-func (d Compose) setComposeProducer(viper *viper.Viper, port string, project *ProjectDto) {
-	serviceName := EventBroker_Name
-	compose := &Compose{
-		ServiceName: serviceName,
-		ImageName:   REGISTRYELAND + "/" + serviceName + "-" + app_env,
-		Restart:     "on-failure:10",
-		Environment: project.Envs,
-		Ports:       []string{port + ":" + inPort.EventBroker},
-		DependsOn:   []string{d.getServiceServer("kafka")},
-	}
-	compose.setCompose(viper)
-}
-
-func (d Compose) setComposeConsumer(viper *viper.Viper, project *ProjectDto, serverName string) {
-	compose := &Compose{
-		ServiceName: serverName,
-		ImageName:   REGISTRYELAND + "/" + serverName + "-" + app_env,
-		Restart:     "on-failure:10",
-		Environment: project.Envs,
-		Ports:       project.Ports,
-		DependsOn: []string{d.getServiceServer("kafka"),
-			d.getServiceServer("mysql"), d.getServiceServer("redis")},
-	}
-	compose.setCompose(viper)
-}
-
-// utils
-
 func (d Compose) getServicePre(serviceName string) string {
 	return "services." + d.getServiceServer(serviceName)
 }
@@ -224,17 +246,6 @@ func (d *Compose) setCompose(viper *viper.Viper) {
 	viper.Set(servicePre+".depends_on", d.DependsOn)
 }
 
-func (Compose) getBuildPath(parentFolderName, gitShortPath string) (buildPath string) {
-	path := ""
-	if len(parentFolderName) != 0 {
-		path = "/" + parentFolderName
-	}
-	lastIndex := strings.LastIndex(gitShortPath, "/")
-	pName := gitShortPath[lastIndex+1:]
-	buildPath = fmt.Sprintf("%v/src%v/%v", getGoPath(), path, pName)
-	return
-}
-
 func (d Compose) appCompose(viper *viper.Viper, project *ProjectDto) {
 
 	deps := d.dependency(project)
@@ -253,64 +264,161 @@ func (d Compose) appCompose(viper *viper.Viper, project *ProjectDto) {
 func (d Compose) dependency(project *ProjectDto) (depends []string) {
 	deps := d.setComposeDependency(project)
 	depends = make([]string, 0)
-	for _, dep := range deps {
-		depends = append(depends, d.getServiceServer(dep.Name))
+	for dep, _ := range deps {
+		depends = append(depends, d.getServiceServer(dep))
 	}
 	return
 }
 
-func (d Compose) setComposeDependency(project *ProjectDto) (deps map[string]NamePortDto) {
+func (d Compose) setComposeDependency(project *ProjectDto) (deps map[string]string) {
 
-	deps = make(map[string]NamePortDto, 0)
+	deps = make(map[string]string, 0)
 
 	for _, sub := range project.SubProjects {
-		deps[sub.ServiceName] = NamePortDto{
-			Name: sub.ServiceName,
-			Port: d.getIntranetPort(sub.Ports[0]),
-		}
+		deps[strings.ToLower(sub.ServiceName)] = ""
+	}
+	p := ProjectInfo{}
+	if p.ShouldDb(project, MYSQL) {
+		deps[MYSQL.String()] = ""
+	}
+	if p.ShouldDb(project, REDIS) {
+		deps[REDIS.String()] = ""
+	}
+	if p.ShouldDb(project, MONGO) {
+		deps[MONGO.String()] = ""
+	}
+	if p.ShouldDb(project, SQLSERVER) {
+		deps[SQLSERVER.String()] = ""
 	}
 
-	if shouldStartMysql(project) {
-		serviceName := "mysql"
-		deps[serviceName] = NamePortDto{
-			Name: serviceName,
-			Port: inPort.Mysql,
-		}
-	}
-	if shouldStartRedis(project) {
-		serviceName := "redis"
-		deps[serviceName] = NamePortDto{
-			Name: serviceName,
-			Port: inPort.Redis,
-		}
-	}
-	if shouldStartMongo(project) {
-		serviceName := "mongo"
-		deps[serviceName] = NamePortDto{
-			Name: serviceName,
-			Port: inPort.Mongo,
-		}
-	}
-	if shouldStartSqlServer(project) {
-		serviceName := "sqlServer"
-		deps[serviceName] = NamePortDto{
-			Name: serviceName,
-			Port: inPort.SqlServer,
-		}
-	}
-	if shouldStartKakfa(project) {
-		serviceName := "kafka"
-		deps[serviceName] = NamePortDto{
-			Name: serviceName,
-			Port: inPort.Kafka,
-		}
+	if p.ShouldKafka(project) {
+		deps["kafka"] = ""
 	}
 	return
 }
 
-func (Compose) getIntranetPort(port string) (newPort string) {
-	if strings.Contains(port, ":") {
-		newPort = port[strings.Index(port, ":")+1:]
+func (d Compose) upperKafkaEnvEland(ymlStr string) string {
+	ymlStr = strings.Replace(ymlStr, "kafka_broker_id", "KAFKA_BROKER_ID", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_host_name", "KAFKA_ADVERTISED_HOST_NAME", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_port", "KAFKA_ADVERTISED_PORT", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connect", "KAFKA_ZOOKEEPER_CONNECT", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connection_timeout_ms", "KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS", -1)
+
+	ymlStr = strings.Replace(ymlStr, "kafka_delete_topic_enable", "KAFKA_DELETE_TOPIC_ENABLE", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_log_dirs", "KAFKA_LOG_DIRS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_log_retention_hours", "KAFKA_LOG_RETENTION_HOURS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_log_cleanup_policy", "KAFKA_LOG_CLEANUP_POLICY", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_log_cleaner_enable", "KAFKA_LOG_CLEANER_ENABLE", -1)
+
+	ymlStr = strings.Replace(ymlStr, "kafka_jvm_performance_opts", "KAFKA_JVM_PERFORMANCE_OPTS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_heap_opts", "KAFKA_HEAP_OPTS", -1)
+	ymlStr = strings.Replace(ymlStr, "jmx_port", "JMX_PORT", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_jmx_opts", "KAFKA_JMX_OPTS", -1)
+
+	ymlStr = strings.Replace(ymlStr, "zoo_my_id", "ZOO_MY_ID", -1)
+	ymlStr = strings.Replace(ymlStr, "zoo_servers", "ZOO_SERVERS", -1)
+
+	ymlStr = d.upperKafkaEnv(ymlStr)
+
+	return ymlStr
+}
+
+func (d Compose) upperKafkaEnv(ymlStr string) string {
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_listeners", "KAFKA_ADVERTISED_LISTENERS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_inter_broker_listener_name", "KAFKA_INTER_BROKER_LISTENER_NAME", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_listener_security_protocol_map", "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_listeners", "KAFKA_LISTENERS", -1)
+	ymlStr = strings.Replace(ymlStr, "kafka_zookeeper_connect", "KAFKA_ZOOKEEPER_CONNECT", -1)
+
+	ymlStr = strings.Replace(ymlStr, "kafka_advertised_port", "KAFKA_ADVERTISED_PORT", -1)
+	return ymlStr
+}
+
+func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string) (err error) {
+
+	p := ProjectInfo{}
+	if p.ShouldDb(&project, MYSQL) {
+		if err = d.checkMysql(dockercompose, port.Mysql); err != nil {
+			return
+		}
+	}
+	if p.ShouldKafka(&project) {
+		if err = d.checkKafka(dockercompose, port.Kafka); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func (d Compose) checkMysql(dockercompose, port string) (err error) {
+
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "mysql"+SUFSERVER); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+
+	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", port))
+	if err != nil {
+		fmt.Println("mysql", err)
+		return
+	}
+	//remove mysql log
+	buffer := bytes.NewBuffer(make([]byte, 0, 64))
+	logger := log.New(buffer, "prefix: ", 0)
+	mysql.SetLogger(logger)
+
+	fmt.Println("begin ping db")
+	for index := 0; index < 300; index++ {
+		err = db.Ping()
+		if err != nil {
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		err = nil
+		break
+	}
+	if err != nil {
+		fmt.Println("error ping db")
+		return
+	}
+	fmt.Println("finish ping db")
+	return
+}
+
+func (d Compose) checkKafka(dockercompose, port string) (err error) {
+
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "zookeeper"+SUFSERVER); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "kafka"+SUFSERVER); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+
+	fmt.Println("begin ping kafka,localhost:" + port)
+	for index := 0; index < 300; index++ {
+		if err = d.dailKafka(port); err != nil {
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		err = nil
+		break
+	}
+	if err != nil {
+		fmt.Println("error ping kafka")
+		return
+	}
+	fmt.Println("finish ping kafka")
+	return
+}
+
+func (d Compose) dailKafka(port string) (err error) {
+	_, err = kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+port, "ping", 0)
+	if err != nil {
+		return
 	}
 	return
 }
