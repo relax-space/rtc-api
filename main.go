@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,7 +14,12 @@ import (
 
 func main() {
 
-	c, err := Config{}.LoadEnv()
+	flag.Parse()
+	if ok := flagCheck(); !ok {
+		return
+	}
+
+	c, err := Config{}.LoadEnv(envDto.ServiceName)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -39,6 +45,33 @@ func main() {
 		}
 	}()
 	time.Sleep(100 * time.Hour)
+}
+
+func flagCheck() (ok bool) {
+	if flag.NFlag() == 0 {
+		flag.Usage()
+		return
+	}
+
+	if envDto.V {
+		fmt.Println("version:1.0.0")
+		flag.Usage()
+		return
+	}
+
+	if envDto.H {
+		fmt.Println(msg)
+		flag.Usage()
+		return
+	}
+
+	if len(envDto.ServiceName) == 0 {
+		fmt.Println(`-s is required.`)
+		flag.Usage()
+		return
+	}
+	ok = true
+	return
 }
 
 func writeLocal(c *FullDto) (err error) {
