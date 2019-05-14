@@ -57,15 +57,9 @@ func (d Compose) Exec(c *FullDto) (err error) {
 		return
 	}
 	fmt.Println("==> compose downed!")
-	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "pull"); err != nil {
+	if err = d.checkLatest(dockercompose, c); err != nil {
 		return
 	}
-	fmt.Println("==> compose pulled!")
-
-	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "build"); err != nil {
-		return
-	}
-	fmt.Println("==> compose builded!")
 	project := *(c.Project)
 	if err = d.checkAll(project, c.Port, dockercompose); err != nil {
 		return
@@ -75,6 +69,22 @@ func (d Compose) Exec(c *FullDto) (err error) {
 		return
 	}
 	fmt.Println("==> compose up!")
+	return
+}
+
+func (d Compose) checkLatest(dockercompose string, c *FullDto) (err error) {
+	if scope == LOCAL.String() {
+		return
+	}
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "pull"); err != nil {
+		return
+	}
+	fmt.Println("==> compose pulled!")
+
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "build"); err != nil {
+		return
+	}
+	fmt.Println("==> compose builded!")
 	return
 }
 
