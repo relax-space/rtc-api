@@ -55,7 +55,6 @@ func flagCheck() (ok bool) {
 
 	if envDto.V {
 		fmt.Println("version:1.0.0")
-		flag.Usage()
 		return
 	}
 
