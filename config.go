@@ -53,8 +53,8 @@ func (Config) readYmlRemote(serviceName string, c *FullDto) (err error) {
 	return
 }
 
-func (Config) currentScope(updated string) (updatedStr string, err error) {
-	if len(updated) == 0 {
+func (Config) currentScope(updated *string) (updatedStr string, err error) {
+	if StringPointCheck(updated) {
 		updatedStr = REMOTE.String()
 		return
 	}
@@ -67,7 +67,7 @@ func (Config) currentScope(updated string) (updatedStr string, err error) {
 		return
 	}
 	for _, s := range LOCAL.List() {
-		if strings.ToLower(updated) == s {
+		if strings.ToLower(*updated) == s {
 			updatedStr = s
 			break
 		}
@@ -105,8 +105,8 @@ func (d Config) loadEnv(c *FullDto) (err error) {
 	}
 	scope = updatedStr
 
-	if len(envDto.AppEnv) != 0 {
-		app_env = envDto.AppEnv
+	if StringPointCheck(envDto.ImageEnv) {
+		app_env = *envDto.ImageEnv
 	} else {
 		app_env = "qa"
 	}
@@ -118,53 +118,53 @@ func (d Config) loadEnv(c *FullDto) (err error) {
 	if c.Project == nil {
 		c.Project = &ProjectDto{}
 	}
-	if len(envDto.MysqlPort) == 0 {
+	if StringPointCheck(envDto.MysqlPort) {
 		c.Port.Mysql = inPort.Mysql
 	} else {
-		c.Port.Mysql = envDto.MysqlPort
+		c.Port.Mysql = *envDto.MysqlPort
 	}
-	if len(envDto.RedisPort) == 0 {
+	if StringPointCheck(envDto.RedisPort) {
 		c.Port.Redis = inPort.Redis
 	} else {
-		c.Port.Mysql = envDto.RedisPort
+		c.Port.Mysql = *envDto.RedisPort
 	}
-	if len(envDto.MongoPort) == 0 {
+	if StringPointCheck(envDto.MongoPort) {
 		c.Port.Mongo = inPort.Mongo
 	} else {
-		c.Port.Mongo = envDto.MongoPort
+		c.Port.Mongo = *envDto.MongoPort
 	}
-	if len(envDto.SqlServerPort) == 0 {
-		c.Port.SqlServer = inPort.SqlServer
-	} else {
-		c.Port.SqlServer = envDto.SqlServerPort
-	}
-	if len(envDto.KafkaPort) == 0 {
-		c.Port.Kafka = inPort.Kafka
-	} else {
-		c.Port.Kafka = envDto.KafkaPort
-	}
-	if len(envDto.KafkaSecondPort) == 0 {
-		c.Port.KafkaSecond = inPort.KafkaSecond
-	} else {
-		c.Port.KafkaSecond = envDto.KafkaSecondPort
-	}
-	if len(envDto.ZookeeperPort) == 0 {
-		c.Port.Zookeeper = inPort.Zookeeper
-	} else {
-		c.Port.Zookeeper = envDto.ZookeeperPort
-	}
+	// if len(envDto.SqlServerPort) == 0 {
+	// 	c.Port.SqlServer = inPort.SqlServer
+	// } else {
+	// 	c.Port.SqlServer = envDto.SqlServerPort
+	// }
+	// if len(envDto.KafkaPort) == 0 {
+	// 	c.Port.Kafka = inPort.Kafka
+	// } else {
+	// 	c.Port.Kafka = envDto.KafkaPort
+	// }
+	// if len(envDto.KafkaSecondPort) == 0 {
+	// 	c.Port.KafkaSecond = inPort.KafkaSecond
+	// } else {
+	// 	c.Port.KafkaSecond = envDto.KafkaSecondPort
+	// }
+	// if len(envDto.ZookeeperPort) == 0 {
+	// 	c.Port.Zookeeper = inPort.Zookeeper
+	// } else {
+	// 	c.Port.Zookeeper = envDto.ZookeeperPort
+	// }
 
-	if len(envDto.EventBrokerPort) == 0 {
-		c.Port.EventBroker = inPort.EventBroker
-	} else {
-		c.Port.EventBroker = envDto.EventBrokerPort
-	}
+	// if len(envDto.EventBrokerPort) == 0 {
+	// 	c.Port.EventBroker = inPort.EventBroker
+	// } else {
+	// 	c.Port.EventBroker = envDto.EventBrokerPort
+	// }
 	// nginx default outPort:3001
-	if len(envDto.NginxPort) == 0 {
-		c.Port.Nginx = "3001"
-	} else {
-		c.Port.Nginx = envDto.NginxPort
-	}
+	// if len(envDto.NginxPort) == 0 {
+	// 	c.Port.Nginx = "3001"
+	// } else {
+	// 	c.Port.Nginx = envDto.NginxPort
+	// }
 
 	return
 }
