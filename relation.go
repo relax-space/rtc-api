@@ -48,7 +48,7 @@ func (d Relation) FetchRelation(serviceName string) (project *ProjectDto, err er
 
 func (d Relation) setProject(r Relation) (project *ProjectDto, err error) {
 	project = &ProjectDto{
-		ServiceName:  r.Service,
+		ServiceName:  strings.ToLower(r.Service),
 		GitShortPath: r.GitlabShortName,
 		Registry:     d.getRegistry(r.Image),
 	}
@@ -71,12 +71,10 @@ func (d Relation) setProjectDetail(projectDto *ProjectDto) (err error) {
 	return
 }
 
-
-
 func (d Relation) setSubProject(relations map[string]Relation, project *ProjectDto) (err error) {
 	for _, r := range relations {
 		p := &ProjectDto{
-			ServiceName:  r.Service,
+			ServiceName:  strings.ToLower(r.Service),
 			GitShortPath: r.GitlabShortName,
 			Registry:     d.getRegistry(r.Image),
 		}
