@@ -11,11 +11,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
 )
+
 var envDto = &struct {
 	ServiceName *string
 	Updated     *string
 	List        *string
-	Ip          string
+	Ip          *string
 	ImageEnv    *string
 
 	MysqlPort     *string
@@ -32,7 +33,7 @@ var envDto = &struct {
 	ServiceName: kingpin.Arg("name", "name from mingbai api.").Required().String(),
 	Updated:     kingpin.Flag("updated", "data from [local remote].").Short('u').Default("remote").String(),
 	List:        kingpin.Flag("list", "show all mingbai service name.").Short('l').String(),
-	Ip:          kingpin.Flag("ip", "IP address to connect internet.").IP().String(),
+	Ip:          kingpin.Flag("ip", "IP address to connect internet.").String(),
 	ImageEnv:    kingpin.Flag("image-env", "image env [qa prd].").Default("qa").String(),
 
 	MysqlPort:     kingpin.Flag("mysql-port", "set port mysql.").Default(outPort.Mysql).String(),

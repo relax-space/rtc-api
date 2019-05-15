@@ -166,9 +166,9 @@ func inIps() (ips []string, err error) {
 	return
 }
 
-func getIp(ipParam string) (currentIp string, err error) {
-	if len(ipParam) != 0 {
-		currentIp = ipParam
+func getIp(ipParam *string) (currentIp string, err error) {
+	if StringPointCheck(ipParam) {
+		currentIp = *ipParam
 		return
 	}
 	ips, err := inIps()

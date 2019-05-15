@@ -118,53 +118,16 @@ func (d Config) loadEnv(c *FullDto) (err error) {
 	if c.Project == nil {
 		c.Project = &ProjectDto{}
 	}
-	if StringPointCheck(envDto.MysqlPort) {
-		c.Port.Mysql = inPort.Mysql
-	} else {
-		c.Port.Mysql = *envDto.MysqlPort
-	}
-	if StringPointCheck(envDto.RedisPort) {
-		c.Port.Redis = inPort.Redis
-	} else {
-		c.Port.Mysql = *envDto.RedisPort
-	}
-	if StringPointCheck(envDto.MongoPort) {
-		c.Port.Mongo = inPort.Mongo
-	} else {
-		c.Port.Mongo = *envDto.MongoPort
-	}
-	// if len(envDto.SqlServerPort) == 0 {
-	// 	c.Port.SqlServer = inPort.SqlServer
-	// } else {
-	// 	c.Port.SqlServer = envDto.SqlServerPort
-	// }
-	// if len(envDto.KafkaPort) == 0 {
-	// 	c.Port.Kafka = inPort.Kafka
-	// } else {
-	// 	c.Port.Kafka = envDto.KafkaPort
-	// }
-	// if len(envDto.KafkaSecondPort) == 0 {
-	// 	c.Port.KafkaSecond = inPort.KafkaSecond
-	// } else {
-	// 	c.Port.KafkaSecond = envDto.KafkaSecondPort
-	// }
-	// if len(envDto.ZookeeperPort) == 0 {
-	// 	c.Port.Zookeeper = inPort.Zookeeper
-	// } else {
-	// 	c.Port.Zookeeper = envDto.ZookeeperPort
-	// }
+	c.Port.Mysql = *envDto.MysqlPort
+	c.Port.Redis = *envDto.RedisPort
+	c.Port.Mongo = *envDto.MongoPort
+	c.Port.SqlServer = *envDto.SqlServerPort
+	c.Port.Kafka = *envDto.KafkaPort
 
-	// if len(envDto.EventBrokerPort) == 0 {
-	// 	c.Port.EventBroker = inPort.EventBroker
-	// } else {
-	// 	c.Port.EventBroker = envDto.EventBrokerPort
-	// }
-	// nginx default outPort:3001
-	// if len(envDto.NginxPort) == 0 {
-	// 	c.Port.Nginx = "3001"
-	// } else {
-	// 	c.Port.Nginx = envDto.NginxPort
-	// }
+	c.Port.KafkaSecond = *envDto.KafkaSecondPort
+	c.Port.Zookeeper = *envDto.ZookeeperPort
+	c.Port.EventBroker = *envDto.EventBrokerPort
+	c.Port.Nginx = *envDto.NginxPort
 
 	return
 }
