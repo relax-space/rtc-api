@@ -237,7 +237,7 @@ func (d Compose) getServicePre(serviceName string) string {
 }
 
 func (Compose) getServiceServer(serviceName string) string {
-	return serviceName + SUFSERVER
+	return strings.ToLower(serviceName) + SUFSERVER
 }
 
 func (Compose) getContainerName(serviceName string) string {
@@ -275,7 +275,7 @@ func (d Compose) appCompose(viper *viper.Viper, project *ProjectDto) {
 func (d Compose) dependency(project *ProjectDto) (depends []string) {
 	deps := d.setComposeDependency(project)
 	depends = make([]string, 0)
-	for dep, _ := range deps {
+	for dep := range deps {
 		depends = append(depends, d.getServiceServer(dep))
 	}
 	return
