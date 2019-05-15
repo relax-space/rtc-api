@@ -1,25 +1,61 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/alecthomas/kingpin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
 )
+var envDto = &struct {
+	ServiceName *string
+	Updated     *string
+	List        *string
+	Ip          string
+	ImageEnv    *string
+
+	MysqlPort     *string
+	RedisPort     *string
+	MongoPort     *string
+	SqlServerPort *string
+	KafkaPort     *string
+
+	KafkaSecondPort *string
+	EventBrokerPort *string
+	NginxPort       *string
+	ZookeeperPort   *string
+}{
+	ServiceName: kingpin.Arg("name", "name from mingbai api.").Required().String(),
+	Updated:     kingpin.Flag("updated", "data from [local remote].").Short('u').Default("remote").String(),
+	List:        kingpin.Flag("list", "show all mingbai service name.").Short('l').String(),
+	Ip:          kingpin.Flag("ip", "IP address to connect internet.").IP().String(),
+	ImageEnv:    kingpin.Flag("image-env", "image env [qa prd].").Default("qa").String(),
+
+	MysqlPort:     kingpin.Flag("mysql-port", "set port mysql.").Default(outPort.Mysql).String(),
+	RedisPort:     kingpin.Flag("redis-port", "set port redis.").Default(outPort.Redis).String(),
+	MongoPort:     kingpin.Flag("mongo-port", "set port mongo.").Default(outPort.Mongo).String(),
+	SqlServerPort: kingpin.Flag("sqlserver-port", "set port sqlserver.").Default(outPort.SqlServer).String(),
+	KafkaPort:     kingpin.Flag("kafka-port", "set port kafka.").Default(outPort.Kafka).String(),
+
+	KafkaSecondPort: kingpin.Flag("kafka-second-port", "set port kafka-second.").Default(outPort.KafkaSecond).String(),
+	EventBrokerPort: kingpin.Flag("event-broker-port", "set port event-broker.").Default(outPort.EventBroker).String(),
+	NginxPort:       kingpin.Flag("nginx-port", "set port nginx.").Default(outPort.Nginx).String(),
+	ZookeeperPort:   kingpin.Flag("zookeeper-port", "set port zookeeper.").Default(outPort.Zookeeper).String(),
+}
 
 func main() {
 
-	flag.Parse()
-	if ok := flagCheck(); !ok {
-		return
-	}
+	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("qa group")
+	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies."
+	kingpin.CommandLine.HelpFlag.Short('h')
+	kingpin.CommandLine.VersionFlag.Short('v')
+	kingpin.Parse()
 
-	c, err := Config{}.LoadEnv(envDto.ServiceName)
+	c, err := Config{}.LoadEnv(*envDto.ServiceName)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -45,32 +81,6 @@ func main() {
 		}
 	}()
 	time.Sleep(100 * time.Hour)
-}
-
-func flagCheck() (ok bool) {
-	if flag.NFlag() == 0 {
-		flag.Usage()
-		return
-	}
-
-	if envDto.V {
-		fmt.Println("version:1.0.0")
-		return
-	}
-
-	if envDto.H {
-		fmt.Println(msg)
-		flag.Usage()
-		return
-	}
-
-	if len(envDto.ServiceName) == 0 {
-		fmt.Println(`-s is required.`)
-		flag.Usage()
-		return
-	}
-	ok = true
-	return
 }
 
 func writeLocal(c *FullDto) (err error) {

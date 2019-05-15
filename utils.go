@@ -203,3 +203,19 @@ func scan(message string) (err error) {
 	err = nil
 	return
 }
+
+func BoolPointCheck(b *bool) (flag bool) {
+	if b == nil || *b == false {
+		return
+	}
+	flag = true
+	return
+}
+
+func StringPointCheck(s *string) (flag bool) {
+	if s == nil || len(*s) == 0 {
+		return
+	}
+	flag = true
+	return
+}
