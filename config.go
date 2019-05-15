@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/lextoumbourou/goodhosts"
+
 	"github.com/spf13/viper"
 )
 
@@ -38,6 +40,35 @@ func (Config) WriteYml(c *FullDto) (err error) {
 	err = File{}.WriteViper(fileName, vip)
 	if err != nil {
 		err = fmt.Errorf("write to config.yml error:%v", err)
+		return
+	}
+	return
+}
+
+func (Config) SetHost(ipParam *string) (err error) {
+	ip, err := getIp(ipParam)
+	if err != nil {
+		return
+	}
+
+	mapHost := map[string]string{
+		"10.202.101.200": "registry.elandsystems.cn",
+		ip:               "test-kafka",
+	}
+
+	hosts, err := goodhosts.NewHosts()
+	if err != nil {
+		return
+	}
+
+	for k, v := range mapHost {
+		if hosts.Has(k, v) {
+			hosts.Remove(k, v)
+		}
+		hosts.Add(k, v)
+	}
+
+	if err = hosts.Flush(); err != nil {
 		return
 	}
 	return

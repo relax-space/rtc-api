@@ -56,6 +56,10 @@ func main() {
 	kingpin.CommandLine.VersionFlag.Short('v')
 	kingpin.Parse()
 
+	if err := (Config{}).SetHost(envDto.Ip); err != nil {
+		fmt.Println(err)
+		return
+	}
 	c, err := Config{}.LoadEnv(*envDto.ServiceName)
 	if err != nil {
 		fmt.Println(err)
