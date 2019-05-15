@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -10,8 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Shopify/sarama"
 	mysql "github.com/go-sql-driver/mysql"
-	kafkautil "github.com/segmentio/kafka-go"
+	"github.com/pangpanglabs/goutils/echomiddleware"
+	"github.com/pangpanglabs/goutils/kafka"
 	"github.com/spf13/viper"
 )
 
@@ -426,7 +427,16 @@ func (d Compose) checkKafka(dockercompose, port string) (err error) {
 }
 
 func (d Compose) dailKafka(port string) (err error) {
-	_, err = kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+port, "ping", 0)
+	config := &echomiddleware.KafkaConfig{
+		Brokers: []string{"localhost:" + port},
+		Topic:   "ping",
+	}
+	_, err = kafka.NewProducer(config.Brokers, config.Topic, func(c *sarama.Config) {
+		c.Producer.RequiredAcks = sarama.WaitForLocal       // Only wait for the leader to ack
+		c.Producer.Compression = sarama.CompressionGZIP     // Compress messages
+		c.Producer.Flush.Frequency = 500 * time.Millisecond // Flush batches every 500ms
+
+	})
 	if err != nil {
 		return
 	}
