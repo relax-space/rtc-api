@@ -78,7 +78,7 @@ func (Config) SetHost(ipParam *string) (err error) {
 
 func (Config) readYmlRemote(serviceName string, c *FullDto) (err error) {
 	//1.load base info from gitlab
-	if c.Project, err = (Relation{}).FetchRelation(serviceName); err != nil {
+	if c.Project, err = (Relation{}).Fetch(serviceName); err != nil {
 		return
 	}
 	return
