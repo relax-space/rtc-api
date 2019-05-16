@@ -53,6 +53,12 @@ func (d Compose) WriteYml(viper *viper.Viper) (err error) {
 }
 
 func (d Compose) Exec(c *FullDto) (err error) {
+
+	if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, REGISTRYELAND); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+
 	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
 		return
@@ -398,7 +404,6 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 }
 
 func (d Compose) checkKafka(dockercompose, port string) (err error) {
-
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "zookeeper"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
