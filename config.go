@@ -45,12 +45,12 @@ func (Config) WriteYml(c *FullDto) (err error) {
 	return
 }
 
-func (Config) SetHost(ipParam *string) (err error) {
-	ip, err := getIp(ipParam)
+func (Config) CheckHost(ipParam string) (err error) {
+
+	ip, err := getCurrentIp(ipParam)
 	if err != nil {
 		return
 	}
-
 	mapHost := map[string]string{
 		"10.202.101.200": "registry.elandsystems.cn",
 		ip:               "test-kafka",
@@ -61,16 +61,17 @@ func (Config) SetHost(ipParam *string) (err error) {
 		return
 	}
 
+	message := ""
 	for k, v := range mapHost {
-		if hosts.Has(k, v) {
-			hosts.Remove(k, v)
+		if hosts.Has(k, v) == false {
+			message += fmt.Sprintf("%v %v\n", k, v)
 		}
-		hosts.Add(k, v)
 	}
-
-	if err = hosts.Flush(); err != nil {
+	if len(message) != 0 {
+		err = fmt.Errorf("Please manually set the host file: \n%v", message)
 		return
 	}
+
 	return
 }
 
@@ -142,7 +143,7 @@ func (d Config) loadEnv(c *FullDto) (err error) {
 		app_env = "qa"
 	}
 
-	c.Ip, err = getIp(envDto.Ip)
+	c.Ip, err = getCurrentIp(envDto.Ip)
 	if err != nil {
 		return
 	}
