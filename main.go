@@ -15,7 +15,7 @@ import (
 var envDto = &struct {
 	ServiceName *string
 	Updated     *string
-	List        *string
+	List        *bool
 	Ip          *string
 	ImageEnv    *string
 
@@ -30,9 +30,9 @@ var envDto = &struct {
 	NginxPort       *string
 	ZookeeperPort   *string
 }{
-	ServiceName: kingpin.Arg("name", "name from mingbai api.").Required().String(),
+	ServiceName: kingpin.Arg("name", "name from mingbai api.").String(),
 	Updated:     kingpin.Flag("updated", "data from [local remote].").Short('u').Default("remote").String(),
-	List:        kingpin.Flag("list", "show all mingbai service name.").Short('l').String(),
+	List:        kingpin.Flag("list", "Show all names from mingbai api.").Short('l').Bool(),
 	Ip:          kingpin.Flag("ip", "IP address to connect internet.").String(),
 	ImageEnv:    kingpin.Flag("image-env", "image env [qa prd].").Default("qa").String(),
 
@@ -49,13 +49,9 @@ var envDto = &struct {
 }
 
 func main() {
-
-	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("qa group")
-	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies."
-	kingpin.CommandLine.HelpFlag.Short('h')
-	kingpin.CommandLine.VersionFlag.Short('v')
-	kingpin.Parse()
-
+	if ok := Init(); ok == false {
+		return
+	}
 	if err := (Config{}).SetHost(envDto.Ip); err != nil {
 		fmt.Println(err)
 		return
@@ -130,4 +126,29 @@ func composeWriteYml(c *FullDto) (err error) {
 	d.setComposeNginx(viper, c.Project.ServiceName, c.Port.Nginx)
 	d.WriteYml(viper)
 	return
+}
+
+func Init() bool {
+	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("qa group")
+	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies."
+	kingpin.CommandLine.HelpFlag.Short('h')
+	kingpin.CommandLine.VersionFlag.Short('v')
+	kingpin.Parse()
+	if BoolPointCheck(envDto.List) {
+		list, err := Relation{}.FetchAll()
+		if err != nil {
+			fmt.Println(err)
+			return false
+		}
+		for _, v := range list {
+			fmt.Println(v)
+		}
+		return false
+	}
+	if StringPointCheck(envDto.ServiceName) == false {
+		fmt.Println("error: required argument 'name' not provided, try --help")
+		return false
+	}
+
+	return true
 }
