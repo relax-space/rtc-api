@@ -72,7 +72,7 @@ func (d Compose) Exec(c *FullDto) (err error) {
 		return
 	}
 	fmt.Println("check is ok.")
-	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d"); err != nil {
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate"); err != nil {
 		return
 	}
 	fmt.Println("==> compose up!")
@@ -370,7 +370,7 @@ func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string
 
 func (d Compose) checkMysql(dockercompose, port string) (err error) {
 
-	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "mysql"+SUFSERVER); err != nil {
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", "mysql"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
@@ -404,12 +404,12 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 }
 
 func (d Compose) checkKafka(dockercompose, port string) (err error) {
-	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "zookeeper"+SUFSERVER); err != nil {
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", "zookeeper"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
 
-	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "--detach", "kafka"+SUFSERVER); err != nil {
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", "kafka"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
