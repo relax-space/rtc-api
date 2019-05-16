@@ -166,11 +166,16 @@ func inIps() (ips []string, err error) {
 	return
 }
 
-func getIp(ipParam *string) (currentIp string, err error) {
-	if StringPointCheck(ipParam) {
-		currentIp = *ipParam
+func getCurrentIp(ipParam string) (currentIp string, err error) {
+	if ipCheck(ipParam) {
+		currentIp = ipParam
 		return
 	}
+	currentIp, err = getIp()
+	return
+}
+
+func getIp() (currentIp string, err error) {
 	ips, err := inIps()
 	if err != nil {
 		return
@@ -214,6 +219,14 @@ func BoolPointCheck(b *bool) (flag bool) {
 
 func StringPointCheck(s *string) (flag bool) {
 	if s == nil || len(*s) == 0 {
+		return
+	}
+	flag = true
+	return
+}
+
+func ipCheck(s string) (flag bool) {
+	if len(s) == 0 || s == "<nil>" {
 		return
 	}
 	flag = true

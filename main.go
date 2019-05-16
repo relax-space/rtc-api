@@ -16,7 +16,7 @@ var envDto = &struct {
 	ServiceName *string
 	Updated     *string
 	List        *bool
-	Ip          *string
+	Ip          string
 	ImageEnv    *string
 
 	MysqlPort     *string
@@ -33,7 +33,7 @@ var envDto = &struct {
 	ServiceName: kingpin.Arg("name", "name from mingbai api.").String(),
 	Updated:     kingpin.Flag("updated", "data from [local remote].").Short('u').Default("remote").String(),
 	List:        kingpin.Flag("list", "Show all names from mingbai api.").Short('l').Bool(),
-	Ip:          kingpin.Flag("ip", "IP address to connect internet.").String(),
+	Ip:          kingpin.Flag("ip", "IP address to connect internet.").IP().String(),
 	ImageEnv:    kingpin.Flag("image-env", "image env [qa prd].").Default("qa").String(),
 
 	MysqlPort:     kingpin.Flag("mysql-port", "set port mysql.").Default(outPort.Mysql).String(),
@@ -52,9 +52,9 @@ func main() {
 	if ok := Init(); ok == false {
 		return
 	}
-	if err := (Config{}).SetHost(envDto.Ip); err != nil {
+	if err := (Config{}).CheckHost(envDto.Ip); err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 	c, err := Config{}.LoadEnv(*envDto.ServiceName)
 	if err != nil {
