@@ -188,7 +188,7 @@ func (d Compose) setComposeKafka(viper *viper.Viper, port, secondPort, zookeeper
 	viper.Set(servicePre+".environment.KAFKA_LISTENERS", fmt.Sprintf("INSIDE://:%v,OUTSIDE://:%v", inPort.Kafka, secondPort))
 	viper.Set(servicePre+".environment.KAFKA_INTER_BROKER_LISTENER_NAME", "INSIDE")
 	viper.Set(servicePre+".environment.KAFKA_ADVERTISED_LISTENERS",
-		fmt.Sprintf("INSIDE://%v:%v,OUTSIDE://localhost:%v", containerName, inPort.Kafka, secondPort))
+		fmt.Sprintf("INSIDE://%v:%v,OUTSIDE://127.0.0.1:%v", containerName, inPort.Kafka, secondPort))
 	viper.Set(servicePre+".environment.KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT")
 	viper.Set(servicePre+".environment.KAFKA_ZOOKEEPER_CONNECT", d.getContainerName("zookeeper")+":"+inPort.Zookeeper)
 
@@ -414,7 +414,7 @@ func (d Compose) checkKafka(dockercompose, port string) (err error) {
 		return
 	}
 
-	fmt.Println("begin ping kafka,localhost:" + port)
+	fmt.Println("begin ping kafka,127.0.0.1:" + port)
 	for index := 0; index < 300; index++ {
 		if err = d.dailKafka(port); err != nil {
 			time.Sleep(2 * time.Second)
@@ -432,7 +432,7 @@ func (d Compose) checkKafka(dockercompose, port string) (err error) {
 }
 
 func (d Compose) dailKafka(port string) (err error) {
-	_, err = kafkautil.DialLeader(context.Background(), "tcp", "localhost:"+port, "ping", 0)
+	_, err = kafkautil.DialLeader(context.Background(), "tcp", "127.0.0.1:"+port, "ping", 0)
 	if err != nil {
 		return
 	}
