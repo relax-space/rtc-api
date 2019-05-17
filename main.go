@@ -30,7 +30,7 @@ var envDto = &struct {
 	NginxPort       *string
 	ZookeeperPort   *string
 }{
-	ServiceName: kingpin.Arg("name", "name from mingbai api.").String(),
+	ServiceName: kingpin.Arg("name", "name from mingbai api.").Default("sync-msl-taobao").String(),
 	Updated:     kingpin.Flag("updated", "data from [local remote].").Short('u').Default("remote").String(),
 	List:        kingpin.Flag("list", "Show all names from mingbai api.").Short('l').Bool(),
 	Ip:          kingpin.Flag("ip", "IP address to connect internet.").IP().String(),
@@ -51,13 +51,10 @@ var envDto = &struct {
 var Version string
 
 func main() {
-	if ok := Init(); ok == false {
+	if ok := InitFlag(); ok == false {
 		return
 	}
-	if err := (Config{}).CheckHost(envDto.Ip); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+
 	c, err := Config{}.LoadEnv(*envDto.ServiceName)
 	if err != nil {
 		fmt.Println(err)
@@ -130,7 +127,7 @@ func composeWriteYml(c *FullDto) (err error) {
 	return
 }
 
-func Init() bool {
+func InitFlag() bool {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Author("qa group")
 	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies."
 	kingpin.CommandLine.HelpFlag.Short('h')
