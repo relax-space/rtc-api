@@ -150,42 +150,15 @@ func getStringViper(vip *viper.Viper) (ymlString string, err error) {
 	return
 }
 
-func inIps() (ips []string, err error) {
-	addrs, err := net.InterfaceAddrs()
+func currentIp() (ip string, err error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
 		return
 	}
-	ips = make([]string, 0)
-	for _, addr := range addrs {
-		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				ips = append(ips, ipnet.IP.String())
-			}
-		}
-	}
-	return
-}
+	defer conn.Close()
 
-func getCurrentIp(ipParam string) (currentIp string, err error) {
-	if ipCheck(ipParam) {
-		currentIp = ipParam
-		return
-	}
-	currentIp, err = getIp()
-	return
-}
-
-func getIp() (currentIp string, err error) {
-	ips, err := inIps()
-	if err != nil {
-		return
-	}
-	for _, ip := range ips {
-		if strings.HasPrefix(ip, "10.202.101.") {
-			currentIp = ip
-			break
-		}
-	}
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	ip = localAddr.IP.String()
 	return
 }
 
@@ -219,14 +192,6 @@ func BoolPointCheck(b *bool) (flag bool) {
 
 func StringPointCheck(s *string) (flag bool) {
 	if s == nil || len(*s) == 0 {
-		return
-	}
-	flag = true
-	return
-}
-
-func ipCheck(s string) (flag bool) {
-	if len(s) == 0 || s == "<nil>" {
 		return
 	}
 	flag = true

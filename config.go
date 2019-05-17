@@ -16,7 +16,16 @@ func (d Config) LoadEnv(serviceName string) (c *FullDto, err error) {
 	if err = d.confirm(serviceName); err != nil {
 		return
 	}
-	c = &FullDto{}
+	ip, err := currentIp()
+	if err != nil {
+		return
+	}
+	if err = (Config{}).CheckHost(ip); err != nil {
+		return
+	}
+	c = &FullDto{
+		Ip: ip,
+	}
 	if err = d.loadEnv(c); err != nil {
 		return
 	}
@@ -45,12 +54,7 @@ func (Config) WriteYml(c *FullDto) (err error) {
 	return
 }
 
-func (Config) CheckHost(ipParam string) (err error) {
-
-	ip, err := getCurrentIp(ipParam)
-	if err != nil {
-		return
-	}
+func (Config) CheckHost(ip string) (err error) {
 	mapHost := map[string]string{
 		"10.202.101.200": "registry.elandsystems.cn",
 		ip:               "test-kafka",
@@ -143,10 +147,6 @@ func (d Config) loadEnv(c *FullDto) (err error) {
 		app_env = "qa"
 	}
 
-	c.Ip, err = getCurrentIp(envDto.Ip)
-	if err != nil {
-		return
-	}
 	if c.Project == nil {
 		c.Project = &ProjectDto{}
 	}
