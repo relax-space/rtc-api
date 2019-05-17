@@ -48,6 +48,8 @@ var envDto = &struct {
 	ZookeeperPort:   kingpin.Flag("zookeeper-port", "set port zookeeper.").Default(outPort.Zookeeper).String(),
 }
 
+var Version string
+
 func main() {
 	if ok := Init(); ok == false {
 		return
@@ -129,10 +131,13 @@ func composeWriteYml(c *FullDto) (err error) {
 }
 
 func Init() bool {
-	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version("1.0").Author("qa group")
+	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Author("qa group")
 	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies."
 	kingpin.CommandLine.HelpFlag.Short('h')
-	kingpin.CommandLine.VersionFlag.Short('v')
+	if len(Version) == 0 {
+		Version = "v1.0"
+	}
+	kingpin.CommandLine.Version(Version).VersionFlag.Short('v')
 	kingpin.Parse()
 	if BoolPointCheck(envDto.List) {
 		list, err := Relation{}.FetchAll()
