@@ -16,7 +16,6 @@ var envDto = &struct {
 	ServiceName *string
 	Updated     *string
 	List        *bool
-	Ip          string
 	ImageEnv    *string
 
 	MysqlPort     *string
@@ -30,22 +29,27 @@ var envDto = &struct {
 	NginxPort       *string
 	ZookeeperPort   *string
 }{
-	ServiceName: kingpin.Arg("name", "name from mingbai api.").Default("sync-msl-taobao").String(),
-	Updated:     kingpin.Flag("updated", "data from [local remote].").Short('u').Default("remote").String(),
-	List:        kingpin.Flag("list", "Show all names from mingbai api.").Short('l').Bool(),
-	Ip:          kingpin.Flag("ip", "IP address to connect internet.").IP().String(),
-	ImageEnv:    kingpin.Flag("image-env", "image env [qa prd].").Default("qa").String(),
+	ServiceName: kingpin.Arg("name", "The name of the project, you can get it by --list.").String(),
+	Updated: kingpin.Flag("updated", `
+	1.Optional [remote, local].
+	2.The program will get the following information from the remote: project information,basic test data and docker image.
+	3.The default is remote,if you don't want to get data from remote, please use local.`).Short('u').Default("remote").String(),
+	List: kingpin.Flag("list", "Query project name from remote.").Short('l').Bool(),
+	ImageEnv: kingpin.Flag("image-env", `
+	1.Optional [staging, qa , production].
+	2.The program will download the latest image from Jenkins.
+	3.The default is qa, you can choose other option`).Default("qa").String(),
 
-	MysqlPort:     kingpin.Flag("mysql-port", "set port mysql.").Default(outPort.Mysql).String(),
-	RedisPort:     kingpin.Flag("redis-port", "set port redis.").Default(outPort.Redis).String(),
-	MongoPort:     kingpin.Flag("mongo-port", "set port mongo.").Default(outPort.Mongo).String(),
-	SqlServerPort: kingpin.Flag("sqlserver-port", "set port sqlserver.").Default(outPort.SqlServer).String(),
-	KafkaPort:     kingpin.Flag("kafka-port", "set port kafka.").Default(outPort.Kafka).String(),
+	MysqlPort:     kingpin.Flag("mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
+	RedisPort:     kingpin.Flag("redis-port", "You can change default redis port.").Default(outPort.Redis).String(),
+	MongoPort:     kingpin.Flag("mongo-port", "You can change default mongo port.").Default(outPort.Mongo).String(),
+	SqlServerPort: kingpin.Flag("sqlserver-port", "You can change default sqlserver port.").Default(outPort.SqlServer).String(),
+	KafkaPort:     kingpin.Flag("kafka-port", "You can change default kafka port.").Default(outPort.Kafka).String(),
 
-	KafkaSecondPort: kingpin.Flag("kafka-second-port", "set port kafka-second.").Default(outPort.KafkaSecond).String(),
-	EventBrokerPort: kingpin.Flag("event-broker-port", "set port event-broker.").Default(outPort.EventBroker).String(),
-	NginxPort:       kingpin.Flag("nginx-port", "set port nginx.").Default(outPort.Nginx).String(),
-	ZookeeperPort:   kingpin.Flag("zookeeper-port", "set port zookeeper.").Default(outPort.Zookeeper).String(),
+	KafkaSecondPort: kingpin.Flag("kafka-second-port", "This parameter is reserved.").Default(outPort.KafkaSecond).String(),
+	EventBrokerPort: kingpin.Flag("event-broker-port", "You can change default event-broker port.").Default(outPort.EventBroker).String(),
+	NginxPort:       kingpin.Flag("nginx-port", "You can change default nginx port.").Default(outPort.Nginx).String(),
+	ZookeeperPort:   kingpin.Flag("zookeeper-port", "You can change default zookeeper port.").Default(outPort.Zookeeper).String(),
 }
 
 var Version string

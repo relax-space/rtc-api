@@ -75,7 +75,9 @@ func (d Compose) Exec(c *FullDto) (err error) {
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate"); err != nil {
 		return
 	}
-	fmt.Println("==> compose up!")
+	fmt.Printf(`
+==> compose up! you can start testing now.
+      [Options] you can check the running status with command:docker ps -a.`)
 	return
 }
 
