@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/alecthomas/kingpin"
 )
 
 var envDto = &struct {
-	ServiceName *string
-	Updated     *string
-	ImageEnv    *string
+	Updated  *string
+	ImageEnv *string
 
 	MysqlPort     *string
 	RedisPort     *string
@@ -23,7 +24,6 @@ var envDto = &struct {
 	NginxPort       *string
 	ZookeeperPort   *string
 }{
-	ServiceName: kingpin.Flag("service-name", "The name of the project, you can get it by --list.").Short('s').String(),
 	Updated: kingpin.Flag("updated", `
 	1.Optional [remote, local].
 	2.The program will get the following information from the remote: project information,basic test data and docker image.
@@ -47,13 +47,17 @@ var envDto = &struct {
 
 var (
 	ls    = kingpin.Command("ls", "List project names from remote.")
-	lsArg = ls.Arg("name-like", "According to `name-like` fuzzy query `name`").String()
+	lsArg = ls.Arg("service-name-like", "Fuzzy query by `service-name-like`").String()
+
+	run    = kingpin.Command("run", "Run a service and its dependencies.")
+	runArg = run.Arg("service-name", "The name of the project, you can get it by `run-test ls -h`.").String()
 )
 
 type Flag struct {
 }
 
 func (Flag) Init() bool {
+	exeName := filepath.Base(os.Args[0])
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Author("qa group")
 	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies."
 	kingpin.CommandLine.HelpFlag.Short('h')
@@ -65,12 +69,13 @@ func (Flag) Init() bool {
 	case "ls":
 		showList()
 		return false
+	case "run":
+		if StringPointCheck(runArg) == false {
+			fmt.Printf("%v: error: required argument 'service-name' not provided, try `%v ls -h`", exeName, exeName)
+			return false
+		}
+		return true
 	}
-	if StringPointCheck(envDto.ServiceName) == false {
-		fmt.Println("error: required argument 'name' not provided, try --help")
-		return false
-	}
-
 	return true
 }
 

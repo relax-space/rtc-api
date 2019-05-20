@@ -29,7 +29,16 @@ type ApiError struct {
 }
 
 //https://gateway.p2shop.com.cn/mingbai-api/service_groups/docker?name=OrderShipping
-func (d Relation) Fetch(serviceName string) (project *ProjectDto, err error) {
+func (d Relation) FetchProject(serviceName string) (project *ProjectDto, err error) {
+	relation, err := d.Fetch(serviceName)
+	if err != nil {
+		return
+	}
+	project, err = d.setProject(relation)
+	return
+}
+
+func (d Relation) Fetch(serviceName string) (relation *Relation, err error) {
 	//strings.ToUpper(app_env)
 	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v&namespace=%v", P2SHOPHOST, serviceName, "")
 	var apiResult ApiResult
@@ -41,8 +50,7 @@ func (d Relation) Fetch(serviceName string) (project *ProjectDto, err error) {
 		err = fmt.Errorf("no data from mingbai api ,url:%v", url)
 		return
 	}
-
-	project, err = d.setProject(apiResult.Result)
+	relation = &apiResult.Result
 	return
 }
 
@@ -65,7 +73,7 @@ func (d Relation) FetchAll() (names []string, err error) {
 	// return
 }
 
-func (d Relation) setProject(r Relation) (project *ProjectDto, err error) {
+func (d Relation) setProject(r *Relation) (project *ProjectDto, err error) {
 	project = &ProjectDto{
 		ServiceName:  r.Service,
 		GitShortPath: r.GitlabShortName,

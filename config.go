@@ -83,7 +83,7 @@ func (Config) CheckHost(ip string) (err error) {
 
 func (Config) readYmlRemote(serviceName string, c *FullDto) (err error) {
 	//1.load base info from gitlab
-	if c.Project, err = (Relation{}).Fetch(serviceName); err != nil {
+	if c.Project, err = (Relation{}).FetchProject(serviceName); err != nil {
 		return
 	}
 	return
@@ -176,6 +176,10 @@ func (d Config) confirm(serviceName string) (err error) {
 		return
 	}
 	if serviceName != localServiceName {
+		_, err = Relation{}.Fetch(serviceName)
+		if err != nil {
+			return
+		}
 		warning := `WARNING! This will remove all files in temp [y/N]?`
 		if err = scan(warning); err != nil {
 			return
