@@ -11,7 +11,7 @@ $ git clone https://gitlab.p2shop.cn:8443/qa/run-test.git
 
 Run
 ```
-$ ./run-test serviceName
+$ ./run-test run serviceName
 ```
 
 ## Help
@@ -21,32 +21,38 @@ You can see the help file here
 ```
 
 ```bash
-usage: run-test.exe [<flags>] [<name>]
+usage: run-test.exe [<flags>] <command> [<args> ...]
 
 A tool that runs microservices and its dependencies.
 
 Flags:
   -h, --help                   Show context-sensitive help (also try --help-long
                                and --help-man).
-  -u, --updated="remote"       data from [local remote].
-  -l, --list                   Show all names from mingbai api.
-      --ip=IP                  IP address to connect internet.
-      --image-env="qa"         image env [qa prd].
-      --mysql-port="3306"      set port mysql.
-      --redis-port="6379"      set port redis.
-      --mongo-port="27017"     set port mongo.
-      --sqlserver-port="1433"  set port sqlserver.
-      --kafka-port="9092"      set port kafka.
+  -u, --updated="remote"
+                                 1.Optional [remote, local].
+                                 2.The program will get the following information from the remote: project information,basic test data and docker image.
+                                 3.The default is remote,if you do not want to get data from remote, please use local.
+      --image-env="qa"
+                                 1.Optional [staging, qa , production].
+                                 2.The program will download the latest image from Jenkins.
+                                 3.The default is qa, you can choose other option
+      --mysql-port="3306"      You can change default mysql port.
+      --redis-port="6379"      You can change default redis port.
+      --mongo-port="27017"     You can change default mongo port.
+      --sqlserver-port="1433"  You can change default sqlserver port.
+      --kafka-port="9092"      You can change default kafka port.
       --kafka-second-port="29092"
-                               set port kafka-second.
+                               This parameter is reserved.
       --event-broker-port="3000"
-                               set port event-broker.
-      --nginx-port="3001"      set port nginx.
-      --zookeeper-port="2181"  set port zookeeper.
+                               You can change default event-broker port.
+      --nginx-port="3001"      You can change default nginx port.
+      --zookeeper-port="2181"  You can change default zookeeper port.
   -v, --version                Show application version.
 
-Args:
-  [<name>]  name from mingbai api.
+Commands:
+  help [<command>...]
+  ls [<service-name-like>]
+  run [<service-name>]
 ```
 
 
@@ -59,5 +65,4 @@ Args:
   - [viper](https://github.com/spf13/viper) 
   - [yaml](github.com/ghodss/yaml)
   - [kingpin](github.com/alecthomas/kingpin)
-- validator: [govalidator](github.com/asaskevich/govalidator)
 - utils: https://github.com/pangpanglabs/goutils
