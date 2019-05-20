@@ -16,6 +16,12 @@ type Relation struct {
 	Children        map[string]Relation `json:"children"`
 }
 
+type ApiResultArray struct {
+	Success bool     `json:"success"`
+	Result  []string `json:"result"`
+	Error   ApiError `json:"error"`
+}
+
 type ApiResult struct {
 	Success bool     `json:"success"`
 	Result  Relation `json:"result"`
@@ -40,7 +46,7 @@ func (d Relation) FetchProject(serviceName string) (project *ProjectDto, err err
 
 func (d Relation) Fetch(serviceName string) (relation *Relation, err error) {
 	//strings.ToUpper(app_env)
-	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v&namespace=%v", P2SHOPHOST, serviceName, "")
+	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v&runtimeEnv=%v", P2SHOPHOST, serviceName, "")
 	var apiResult ApiResult
 	_, err = httpreq.New(http.MethodGet, url, nil).Call(&apiResult)
 	if err != nil {
@@ -54,23 +60,21 @@ func (d Relation) Fetch(serviceName string) (relation *Relation, err error) {
 	return
 }
 
-func (d Relation) FetchAll() (names []string, err error) {
+func (d Relation) FetchAllNames() (names []string, err error) {
 
-	names = []string{"ipay-api", "sync-msl-taobao"}
+	url := fmt.Sprintf("%v/mingbai-api/service_groups/items/names?runtimeEnv=%v", P2SHOPHOST, "")
+	var apiResult ApiResultArray
+	_, err = httpreq.New(http.MethodGet, url, nil).Call(&apiResult)
+	if err != nil {
+		return
+	}
+	if apiResult.Success == false {
+		err = fmt.Errorf("no data from mingbai api ,url:%v", url)
+		return
+	}
+
+	names = apiResult.Result
 	return
-	// url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?namespace=%v", P2SHOPHOST, "")
-	// var apiResult ApiResult
-	// _, err = httpreq.New(http.MethodGet, url, nil).Call(&apiResult)
-	// if err != nil {
-	// 	return
-	// }
-	// if apiResult.Success == false {
-	// 	err = fmt.Errorf("no data from mingbai api ,url:%v", url)
-	// 	return
-	// }
-
-	// project, err = d.setProject(apiResult.Result)
-	// return
 }
 
 func (d Relation) setProject(r *Relation) (project *ProjectDto, err error) {

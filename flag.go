@@ -80,7 +80,7 @@ func (Flag) Init() bool {
 }
 
 func showList() {
-	list, err := Relation{}.FetchAll()
+	list, err := Relation{}.FetchAllNames()
 	if err != nil {
 		fmt.Println(err)
 		return
