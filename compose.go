@@ -54,6 +54,8 @@ func (d Compose) WriteYml(viper *viper.Viper) (err error) {
 
 func (d Compose) Exec(c *FullDto) (err error) {
 
+	fmt.Println("==> docker login " + REGISTRYELAND + " ...")
+
 	if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, REGISTRYELAND); err != nil {
 		fmt.Printf("err:%v", err)
 		return
