@@ -18,7 +18,7 @@ func main() {
 		return
 	}
 
-	c, err := Config{}.LoadEnv(*envDto.ServiceName)
+	c, err := Config{}.LoadEnv(*runArg)
 	if err != nil {
 		fmt.Println(err)
 		return
