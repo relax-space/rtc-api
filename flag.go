@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/alecthomas/kingpin"
@@ -24,7 +26,6 @@ type Flag struct {
 }
 
 func (Flag) Init() (serviceName *string, flag *Flag) {
-
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Author("qa group")
 	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies.For detail flags of each command run `help [<command>...]`."
 	kingpin.CommandLine.HelpFlag.Short('h')
@@ -75,7 +76,9 @@ func configureLsCommand(app *kingpin.Application) {
 
 func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *Flag) {
 	run := kingpin.Command("run", "Run a service and its dependencies.")
-	serviceName = run.Arg("service-name", "The name of the service, you can get it by `run-test ls -h`.").Required().String()
+	pName := filepath.Base(os.Args[0])
+	desc := fmt.Sprintf("The name of the service, you can get it by `%v ls -h`.", pName)
+	serviceName = run.Arg("service-name", desc).Required().String()
 	flag = &Flag{
 		Updated: run.Flag("updated", `
 	1.Optional [remote, local].
