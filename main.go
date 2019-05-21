@@ -14,11 +14,12 @@ import (
 var Version string
 
 func main() {
-	if ok := (Flag{}).Init(); ok == false {
+	serviceName, flag := (Flag{}).Init()
+	if StringPointCheck(serviceName) == false {
 		return
 	}
 
-	c, err := Config{}.LoadEnv(*runArg)
+	c, err := Config{}.LoadEnv(*serviceName, flag)
 	if err != nil {
 		fmt.Println(err)
 		return
