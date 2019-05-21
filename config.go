@@ -12,7 +12,7 @@ import (
 type Config struct {
 }
 
-func (d Config) LoadEnv(serviceName string) (c *FullDto, err error) {
+func (d Config) LoadEnv(serviceName string, flag *Flag) (c *FullDto, err error) {
 	if err = d.confirm(serviceName); err != nil {
 		return
 	}
@@ -26,7 +26,7 @@ func (d Config) LoadEnv(serviceName string) (c *FullDto, err error) {
 	c = &FullDto{
 		Ip: ip,
 	}
-	if err = d.loadEnv(c); err != nil {
+	if err = d.loadEnv(c, flag); err != nil {
 		return
 	}
 
@@ -132,17 +132,17 @@ func (d Config) readYml(serviceName string, c *FullDto) (err error) {
 	return
 }
 
-func (d Config) loadEnv(c *FullDto) (err error) {
+func (d Config) loadEnv(c *FullDto, flag *Flag) (err error) {
 
-	updatedStr, err := Config{}.currentScope(envDto.Updated)
+	updatedStr, err := Config{}.currentScope(flag.Updated)
 	if err != nil {
 		err = fmt.Errorf("read env updated error:%v", err)
 		return
 	}
 	scope = updatedStr
 
-	if StringPointCheck(envDto.ImageEnv) {
-		app_env = *envDto.ImageEnv
+	if StringPointCheck(flag.ImageEnv) {
+		app_env = *flag.ImageEnv
 	} else {
 		app_env = "qa"
 	}
@@ -150,16 +150,16 @@ func (d Config) loadEnv(c *FullDto) (err error) {
 	if c.Project == nil {
 		c.Project = &ProjectDto{}
 	}
-	c.Port.Mysql = *envDto.MysqlPort
-	c.Port.Redis = *envDto.RedisPort
-	c.Port.Mongo = *envDto.MongoPort
-	c.Port.SqlServer = *envDto.SqlServerPort
-	c.Port.Kafka = *envDto.KafkaPort
+	c.Port.Mysql = *flag.MysqlPort
+	c.Port.Redis = *flag.RedisPort
+	c.Port.Mongo = *flag.MongoPort
+	c.Port.SqlServer = *flag.SqlServerPort
+	c.Port.Kafka = *flag.KafkaPort
 
-	c.Port.KafkaSecond = *envDto.KafkaSecondPort
-	c.Port.Zookeeper = *envDto.ZookeeperPort
-	c.Port.EventBroker = *envDto.EventBrokerPort
-	c.Port.Nginx = *envDto.NginxPort
+	c.Port.KafkaSecond = *flag.KafkaSecondPort
+	c.Port.Zookeeper = *flag.ZookeeperPort
+	c.Port.EventBroker = *flag.EventBrokerPort
+	c.Port.Nginx = *flag.NginxPort
 
 	return
 }
