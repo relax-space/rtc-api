@@ -90,7 +90,7 @@ func (Config) readYmlRemote(serviceName string, c *FullDto) (err error) {
 }
 
 func (Config) currentScope(updated *string) (updatedStr string, err error) {
-	if StringPointCheck(updated) {
+	if StringPointCheck(updated) == false {
 		updatedStr = REMOTE.String()
 		return
 	}
@@ -124,6 +124,7 @@ func (d Config) readYml(serviceName string, c *FullDto) (err error) {
 		if len(serviceName) != 0 {
 			c.Project.ServiceName = serviceName
 		}
+		return
 	}
 
 	if err = d.readYmlRemote(serviceName, c); err != nil {
