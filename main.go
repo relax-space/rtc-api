@@ -2,10 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
@@ -34,17 +30,6 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Kill, os.Interrupt)
-	go func() {
-		for s := range signals {
-			switch s {
-			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-				os.Exit(0)
-			}
-		}
-	}()
-	time.Sleep(100 * time.Hour)
 }
 
 func writeLocal(c *FullDto) (err error) {
