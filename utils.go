@@ -26,7 +26,7 @@ const (
 )
 
 const (
-	PRIVATETOKEN         = "Su5_HzvQxtyANyDtzx_P"
+	PRIVATETOKEN         = "bY2kmqs8x8N3wfQxgw6s"
 	PreGitSshUrl         = "ssh://git@gitlab.p2shop.cn:822"
 	PREGITHTTPURL        = "https://gitlab.p2shop.cn:8443"
 	YMLNAMECONFIG        = "config"
