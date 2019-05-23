@@ -90,7 +90,7 @@ func (File) ReadUrl(url, privateToken string) (b []byte, err error) {
 		return
 	}
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("request gitlab error:%v", url)
+		err = fmt.Errorf("status:%v", resp.StatusCode)
 		return
 	}
 	defer resp.Body.Close()

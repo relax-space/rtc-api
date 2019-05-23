@@ -9,6 +9,8 @@ import (
 	"github.com/alecthomas/kingpin"
 )
 
+var Version string
+
 type Flag struct {
 	Updated  *string
 	ImageEnv *string

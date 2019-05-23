@@ -42,15 +42,15 @@ func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err 
 	if err = (File{}).DeleteRegex(TEMP_FILE + "/" + projectDto.ServiceName + ".sql"); err != nil {
 		return
 	}
-	path := ""
-	if projectDto.IsMulti {
-		path += "/" + projectDto.ServiceName
+	urlstr, err := Gitlab{}.getFileUrl(projectDto.IsMulti,
+		projectDto.GitShortPath, projectDto.ServiceName, "test_info", "table.sql")
+	if err != nil {
+		err = Gitlab{}.FileErr(projectDto, "test_info", "table.sql", err)
+		return
 	}
-	preGitlab := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env)
-	urlString := fmt.Sprintf("%v/test_info%v/table.sql", preGitlab, path)
 	filePath := fmt.Sprintf("%v/%v.sql", TEMP_FILE, projectDto.ServiceName)
-	if err = (File{}).WriteUrl(urlString, filePath, PRIVATETOKEN); err != nil {
-		err = fmt.Errorf("download sql error,url:%v,err:%v", urlString, err)
+	if err = (File{}).WriteUrl(urlstr, filePath, PRIVATETOKEN); err != nil {
+		err = Gitlab{}.FileErr(projectDto, "test_info", "table.sql", err)
 		return
 	}
 
@@ -176,19 +176,19 @@ func (d ProjectInfo) readYmlLocal(projectDto *ProjectDto) (err error) {
 	return
 }
 func (d ProjectInfo) readYmlRemote(projectDto *ProjectDto) (err error) {
-	gitRaw := fmt.Sprintf("%v/%v/raw/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env)
-	path := ""
-	if projectDto.IsMulti {
-		path += "/" + projectDto.ServiceName
+	err = Gitlab{}.CheckTestFile(projectDto)
+	if err != nil {
+		err = Gitlab{}.FileErr(projectDto, "", "config.test.yml", err)
+		return
 	}
-	urlString := fmt.Sprintf("%v/test_info%v/project.yml", gitRaw, path)
-	b, errd := (File{}).ReadUrl(urlString, PRIVATETOKEN)
-	if errd != nil {
-		err = fmt.Errorf("read project.yml error:%v,url:%v", errd, urlString)
+
+	b, err := Gitlab{}.RequestFile(projectDto, "test_info", "project.yml")
+	if err != nil {
+		err = Gitlab{}.FileErr(projectDto, "", "config.test.yml", err)
 		return
 	}
 	if err = yaml.Unmarshal(b, projectDto); err != nil {
-		err = fmt.Errorf("parse project.yml error,project:%v,err:%v", projectDto.ServiceName, err.Error())
+		err = Gitlab{}.FileErr(projectDto, "", "config.test.yml", err)
 		return
 	}
 	if d.shouldWriteYml(projectDto) {

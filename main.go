@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Version string
+
 
 func main() {
 	serviceName, flag := (Flag{}).Init()
