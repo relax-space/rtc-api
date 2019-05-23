@@ -66,6 +66,11 @@ func (d ProjectInfo) ReadYml(projectDto *ProjectDto) (err error) {
 		if err = d.readYmlRemote(projectDto); err != nil {
 			return
 		}
+		err = Gitlab{}.CheckTestFile(projectDto)
+		if err != nil {
+			err = Gitlab{}.FileErr(projectDto, projectDto.ExecPath, "config.test.yml", err)
+			return
+		}
 	}
 	if projectDto.IsMulti && len(projectDto.Envs) == 0 {
 		d.ReadYml(projectDto)
@@ -176,19 +181,13 @@ func (d ProjectInfo) readYmlLocal(projectDto *ProjectDto) (err error) {
 	return
 }
 func (d ProjectInfo) readYmlRemote(projectDto *ProjectDto) (err error) {
-	err = Gitlab{}.CheckTestFile(projectDto)
-	if err != nil {
-		err = Gitlab{}.FileErr(projectDto, "", "config.test.yml", err)
-		return
-	}
-
 	b, err := Gitlab{}.RequestFile(projectDto, "test_info", "project.yml")
 	if err != nil {
-		err = Gitlab{}.FileErr(projectDto, "", "config.test.yml", err)
+		err = Gitlab{}.FileErr(projectDto, "test_info", "project.yml", err)
 		return
 	}
 	if err = yaml.Unmarshal(b, projectDto); err != nil {
-		err = Gitlab{}.FileErr(projectDto, "", "config.test.yml", err)
+		err = Gitlab{}.FileErr(projectDto, "test_info", "project.yml", err)
 		return
 	}
 	if d.shouldWriteYml(projectDto) {

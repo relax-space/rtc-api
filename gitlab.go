@@ -31,7 +31,7 @@ func (d Gitlab) RequestFile(projectDto *ProjectDto, folderName, fileName string)
 
 func (d Gitlab) CheckTestFile(projectDto *ProjectDto) (err error) {
 	urlstr, err := d.getFileUrl(projectDto.IsMulti,
-		projectDto.GitShortPath, projectDto.ServiceName, "", "config.test.yml")
+		projectDto.GitShortPath, projectDto.ServiceName, projectDto.ExecPath, "config.test.yml")
 	if err != nil {
 		return
 	}
@@ -42,12 +42,18 @@ func (d Gitlab) CheckTestFile(projectDto *ProjectDto) (err error) {
 	return
 }
 
+func (d Gitlab) FileErr(projectDto *ProjectDto, folderName, fileName string, errParam error) (err error) {
+	url := fmt.Sprintf("%v/%v/raw/%v/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env,
+		d.getFilePath(false, projectDto.IsMulti, projectDto.ServiceName, folderName, fileName))
+	return fmt.Errorf("check gitlab file,url:%v,err:%v", url, errParam)
+}
+
 func (d Gitlab) getFileUrl(isMulti bool, gitShortPath, serviceName, folderName, fileName string) (urlstr string, err error) {
 	id, err := d.getProjectId(gitShortPath)
 	if err != nil {
 		return
 	}
-	name := d.getFilePath(isMulti, serviceName, folderName, fileName)
+	name := d.getFilePath(true, isMulti, serviceName, folderName, fileName)
 	urlstr = fmt.Sprintf("%v/api/v4/projects/%v/repository/files/%v/raw?ref=%v",
 		PREGITHTTPURL, id, name, app_env)
 	return
@@ -71,8 +77,12 @@ func (d Gitlab) getProjectId(gitShortPath string) (projectId int, err error) {
 	return
 }
 
-func (d Gitlab) getFilePath(isMulti bool, projectName, folderName, fileName string) (path string) {
-	flag := url.QueryEscape("/")
+func (d Gitlab) getFilePath(isEscape, isMulti bool, projectName, folderName, fileName string) (path string) {
+	flag := "/"
+	if isEscape {
+		flag = url.QueryEscape(flag)
+	}
+
 	if isMulti {
 		path = projectName + flag
 	}
@@ -94,22 +104,4 @@ func (d Gitlab) getGroupProject(gitShortPath string) (groupName, projectName str
 	projectName = strs[1]
 	return
 
-}
-
-func (d Gitlab) FileErr(projectDto *ProjectDto, folderName, fileName string, errParam error) (err error) {
-	url := fmt.Sprintf("%v/%v/raw/%v/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env,
-		d.getFilePathErr(projectDto.IsMulti, projectDto.ServiceName, folderName, fileName))
-	return fmt.Errorf("check gitlab file,url:%v,err:%v", url, errParam)
-}
-
-func (d Gitlab) getFilePathErr(isMulti bool, projectName, folderName, fileName string) (path string) {
-	if isMulti {
-		path = projectName + "/"
-	}
-
-	if len(folderName) != 0 {
-		path += folderName + "/"
-	}
-	path += fileName
-	return
 }

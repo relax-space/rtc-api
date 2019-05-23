@@ -93,6 +93,7 @@ type ProjectDto struct {
 	GitShortPath   string   //eg. ipay/ipay-api
 	Envs           []string // from jenkins
 	IsProjectKafka bool
+	ExecPath string 
 
 	Ports       []string
 	Databases   []string //mysql,redis,mongo,sqlserver
