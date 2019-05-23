@@ -7,8 +7,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-
-
 func main() {
 	serviceName, flag := (Flag{}).Init()
 	if StringPointCheck(serviceName) == false {
@@ -18,6 +16,12 @@ func main() {
 	c, err := Config{}.LoadEnv(*serviceName, flag)
 	if err != nil {
 		fmt.Println(err)
+		return
+	}
+	if err = composeWriteYml(c); err != nil {
+		return
+	}
+	if err = (Nginx{}).WriteConfig(c.Project, c.Port.EventBroker); err != nil {
 		return
 	}
 
@@ -34,12 +38,6 @@ func main() {
 
 func writeLocal(c *FullDto) (err error) {
 	if scope == LOCAL.String() {
-		return
-	}
-	if err = composeWriteYml(c); err != nil {
-		return
-	}
-	if err = (Nginx{}).WriteConfig(c.Project, c.Port.EventBroker); err != nil {
 		return
 	}
 	if err = (ProjectInfo{}).WriteSql(c.Project); err != nil {
