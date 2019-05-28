@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+
 	serviceName, flag := (Flag{}).Init()
 	if StringPointCheck(serviceName) == false {
 		return
@@ -34,6 +35,15 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	if err = (Xorm{}).InitSql(c.Project); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("you can start testing now.check health by `docker ps -a`")
+	return
+
 }
 
 func writeLocal(c *FullDto) (err error) {
@@ -66,7 +76,9 @@ func composeWriteYml(c *FullDto) (err error) {
 
 	if p.ShouldEventBroker(c.Project) {
 		streamNames := p.StreamList(c.Project)
-		EventBroker{}.SetEventBroker(viper, c.Port.EventBroker, streamNames)
+		if err = (EventBroker{}).SetEventBroker(viper, c.Port.EventBroker, streamNames); err != nil {
+			fmt.Println(err)
+		}
 	}
 	d.setComposeApp(viper, c.Project)
 	d.setComposeNginx(viper, c.Project.ServiceName, c.Port.Nginx)

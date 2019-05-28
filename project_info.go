@@ -38,22 +38,48 @@ func (ProjectInfo) WriteYml(serviceName, fileName, ymlStr string) (err error) {
 	return
 }
 
-func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err error) {
-	if err = (File{}).DeleteRegex(TEMP_FILE + "/" + projectDto.ServiceName + ".sql"); err != nil {
-		return
+func (d ProjectInfo) getDbNames(projectDto *ProjectDto) (dbNames []string) {
+	dbNames = make([]string, 0)
+	if d.ShouldDb(projectDto, MYSQL) == true {
+		dbNames = append(dbNames, MYSQL.String())
 	}
-	urlstr, err := Gitlab{}.getFileUrl(projectDto.IsMulti,
-		projectDto.GitShortPath, projectDto.ServiceName, "test_info", "table.sql")
-	if err != nil {
-		err = Gitlab{}.FileErr(projectDto, "test_info", "table.sql", err)
-		return
+	if d.ShouldDb(projectDto, SQLSERVER) == true {
+		dbNames = append(dbNames, SQLSERVER.String())
 	}
-	filePath := fmt.Sprintf("%v/%v.sql", TEMP_FILE, projectDto.ServiceName)
-	if err = (File{}).WriteUrl(urlstr, filePath, PRIVATETOKEN); err != nil {
-		err = Gitlab{}.FileErr(projectDto, "test_info", "table.sql", err)
-		return
-	}
+	return
+}
 
+func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err error) {
+
+	dbNames := d.getDbNames(projectDto)
+
+	for _, v := range dbNames {
+		localDbFolderPath := fmt.Sprintf("%v/%v/%v", TEMP_FILE, projectDto.ServiceName, v)
+		localDbPath := fmt.Sprintf("%v/table.sql", localDbFolderPath)
+
+		if err = (File{}).DeleteRegex(localDbPath); err != nil {
+			return
+		}
+		folderName := TEST_INFO + "/" + v
+
+		urlstr, errd := Gitlab{}.getFileUrl(projectDto.IsMulti,
+			projectDto.GitShortPath, projectDto.ServiceName, folderName, "table.sql")
+
+		if errd != nil {
+			err = Gitlab{}.FileErr(projectDto, folderName, "table.sql", errd)
+			return
+		}
+		if err = os.MkdirAll(localDbFolderPath, os.ModePerm); err != nil {
+			return
+		}
+		if err = (File{}).CreateEmpty(localDbPath); err != nil {
+			return
+		}
+		if err = (File{}).WriteUrl(urlstr, localDbPath, PRIVATETOKEN); err != nil {
+			err = Gitlab{}.FileErr(projectDto, folderName, "table.sql", err)
+			return
+		}
+	}
 	return
 }
 

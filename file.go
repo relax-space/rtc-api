@@ -37,12 +37,22 @@ func (File) WriteString(fileName, content string) (err error) {
 	return
 }
 
-func (File) WriteViper(path string, viper *viper.Viper) (err error) {
+func (d File) WriteViper(path string, viper *viper.Viper) (err error) {
 	// create directory
 	if err = os.MkdirAll(TEMP_FILE, os.ModePerm); err != nil {
 		return
 	}
 	//create file
+	if err = d.CreateEmpty(path); err != nil {
+		return
+	}
+	if err = viper.WriteConfig(); err != nil {
+		return
+	}
+	return
+}
+
+func (File) CreateEmpty(path string) (err error) {
 	if _, err = os.Stat(path); err != nil {
 		if os.IsNotExist(err) == false {
 			return
@@ -50,9 +60,6 @@ func (File) WriteViper(path string, viper *viper.Viper) (err error) {
 		if _, err = os.Create(path); err != nil {
 			return
 		}
-	}
-	if err = viper.WriteConfig(); err != nil {
-		return
 	}
 	return
 }

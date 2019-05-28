@@ -77,7 +77,7 @@ func (d Compose) Exec(c *FullDto) (err error) {
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate"); err != nil {
 		return
 	}
-	fmt.Printf(`==> compose up! you can start testing now.view status:docker ps -a.`)
+	fmt.Println(`==> compose up!`)
 	return
 }
 
@@ -114,9 +114,9 @@ func (d Compose) setComposeMysql(viper *viper.Viper, port string) {
 
 	viper.Set(servicePre+".image", "mysql:5.7.22")
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
-	viper.Set(servicePre+".volumes", []string{
-		".:/docker-entrypoint-initdb.d",
-	})
+	// viper.Set(servicePre+".volumes", []string{
+	// 	".:/docker-entrypoint-initdb.d",
+	// })
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Mysql})
 	//viper.Set("services.mysqlserver.restart", "always")
 	viper.Set(servicePre+".environment", []string{"MYSQL_ROOT_PASSWORD=1234"})
@@ -366,7 +366,6 @@ func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string
 			return
 		}
 	}
-
 	return
 }
 
@@ -382,6 +381,7 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 		fmt.Println("mysql", err)
 		return
 	}
+	defer db.Close()
 	//remove mysql log
 	buffer := bytes.NewBuffer(make([]byte, 0, 64))
 	logger := log.New(buffer, "prefix: ", 0)

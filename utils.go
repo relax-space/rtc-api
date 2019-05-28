@@ -21,6 +21,7 @@ var (
 )
 
 const (
+	TEST_INFO        = "test_info"
 	TEMP_FILE        = "temp"
 	EventBroker_Name = "event-broker-kafka"
 )
@@ -93,7 +94,7 @@ type ProjectDto struct {
 	GitShortPath   string   //eg. ipay/ipay-api
 	Envs           []string // from jenkins
 	IsProjectKafka bool
-	ExecPath string 
+	ExecPath       string
 
 	Ports       []string
 	Databases   []string //mysql,redis,mongo,sqlserver
