@@ -30,8 +30,26 @@ func (d Gitlab) RequestFile(projectDto *ProjectDto, folderName, fileName string)
 }
 
 func (d Gitlab) CheckTestFile(projectDto *ProjectDto) (err error) {
+
+	err = d.checkTestFile(projectDto, "config.yml")
+	if err != nil {
+		//if `config.yml` not exist,then don't check `config.test.yml`
+		if err.Error() == "status:404" {
+			err = nil
+			return
+		}
+		return
+	}
+	err = d.checkTestFile(projectDto, "config.test.yml")
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (d Gitlab) checkTestFile(projectDto *ProjectDto, fileName string) (err error) {
 	urlstr, err := d.getFileUrl(projectDto.IsMulti,
-		projectDto.GitShortPath, projectDto.ServiceName, projectDto.ExecPath, "config.test.yml")
+		projectDto.GitShortPath, projectDto.ServiceName, projectDto.ExecPath, fileName)
 	if err != nil {
 		return
 	}
@@ -81,14 +99,13 @@ func (d Gitlab) getFilePath(isEscape, isMulti bool, projectName, folderName, fil
 	flag := "/"
 	if isEscape {
 		flag = url.QueryEscape(flag)
+		folderName = strings.Replace(folderName, "/", flag, -1)
 	}
-
-	if isMulti {
-		path = projectName + flag
-	}
-
 	if len(folderName) != 0 {
 		path += folderName + flag
+	}
+	if isMulti {
+		path += projectName + flag
 	}
 	path += fileName
 	return
