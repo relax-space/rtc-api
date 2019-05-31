@@ -30,7 +30,14 @@ func (Xorm) InitSql(project *ProjectDto) (err error) {
 		return
 	}
 	projects := []*ProjectDto{project}
-	err = dbXorm.insertSql(projects)
+	if err = dbXorm.insertSql(projects); err != nil {
+		return
+	}
+	if (ProjectInfo{}).ShouldEventBroker(project) {
+		if err = dbXorm.insertSqlEventBroker(); err != nil {
+			return
+		}
+	}
 	fmt.Println("sql data loaded.")
 	return
 }
@@ -40,13 +47,13 @@ func (d *Xorm) insertSql(projects []*ProjectDto) (err error) {
 		if len(projectDto.ServiceName) == 0 {
 			continue
 		}
-		if (ProjectInfo{}).ShouldDb(projectDto, MYSQL) {
-			if err = d.insert(d.Mysql, projectDto, MYSQL); err != nil {
+		if (Database{}).ShouldDb(projectDto, MYSQL) {
+			if err = d.insert(d.Mysql, projectDto.ServiceName, MYSQL); err != nil {
 				return
 			}
 		}
-		if (ProjectInfo{}).ShouldDb(projectDto, SQLSERVER) {
-			if err = d.insert(d.SqlServer, projectDto, SQLSERVER); err != nil {
+		if (Database{}).ShouldDb(projectDto, SQLSERVER) {
+			if err = d.insert(d.SqlServer, projectDto.ServiceName, SQLSERVER); err != nil {
 				return
 			}
 		}
@@ -59,8 +66,12 @@ func (d *Xorm) insertSql(projects []*ProjectDto) (err error) {
 	return
 }
 
-func (d *Xorm) insert(db *xorm.Engine, project *ProjectDto, dbType DateBaseType) (err error) {
-	fileName := fmt.Sprintf("temp/%v/%v/*.sql", project.ServiceName, dbType.String())
+func (d *Xorm) insertSqlEventBroker() (err error) {
+	return d.insert(d.Mysql, "kafka-consumer", MYSQL)
+}
+
+func (d *Xorm) insert(db *xorm.Engine, serviceName string, dbType DateBaseType) (err error) {
+	fileName := fmt.Sprintf("temp/%v/%v/*.sql", serviceName, dbType.String())
 	files, err := filepath.Glob(fileName)
 	if err != nil {
 		return

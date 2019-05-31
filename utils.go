@@ -97,7 +97,7 @@ type ProjectDto struct {
 	ExecPath       string
 
 	Ports       []string
-	Databases   []string //mysql,redis,mongo,sqlserver
+	Databases   map[string][]string //mysql,redis,mongo,sqlserver
 	StreamNames []string
 	Registry    string
 
@@ -197,5 +197,17 @@ func StringPointCheck(s *string) (flag bool) {
 		return
 	}
 	flag = true
+	return
+}
+
+func Unique(params []string) (list []string) {
+	list = make([]string, 0)
+	temp := make(map[string]string, 0)
+	for _, p := range params {
+		temp[p] = ""
+	}
+	for k := range temp {
+		list = append(list, k)
+	}
 	return
 }
