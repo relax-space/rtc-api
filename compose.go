@@ -114,9 +114,9 @@ func (d Compose) setComposeMysql(viper *viper.Viper, port string) {
 
 	viper.Set(servicePre+".image", "mysql:5.7.22")
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
-	// viper.Set(servicePre+".volumes", []string{
-	// 	".:/docker-entrypoint-initdb.d",
-	// })
+	viper.Set(servicePre+".volumes", []string{
+		"./database/mysql/:/docker-entrypoint-initdb.d",
+	})
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Mysql})
 	//viper.Set("services.mysqlserver.restart", "always")
 	viper.Set(servicePre+".environment", []string{"MYSQL_ROOT_PASSWORD=1234"})
@@ -296,23 +296,14 @@ func (d Compose) setComposeDependency(project *ProjectDto) (deps map[string]stri
 	for _, sub := range project.SubProjects {
 		deps[strings.ToLower(sub.ServiceName)] = ""
 	}
-	p := ProjectInfo{}
-	if p.ShouldDb(project, MYSQL) {
-		deps[MYSQL.String()] = ""
-	}
-	if p.ShouldDb(project, REDIS) {
-		deps[REDIS.String()] = ""
-	}
-	if p.ShouldDb(project, MONGO) {
-		deps[MONGO.String()] = ""
-	}
-	if p.ShouldDb(project, SQLSERVER) {
-		deps[SQLSERVER.String()] = ""
-	}
-
-	if p.ShouldKafka(project) {
+	if (ProjectInfo{}).ShouldKafka(project) {
 		deps["kafka"] = ""
 	}
+	list := Database{}.All(project)
+	for k := range list {
+		deps[k] = ""
+	}
+
 	return
 }
 
@@ -355,13 +346,12 @@ func (d Compose) upperKafkaEnv(ymlStr string) string {
 
 func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string) (err error) {
 
-	p := ProjectInfo{}
-	if p.ShouldDb(&project, MYSQL) {
+	if (Database{}).ShouldDb(&project, MYSQL) {
 		if err = d.checkMysql(dockercompose, port.Mysql); err != nil {
 			return
 		}
 	}
-	if p.ShouldKafka(&project) {
+	if (ProjectInfo{}).ShouldKafka(&project) {
 		if err = d.checkKafka(dockercompose, port.Kafka); err != nil {
 			return
 		}

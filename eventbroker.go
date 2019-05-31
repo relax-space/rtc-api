@@ -26,6 +26,9 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 		p.Ports = []string{}
 		d.setComposeConsumer(viper, p, "event-kafka-consumer-"+streamName)
 	}
+	if scope == LOCAL.String() {
+		return
+	}
 	err = ProjectInfo{}.WriteUrl(p, PRIVATETOKEN)
 	return
 }
