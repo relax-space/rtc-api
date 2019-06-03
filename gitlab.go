@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,7 +14,8 @@ type Gitlab struct {
 }
 
 type ApiProject struct {
-	Id int `json:"id"`
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func (d Gitlab) RequestFile(projectDto *ProjectDto, folderName, subFolderName, fileName string) (b []byte, err error) {
@@ -88,10 +90,14 @@ func (d Gitlab) getProjectId(gitShortPath string) (projectId int, err error) {
 	if err != nil {
 		return
 	}
-	if len(apiResult) != 1 {
-		return
+	//go-api
+	for _, v := range apiResult {
+		if v.Name == projectName {
+			projectId = v.Id
+			return
+		}
 	}
-	projectId = apiResult[0].Id
+	err = errors.New("projectId has not found")
 	return
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +45,7 @@ func (Flag) Init() (serviceName *string, flag *Flag) {
 func showList(q string) {
 	list, err := Relation{}.FetchAllNames()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	newList := make([]string, 0)
@@ -59,11 +60,11 @@ func showList(q string) {
 		newList = list
 	}
 	if len(newList) == 0 {
-		fmt.Println("no data has found.")
+		log.Println("no data has found.")
 		return
 	}
 	for _, v := range newList {
-		fmt.Println(v)
+		log.Println(v)
 	}
 }
 

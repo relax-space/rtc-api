@@ -32,7 +32,7 @@ const createSqlserver = "CREATE DATABASE $name;\n"
 func (d ProjectInfo) initDatabase(project *ProjectDto) (err error) {
 	list := Database{}.All(project)
 	//1.create folder database
-	path := TEMP_FILE + "/database"
+	path := "./" + TEMP_FILE + "/database"
 	if err = os.MkdirAll(path, os.ModePerm); err != nil {
 		return
 	}
@@ -63,6 +63,7 @@ func (d ProjectInfo) initDatabase(project *ProjectDto) (err error) {
 			return
 		}
 	}
+	path = "./" + TEMP_FILE + "/database"
 	if len(sqlserverScript) != 0 {
 		path += "/sqlserver"
 		if err = os.MkdirAll(path, os.ModePerm); err != nil {
@@ -73,7 +74,6 @@ func (d ProjectInfo) initDatabase(project *ProjectDto) (err error) {
 			return
 		}
 	}
-
 	return
 }
 
