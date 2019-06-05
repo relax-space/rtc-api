@@ -23,7 +23,7 @@ func (Xorm) InitSql(project *ProjectDto, portDto PortDto) (err error) {
 		return
 	}
 	dbXorm.SqlServer, err = xorm.NewEngine("mssql",
-		"driver={sql server};Server=127.0.0.1;port=1433;Database=master;user id=sa;password=Eland123;Max Pool Size=2000;")
+		fmt.Sprintf("driver={sql server};Server=127.0.0.1;port=%v;Database=master;user id=sa;password=Eland123;Max Pool Size=2000;", portDto.SqlServer))
 	if err != nil {
 		return
 	}
