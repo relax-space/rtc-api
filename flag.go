@@ -13,8 +13,11 @@ import (
 var Version string
 
 type Flag struct {
-	Updated  *string
-	ImageEnv *string
+	Updated     *string
+	ImageEnv    *string
+	Log         *bool
+	IgnoreLogin *bool
+	IgnorePull  *bool
 
 	MysqlPort     *string
 	RedisPort     *string
@@ -91,6 +94,10 @@ func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *F
 	1.Optional [staging, qa , production].
 	2.The program will download the latest image from Jenkins.
 	3.The default is qa, you can choose other option`).Default("qa").String(),
+
+		Log:         run.Flag("log", "You can see log for debug.").Bool(),
+		IgnoreLogin: run.Flag("ignore-login", "You can ignore login step.").Bool(),
+		IgnorePull:  run.Flag("ignore-pull", "You can ignore pull images step.").Bool(),
 
 		MysqlPort:     run.Flag("mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
 		RedisPort:     run.Flag("redis-port", "You can change default redis port.").Default(outPort.Redis).String(),

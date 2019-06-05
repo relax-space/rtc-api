@@ -52,13 +52,14 @@ func (d Compose) WriteYml(viper *viper.Viper) (err error) {
 	return
 }
 
-func (d Compose) Exec(c *FullDto) (err error) {
+func (d Compose) Exec(c *FullDto, flag *Flag) (err error) {
 
-	log.Println("==> docker login " + REGISTRYELAND + " ...")
-
-	if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, REGISTRYELAND); err != nil {
-		fmt.Printf("err:%v", err)
-		return
+	if BoolPointCheck(flag.IgnoreLogin) == false {
+		log.Println("==> docker login " + REGISTRYELAND + " ...")
+		if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, REGISTRYELAND); err != nil {
+			fmt.Printf("err:%v", err)
+			return
+		}
 	}
 
 	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
@@ -66,8 +67,10 @@ func (d Compose) Exec(c *FullDto) (err error) {
 		return
 	}
 	log.Println("==> compose downed!")
-	if err = d.checkLatest(dockercompose, c); err != nil {
-		return
+	if BoolPointCheck(flag.IgnorePull) == false {
+		if err = d.checkLatest(dockercompose, c); err != nil {
+			return
+		}
 	}
 	project := *(c.Project)
 	if err = d.checkAll(project, c.Port, dockercompose); err != nil {
@@ -400,7 +403,7 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 	logger := log.New(buffer, "prefix: ", 0)
 	mysql.SetLogger(logger)
 
-	log.Println("begin ping " + dbType)
+	log.Println("begin ping " + dbType + ",127.0.0.1:" + port)
 	for index := 0; index < 300; index++ {
 		err = db.Ping()
 		if err != nil {
@@ -435,7 +438,7 @@ func (d Compose) checkSqlServer(dockercompose, port string) (err error) {
 		return
 	}
 	defer db.Close()
-	log.Println("begin ping " + dbType)
+	log.Println("begin ping " + dbType + ",127.0.0.1:" + port)
 	for index := 0; index < 300; index++ {
 		err = db.Ping()
 		if err != nil {

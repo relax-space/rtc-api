@@ -9,12 +9,15 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	serviceName, flag := (Flag{}).Init()
 	if StringPointCheck(serviceName) == false {
 		return
 	}
-
+	if BoolPointCheck(flag.Log) {
+		log.SetFlags(log.Lshortfile | log.LstdFlags)
+	} else {
+		log.SetFlags(0)
+	}
 	c, err := Config{}.LoadEnv(*serviceName, flag)
 	if err != nil {
 		log.Println(err)
@@ -32,7 +35,7 @@ func main() {
 		return
 	}
 
-	if err = (Compose{}).Exec(c); err != nil {
+	if err = (Compose{}).Exec(c, flag); err != nil {
 		log.Println(err)
 		return
 	}
