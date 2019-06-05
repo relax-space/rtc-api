@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/exec"
@@ -117,7 +118,7 @@ func Cmd(name string, arg ...string) (result string, err error) {
 	}
 	result = out.String()
 	if len(result) != 0 {
-		fmt.Println(result)
+		log.Println(result)
 	}
 	return
 }

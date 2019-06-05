@@ -54,7 +54,7 @@ func (d Compose) WriteYml(viper *viper.Viper) (err error) {
 
 func (d Compose) Exec(c *FullDto) (err error) {
 
-	fmt.Println("==> docker login " + REGISTRYELAND + " ...")
+	log.Println("==> docker login " + REGISTRYELAND + " ...")
 
 	if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, REGISTRYELAND); err != nil {
 		fmt.Printf("err:%v", err)
@@ -65,7 +65,7 @@ func (d Compose) Exec(c *FullDto) (err error) {
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
 		return
 	}
-	fmt.Println("==> compose downed!")
+	log.Println("==> compose downed!")
 	if err = d.checkLatest(dockercompose, c); err != nil {
 		return
 	}
@@ -73,11 +73,11 @@ func (d Compose) Exec(c *FullDto) (err error) {
 	if err = d.checkAll(project, c.Port, dockercompose); err != nil {
 		return
 	}
-	fmt.Println("check is ok.")
+	log.Println("check is ok.")
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate"); err != nil {
 		return
 	}
-	fmt.Println(`==> compose up!`)
+	log.Println(`==> compose up!`)
 	return
 }
 
@@ -88,12 +88,12 @@ func (d Compose) checkLatest(dockercompose string, c *FullDto) (err error) {
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "pull"); err != nil {
 		return
 	}
-	fmt.Println("==> compose pulled!")
+	log.Println("==> compose pulled!")
 
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "build"); err != nil {
 		return
 	}
-	fmt.Println("==> compose builded!")
+	log.Println("==> compose builded!")
 	return
 }
 
@@ -120,6 +120,22 @@ func (d Compose) setComposeMysql(viper *viper.Viper, port string) {
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Mysql})
 	//viper.Set("services.mysqlserver.restart", "always")
 	viper.Set(servicePre+".environment", []string{"MYSQL_ROOT_PASSWORD=1234"})
+}
+
+func (d Compose) setComposeSqlserver(viper *viper.Viper, port string) {
+
+	serviceName := "sqlserver"
+	servicePre := Compose{}.getServicePre(serviceName)
+	//docker-hub: genschsa/mssql-server-linux
+	viper.Set(servicePre+".image", REGISTRYELAND+"/mssql-server-linux")
+	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
+	viper.Set(servicePre+".ports", []string{port + ":" + inPort.SqlServer})
+	viper.Set(servicePre+".volumes", []string{
+		"./database/sqlserver/:/docker-entrypoint-initdb.d",
+	})
+	//viper.Set("services.mysqlserver.restart", "always")
+	//MSSQL_PID=Developer,Express,Standard,Enterprise,EnterpriseCore SA_PASSWORD
+	viper.Set(servicePre+".environment", []string{"ACCEPT_EULA=Y", "MSSQL_SA_PASSWORD=Eland123", "MSSQL_PID=Developer"})
 }
 
 func (d Compose) setComposeKafkaEland(viper *viper.Viper, port, secondPort, zookeeperPort, ip string) {
@@ -346,8 +362,14 @@ func (d Compose) upperKafkaEnv(ymlStr string) string {
 
 func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string) (err error) {
 
-	if (Database{}).ShouldDb(&project, MYSQL) {
+	dt := Database{}
+	if dt.ShouldDb(&project, MYSQL) {
 		if err = d.checkMysql(dockercompose, port.Mysql); err != nil {
+			return
+		}
+	}
+	if dt.ShouldDb(&project, SQLSERVER) {
+		if err = d.checkSqlServer(dockercompose, port.SqlServer); err != nil {
 			return
 		}
 	}
@@ -360,15 +382,16 @@ func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string
 }
 
 func (d Compose) checkMysql(dockercompose, port string) (err error) {
+	dbType := MYSQL.String()
 
-	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", "mysql"+SUFSERVER); err != nil {
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", dbType+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
 
 	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", port))
 	if err != nil {
-		fmt.Println("mysql", err)
+		log.Println(dbType, err)
 		return
 	}
 	defer db.Close()
@@ -377,7 +400,7 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 	logger := log.New(buffer, "prefix: ", 0)
 	mysql.SetLogger(logger)
 
-	fmt.Println("begin ping db")
+	log.Println("begin ping " + dbType)
 	for index := 0; index < 300; index++ {
 		err = db.Ping()
 		if err != nil {
@@ -388,10 +411,45 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 		break
 	}
 	if err != nil {
-		fmt.Println("error ping db")
+		log.Println("error ping " + dbType)
 		return
 	}
-	fmt.Println("finish ping db")
+	log.Println("finish ping " + dbType)
+	return
+}
+
+func (d Compose) checkSqlServer(dockercompose, port string) (err error) {
+
+	dbType := SQLSERVER.String()
+
+	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", dbType+SUFSERVER); err != nil {
+		fmt.Printf("err:%v", err)
+		return
+	}
+
+	db, err := sql.Open("sqlserver",
+		fmt.Sprintf("sqlserver://sa:Eland123@127.0.0.1:%v?database=master", port))
+
+	if err != nil {
+		log.Println(dbType, err)
+		return
+	}
+	defer db.Close()
+	log.Println("begin ping " + dbType)
+	for index := 0; index < 300; index++ {
+		err = db.Ping()
+		if err != nil {
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		err = nil
+		break
+	}
+	if err != nil {
+		log.Println("error ping " + dbType)
+		return
+	}
+	log.Println("finish ping " + dbType)
 	return
 }
 
@@ -406,7 +464,7 @@ func (d Compose) checkKafka(dockercompose, port string) (err error) {
 		return
 	}
 
-	fmt.Println("begin ping kafka,127.0.0.1:" + port)
+	log.Println("begin ping kafka,127.0.0.1:" + port)
 	for index := 0; index < 300; index++ {
 		if err = d.dailKafka(port); err != nil {
 			time.Sleep(2 * time.Second)
@@ -416,10 +474,10 @@ func (d Compose) checkKafka(dockercompose, port string) (err error) {
 		break
 	}
 	if err != nil {
-		fmt.Println("error ping kafka")
+		log.Println("error ping kafka")
 		return
 	}
-	fmt.Println("finish ping kafka")
+	log.Println("finish ping kafka")
 	return
 }
 

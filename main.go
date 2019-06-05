@@ -1,14 +1,15 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
+	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
 )
 
 func main() {
-
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	serviceName, flag := (Flag{}).Init()
 	if StringPointCheck(serviceName) == false {
 		return
@@ -16,7 +17,7 @@ func main() {
 
 	c, err := Config{}.LoadEnv(*serviceName, flag)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	if err = composeWriteYml(c); err != nil {
@@ -27,21 +28,21 @@ func main() {
 	}
 
 	if err = writeLocal(c); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
 	if err = (Compose{}).Exec(c); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
-	if err = (Xorm{}).InitSql(c.Project); err != nil {
-		fmt.Println(err)
+	if err = (Xorm{}).InitSql(c.Project, c.Port); err != nil {
+		log.Println(err)
 		return
 	}
 
-	fmt.Println("you can start testing now.check health by `docker ps -a`")
+	log.Println("you can start testing now.check health by `docker ps -a`")
 	return
 
 }
@@ -74,11 +75,14 @@ func composeWriteYml(c *FullDto) (err error) {
 	if database.ShouldDb(c.Project, REDIS) {
 		d.setComposeRedis(viper, c.Port.Redis)
 	}
+	if database.ShouldDb(c.Project, SQLSERVER) {
+		d.setComposeSqlserver(viper, c.Port.SqlServer)
+	}
 
 	if p.ShouldEventBroker(c.Project) {
 		streamNames := p.StreamList(c.Project)
 		if err = (EventBroker{}).SetEventBroker(viper, c.Port.EventBroker, streamNames); err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 	}
 	d.setComposeApp(viper, c.Project)

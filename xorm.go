@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"path/filepath"
 
-	_ "github.com/denisenkom/go-mssqldb"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
 )
 
@@ -16,19 +15,19 @@ type Xorm struct {
 	SqlServer *xorm.Engine
 }
 
-func (Xorm) InitSql(project *ProjectDto) (err error) {
-	fmt.Println("sql data loading...")
+func (Xorm) InitSql(project *ProjectDto, portDto PortDto) (err error) {
+	log.Println("sql data loading...")
 	dbXorm := &Xorm{}
-	dbXorm.Mysql, err = xorm.NewEngine("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", 3306))
+	dbXorm.Mysql, err = xorm.NewEngine("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", portDto.Mysql))
+	if err != nil {
+		return
+	}
+	dbXorm.SqlServer, err = xorm.NewEngine("mssql",
+		"driver={sql server};Server=127.0.0.1;port=1433;Database=master;user id=sa;password=Eland123;Max Pool Size=2000;")
 	if err != nil {
 		return
 	}
 
-	dbXorm.SqlServer, err = xorm.NewEngine("mssql",
-		"server=127.0.0.1;user id=sa;password=Eland123;database=master;connection timeout=300")
-	if err != nil {
-		return
-	}
 	projects := []*ProjectDto{project}
 	if err = dbXorm.insertSql(projects); err != nil {
 		return
@@ -38,7 +37,7 @@ func (Xorm) InitSql(project *ProjectDto) (err error) {
 			return
 		}
 	}
-	fmt.Println("sql data loaded.")
+	log.Println("sql data loaded.")
 	return
 }
 
@@ -77,21 +76,29 @@ func (d *Xorm) insert(db *xorm.Engine, serviceName string, dbType DateBaseType) 
 		return
 	}
 	for _, f := range files {
-		if err = d.importView(db, f); err != nil {
+		if err = d.importView(db, f, dbType); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func (*Xorm) importView(db *xorm.Engine, fileName string) error {
+func (*Xorm) importView(db *xorm.Engine, fileName string, dbType DateBaseType) error {
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return err
 	}
-	_, err = db.Import(bytes.NewBuffer(b))
-	if err != nil {
-		return err
+	if dbType == SQLSERVER {
+		_, err = db.Exec(string(b))
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = db.Import(bytes.NewBuffer(b))
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
