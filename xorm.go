@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -22,14 +23,10 @@ func (Xorm) InitSql(project *ProjectDto, portDto PortDto) (err error) {
 	if err != nil {
 		return
 	}
-	dbXorm.SqlServer, err = xorm.NewEngine("mssql",
-		fmt.Sprintf("driver={sql server};Server=127.0.0.1;port=%v;Database=master;user id=sa;password=Eland123;Max Pool Size=2000;", portDto.SqlServer))
-	if err != nil {
-		return
-	}
+	defer dbXorm.Mysql.Close()
 
 	projects := []*ProjectDto{project}
-	if err = dbXorm.insertSql(projects); err != nil {
+	if err = dbXorm.insertSql(projects, portDto); err != nil {
 		return
 	}
 	if (ProjectInfo{}).ShouldEventBroker(project) {
@@ -41,7 +38,7 @@ func (Xorm) InitSql(project *ProjectDto, portDto PortDto) (err error) {
 	return
 }
 
-func (d *Xorm) insertSql(projects []*ProjectDto) (err error) {
+func (d *Xorm) insertSql(projects []*ProjectDto, portDto PortDto) (err error) {
 	for _, projectDto := range projects {
 		if len(projectDto.ServiceName) == 0 {
 			continue
@@ -52,12 +49,17 @@ func (d *Xorm) insertSql(projects []*ProjectDto) (err error) {
 			}
 		}
 		if (Database{}).ShouldDb(projectDto, SQLSERVER) {
-			if err = d.insert(d.SqlServer, projectDto.ServiceName, SQLSERVER); err != nil {
+			if len(projectDto.Databases) != 1 {
+				err = errors.New("A microservice can only support one sqlserver database.")
+				return
+			}
+			databaseName := projectDto.Databases[SQLSERVER.String()][0]
+			if err = d.insertSqlserver(projectDto.ServiceName, portDto.SqlServer, databaseName); err != nil {
 				return
 			}
 		}
 		if len(projectDto.SubProjects) != 0 {
-			if err = d.insertSql(projectDto.SubProjects); err != nil {
+			if err = d.insertSql(projectDto.SubProjects, portDto); err != nil {
 				return
 			}
 		}
@@ -76,28 +78,48 @@ func (d *Xorm) insert(db *xorm.Engine, serviceName string, dbType DateBaseType) 
 		return
 	}
 	for _, f := range files {
-		if err = d.importView(db, f, dbType); err != nil {
+		if err = d.importView(db, f); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func (*Xorm) importView(db *xorm.Engine, fileName string, dbType DateBaseType) error {
+func (d *Xorm) insertSqlserver(serviceName, port, databaseName string) (err error) {
+	fileName := fmt.Sprintf("temp/%v/%v/*.sql", serviceName, SQLSERVER.String())
+	files, err := filepath.Glob(fileName)
+	if err != nil {
+		return
+	}
+	db, err := d.initSqlserver(port, databaseName)
+	if err != nil {
+		return
+	}
+	defer db.Close()
+	for _, f := range files {
+		if err = d.importView(db, f); err != nil {
+			return
+		}
+	}
+	return
+}
+func (d *Xorm) initSqlserver(port, databaseName string) (db *xorm.Engine, err error) {
+	db, err = xorm.NewEngine("mssql",
+		fmt.Sprintf("driver={sql server};Server=127.0.0.1;port=%v;Database=%v;user id=sa;password=Eland123;Max Pool Size=2000;", port, databaseName))
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (*Xorm) importView(db *xorm.Engine, fileName string) error {
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return err
 	}
-	if dbType == SQLSERVER {
-		_, err = db.Exec(string(b))
-		if err != nil {
-			return err
-		}
-	} else {
-		_, err = db.Import(bytes.NewBuffer(b))
-		if err != nil {
-			return err
-		}
+	_, err = db.Import(bytes.NewBuffer(b))
+	if err != nil {
+		return err
 	}
 
 	return nil
