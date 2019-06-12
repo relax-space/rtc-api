@@ -43,12 +43,12 @@ func (d *Xorm) insertSql(projects []*ProjectDto, portDto PortDto) (err error) {
 		if len(projectDto.ServiceName) == 0 {
 			continue
 		}
-		if (Database{}).ShouldDb(projectDto, MYSQL) {
+		if (Database{}).ShouldDb(projectDto, MYSQL, false) {
 			if err = d.insert(d.Mysql, projectDto.ServiceName, MYSQL); err != nil {
 				return
 			}
 		}
-		if (Database{}).ShouldDb(projectDto, SQLSERVER) {
+		if (Database{}).ShouldDb(projectDto, SQLSERVER, false) {
 			if len(projectDto.Databases) != 1 {
 				err = errors.New("A microservice can only support one sqlserver database.")
 				return

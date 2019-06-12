@@ -72,13 +72,13 @@ func composeWriteYml(c *FullDto) (err error) {
 	if p.ShouldKafka(c.Project) {
 		d.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)
 	}
-	if database.ShouldDb(c.Project, MYSQL) {
+	if database.ShouldDb(c.Project, MYSQL,true) {
 		d.setComposeMysql(viper, c.Port.Mysql)
 	}
-	if database.ShouldDb(c.Project, REDIS) {
+	if database.ShouldDb(c.Project, REDIS,true) {
 		d.setComposeRedis(viper, c.Port.Redis)
 	}
-	if database.ShouldDb(c.Project, SQLSERVER) {
+	if database.ShouldDb(c.Project, SQLSERVER,true) {
 		d.setComposeSqlserver(viper, c.Port.SqlServer)
 	}
 

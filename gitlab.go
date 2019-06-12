@@ -24,9 +24,9 @@ type ApiFile struct {
 	Path string `json:"path"`
 }
 
-func (d Gitlab) RequestFile(projectDto *ProjectDto, folderName, subFolderName, fileName string) (b []byte, err error) {
+func (d Gitlab) RequestFile(projectDto *ProjectDto, folderName, subFolderName, fileName, appEnv string) (b []byte, err error) {
 	urlstr, err := d.GetFileUrl(projectDto.IsMulti,
-		projectDto.GitShortPath, projectDto.ServiceName, folderName, subFolderName, fileName)
+		projectDto.GitShortPath, projectDto.ServiceName, folderName, subFolderName, fileName, appEnv)
 	if err != nil {
 		return
 	}
@@ -45,9 +45,8 @@ func (d Gitlab) GetFiles(gitShortPath, subPath, ref string) (fileNames []string,
 	if err != nil {
 		return
 	}
-
 	url := fmt.Sprintf("%v/api/v4/projects/%v/repository/tree?path=%v&ref=%v&per_page=1000",
-		PREGITHTTPURL, projectId, url.QueryEscape(subPath), ref)
+		PREGITHTTPURL, projectId, subPath, ref)
 	var apiResult []ApiFile
 	req := httpreq.New(http.MethodGet, url, nil)
 	req.Req.Header.Set("PRIVATE-TOKEN", PRIVATETOKEN)
@@ -60,6 +59,35 @@ func (d Gitlab) GetFiles(gitShortPath, subPath, ref string) (fileNames []string,
 	for _, v := range apiResult {
 		fileNames = append(fileNames, v.Name)
 	}
+	return
+}
+
+func (d Gitlab) GetFolderPath(isEscape, isMulti bool, projectName, folderName, subFolderName string) (path string) {
+	flag := "/"
+	if isEscape {
+		flag = url.QueryEscape(flag)
+		folderName = strings.Replace(folderName, "/", flag, -1)
+		subFolderName = strings.Replace(subFolderName, "/", flag, -1)
+	}
+	if len(folderName) != 0 {
+		path += folderName
+	}
+	if isMulti {
+		path += flag + projectName
+	}
+	if len(subFolderName) != 0 {
+		path += flag + subFolderName
+	}
+	return
+}
+
+func (d Gitlab) GetFilePath(isEscape, isMulti bool, projectName, folderName, subFolderName, fileName string) (path string) {
+	flag := "/"
+	if isEscape {
+		flag = url.QueryEscape(flag)
+	}
+	path = d.GetFolderPath(isEscape, isMulti, projectName, folderName, subFolderName)
+	path += flag + fileName
 	return
 }
 
@@ -80,26 +108,26 @@ func (d Gitlab) CheckTestFile(projectDto *ProjectDto) (err error) {
 	return
 }
 
-func (d Gitlab) FileErr(projectDto *ProjectDto, folderName, subFolderName, fileName string, errParam error) (err error) {
-	url := fmt.Sprintf("%v/%v/raw/%v/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env,
-		d.getFilePath(false, projectDto.IsMulti, projectDto.ServiceName, folderName, subFolderName, fileName))
+func (d Gitlab) FileErr(projectDto *ProjectDto, folderName, subFolderName, fileName, appEnv string, errParam error) (err error) {
+	url := fmt.Sprintf("%v/%v/raw/%v/%v", PREGITHTTPURL, projectDto.GitShortPath, appEnv,
+		d.GetFilePath(false, projectDto.IsMulti, projectDto.ServiceName, folderName, subFolderName, fileName))
 	return fmt.Errorf("check gitlab file,url:%v,err:%v", url, errParam)
 }
 
-func (d Gitlab) GetFileUrl(isMulti bool, gitShortPath, serviceName, folderName, subFolderName, fileName string) (urlstr string, err error) {
+func (d Gitlab) GetFileUrl(isMulti bool, gitShortPath, serviceName, folderName, subFolderName, fileName, appEnv string) (urlstr string, err error) {
 	id, err := d.getProjectId(gitShortPath)
 	if err != nil {
 		return
 	}
-	name := d.getFilePath(true, isMulti, serviceName, folderName, subFolderName, fileName)
+	name := d.GetFilePath(true, isMulti, serviceName, folderName, subFolderName, fileName)
 	urlstr = fmt.Sprintf("%v/api/v4/projects/%v/repository/files/%v/raw?ref=%v",
-		PREGITHTTPURL, id, name, app_env)
+		PREGITHTTPURL, id, name, appEnv)
 	return
 }
 
 func (d Gitlab) checkTestFile(projectDto *ProjectDto, fileName string) (err error) {
 	urlstr, err := d.GetFileUrl(projectDto.IsMulti,
-		projectDto.GitShortPath, projectDto.ServiceName, projectDto.ExecPath, "", fileName)
+		projectDto.GitShortPath, projectDto.ServiceName, projectDto.ExecPath, "", fileName, app_env)
 	if err != nil {
 		return
 	}
@@ -129,26 +157,6 @@ func (d Gitlab) getProjectId(gitShortPath string) (projectId int, err error) {
 		}
 	}
 	err = errors.New("projectId has not found")
-	return
-}
-
-func (d Gitlab) getFilePath(isEscape, isMulti bool, projectName, folderName, subFolderName, fileName string) (path string) {
-	flag := "/"
-	if isEscape {
-		flag = url.QueryEscape(flag)
-		folderName = strings.Replace(folderName, "/", flag, -1)
-		subFolderName = strings.Replace(subFolderName, "/", flag, -1)
-	}
-	if len(folderName) != 0 {
-		path += folderName + flag
-	}
-	if isMulti {
-		path += projectName + flag
-	}
-	if len(subFolderName) != 0 {
-		path += subFolderName + flag
-	}
-	path += fileName
 	return
 }
 

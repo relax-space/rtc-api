@@ -38,7 +38,6 @@ func (d Nginx) WriteConfig(p *ProjectDto, eventBrokerPort string) (err error) {
 	}
 	var location string
 	location += d.Location(p.ServiceName, p.Ports[0])
-
 	for _, sp := range p.SubProjects {
 		if len(p.Ports) == 0 {
 			err = fmt.Errorf("port is required,project:%v", sp.ServiceName)

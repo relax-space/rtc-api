@@ -13,7 +13,7 @@ type Config struct {
 }
 
 func (d Config) LoadEnv(serviceName string, flag *Flag) (c *FullDto, err error) {
-	if err = d.confirm(serviceName); err != nil {
+	if err = d.confirm(serviceName, flag); err != nil {
 		return
 	}
 	ip, err := currentIp()
@@ -30,7 +30,7 @@ func (d Config) LoadEnv(serviceName string, flag *Flag) (c *FullDto, err error) 
 		return
 	}
 
-	err = d.readYml(serviceName, c)
+	err = d.readYml(serviceName, c, flag)
 	if err != nil {
 		return
 	}
@@ -81,9 +81,9 @@ func (Config) CheckHost(ip string) (err error) {
 
 // private method ===========
 
-func (Config) readYmlRemote(serviceName string, c *FullDto) (err error) {
+func (Config) readYmlRemote(serviceName string, c *FullDto, flag *Flag) (err error) {
 	//1.load base info from gitlab
-	if c.Project, err = (Relation{}).FetchProject(serviceName); err != nil {
+	if c.Project, err = (Relation{}).FetchProject(serviceName, flag); err != nil {
 		return
 	}
 	return
@@ -115,7 +115,7 @@ func (Config) currentScope(updated *string) (updatedStr string, err error) {
 	return
 }
 
-func (d Config) readYml(serviceName string, c *FullDto) (err error) {
+func (d Config) readYml(serviceName string, c *FullDto, flag *Flag) (err error) {
 	if scope == LOCAL.String() {
 		if err = (File{}).ReadViper("", c); err != nil {
 			return
@@ -126,14 +126,13 @@ func (d Config) readYml(serviceName string, c *FullDto) (err error) {
 		return
 	}
 
-	if err = d.readYmlRemote(serviceName, c); err != nil {
+	if err = d.readYmlRemote(serviceName, c, flag); err != nil {
 		return
 	}
 	return
 }
 
 func (d Config) loadEnv(c *FullDto, flag *Flag) (err error) {
-
 	updatedStr, err := Config{}.currentScope(flag.Updated)
 	if err != nil {
 		err = fmt.Errorf("read env updated error:%v", err)
@@ -166,7 +165,7 @@ func (d Config) loadEnv(c *FullDto, flag *Flag) (err error) {
 	return
 }
 
-func (d Config) confirm(serviceName string) (err error) {
+func (d Config) confirm(serviceName string, flag *Flag) (err error) {
 	localServiceName, err := d.getServiceNameLocal()
 	if err != nil {
 		return
@@ -178,7 +177,7 @@ func (d Config) confirm(serviceName string) (err error) {
 		return
 	}
 	if serviceName != localServiceName {
-		_, err = Relation{}.Fetch(serviceName)
+		_, err = Relation{}.Fetch(serviceName, flag)
 		if err != nil {
 			return
 		}

@@ -13,11 +13,12 @@ import (
 var Version string
 
 type Flag struct {
-	Updated     *string
-	ImageEnv    *string
-	Log         *bool
-	IgnoreLogin *bool
-	IgnorePull  *bool
+	Updated        *string
+	ImageEnv       *string
+	Log            *bool
+	IgnoreLogin    *bool
+	IgnorePull     *bool
+	RelationSource *bool
 
 	MysqlPort     *string
 	RedisPort     *string
@@ -98,6 +99,9 @@ func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *F
 		Log:         run.Flag("log", "You can see log for debug.").Bool(),
 		IgnoreLogin: run.Flag("ignore-login", "You can ignore login step.").Bool(),
 		IgnorePull:  run.Flag("ignore-pull", "You can ignore pull images step.").Bool(),
+		RelationSource: run.Flag("relation-source", `
+	1.false: default,fetch relation from mingbai-api.
+	2.true:fetch relation from https://gitlab.p2shop.cn:8443/data/rtc-data.`).Short('r').Bool(),
 
 		MysqlPort:     run.Flag("mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
 		RedisPort:     run.Flag("redis-port", "You can change default redis port.").Default(outPort.Redis).String(),
