@@ -94,33 +94,37 @@ func (ProjectInfo) WriteYml(serviceName, fileName, ymlStr string) (err error) {
 }
 
 func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err error) {
-
 	dbNames := Database{}.GetDbNamesForData(projectDto)
-
 	for _, v := range dbNames {
-		localDbFolderPath := fmt.Sprintf("%v/%v/%v", TEMP_FILE, projectDto.ServiceName, v)
-		localDbPath := fmt.Sprintf("%v/table.sql", localDbFolderPath)
-
-		if err = (File{}).DeleteRegex(localDbPath); err != nil {
-			return
-		}
-
-		urlstr, errd := Gitlab{}.getFileUrl(projectDto.IsMulti,
-			projectDto.GitShortPath, projectDto.ServiceName, TEST_INFO, v, "table.sql")
-
+		fileNames, errd := Gitlab{}.GetFiles(projectDto.GitShortPath, TEST_INFO+"/"+v, app_env)
 		if errd != nil {
-			err = Gitlab{}.FileErr(projectDto, TEST_INFO, v, "table.sql", errd)
+			err = errd
 			return
 		}
-		if err = os.MkdirAll(localDbFolderPath, os.ModePerm); err != nil {
-			return
-		}
-		if err = (File{}).CreateEmpty(localDbPath); err != nil {
-			return
-		}
-		if err = (File{}).WriteUrl(urlstr, localDbPath, PRIVATETOKEN); err != nil {
-			err = Gitlab{}.FileErr(projectDto, TEST_INFO, v, "table.sql", err)
-			return
+		for _, f := range fileNames {
+			localDbFolderPath := fmt.Sprintf("%v/%v/%v", TEMP_FILE, projectDto.ServiceName, v)
+			localDbPath := fmt.Sprintf("%v/%v", localDbFolderPath, f)
+
+			if err = (File{}).DeleteRegex(localDbPath); err != nil {
+				return
+			}
+
+			urlstr, errd := Gitlab{}.GetFileUrl(projectDto.IsMulti,
+				projectDto.GitShortPath, projectDto.ServiceName, TEST_INFO, v, f)
+			if errd != nil {
+				err = Gitlab{}.FileErr(projectDto, TEST_INFO, v, f, errd)
+				return
+			}
+			if err = os.MkdirAll(localDbFolderPath, os.ModePerm); err != nil {
+				return
+			}
+			if err = (File{}).CreateEmpty(localDbPath); err != nil {
+				return
+			}
+			if err = (File{}).WriteUrl(urlstr, localDbPath, PRIVATETOKEN); err != nil {
+				err = Gitlab{}.FileErr(projectDto, TEST_INFO, v, f, err)
+				return
+			}
 		}
 	}
 	return
