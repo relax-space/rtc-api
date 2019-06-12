@@ -112,7 +112,6 @@ func (Config) currentScope(updated *string) (updatedStr string, err error) {
 		err = fmt.Errorf("Parameters(%v) are not supported, only support %v", updated, LOCAL.List())
 		return
 	}
-	fmt.Printf("current:%v \n", updatedStr)
 	return
 }
 
@@ -140,6 +139,8 @@ func (d Config) loadEnv(c *FullDto, flag *Flag) (err error) {
 		err = fmt.Errorf("read env updated error:%v", err)
 		return
 	}
+	fmt.Printf("current:%v \n", updatedStr)
+
 	scope = updatedStr
 
 	if StringPointCheck(flag.ImageEnv) {

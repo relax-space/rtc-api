@@ -45,7 +45,7 @@ func main() {
 		return
 	}
 
-	log.Println("you can start testing now.check health by `docker ps -a`")
+	log.Println("==> you can start testing now. check health by `docker ps -a`")
 	return
 
 }

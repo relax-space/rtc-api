@@ -18,8 +18,14 @@ type ApiProject struct {
 	Name string `json:"name"`
 }
 
+type ApiFile struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
 func (d Gitlab) RequestFile(projectDto *ProjectDto, folderName, subFolderName, fileName string) (b []byte, err error) {
-	urlstr, err := d.getFileUrl(projectDto.IsMulti,
+	urlstr, err := d.GetFileUrl(projectDto.IsMulti,
 		projectDto.GitShortPath, projectDto.ServiceName, folderName, subFolderName, fileName)
 	if err != nil {
 		return
@@ -31,8 +37,33 @@ func (d Gitlab) RequestFile(projectDto *ProjectDto, folderName, subFolderName, f
 	return
 }
 
-func (d Gitlab) CheckTestFile(projectDto *ProjectDto) (err error) {
+//Get a list of repository files and directories in a project.
+//This endpoint can be accessed without authentication if the repository is publicly accessible.
+//https://docs.gitlab.com/ce/api/repositories.html#list-repository-tree
+func (d Gitlab) GetFiles(gitShortPath, subPath, ref string) (fileNames []string, err error) {
+	projectId, err := d.getProjectId(gitShortPath)
+	if err != nil {
+		return
+	}
 
+	url := fmt.Sprintf("%v/api/v4/projects/%v/repository/tree?path=%v&ref=%v&per_page=1000",
+		PREGITHTTPURL, projectId, url.QueryEscape(subPath), ref)
+	var apiResult []ApiFile
+	req := httpreq.New(http.MethodGet, url, nil)
+	req.Req.Header.Set("PRIVATE-TOKEN", PRIVATETOKEN)
+	_, err = req.Call(&apiResult)
+	if err != nil {
+		return
+	}
+	fileNames = make([]string, 0)
+	//go-api
+	for _, v := range apiResult {
+		fileNames = append(fileNames, v.Name)
+	}
+	return
+}
+
+func (d Gitlab) CheckTestFile(projectDto *ProjectDto) (err error) {
 	err = d.checkTestFile(projectDto, "config.yml")
 	if err != nil {
 		//if `config.yml` not exist,then don't check `config.test.yml`
@@ -49,8 +80,25 @@ func (d Gitlab) CheckTestFile(projectDto *ProjectDto) (err error) {
 	return
 }
 
+func (d Gitlab) FileErr(projectDto *ProjectDto, folderName, subFolderName, fileName string, errParam error) (err error) {
+	url := fmt.Sprintf("%v/%v/raw/%v/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env,
+		d.getFilePath(false, projectDto.IsMulti, projectDto.ServiceName, folderName, subFolderName, fileName))
+	return fmt.Errorf("check gitlab file,url:%v,err:%v", url, errParam)
+}
+
+func (d Gitlab) GetFileUrl(isMulti bool, gitShortPath, serviceName, folderName, subFolderName, fileName string) (urlstr string, err error) {
+	id, err := d.getProjectId(gitShortPath)
+	if err != nil {
+		return
+	}
+	name := d.getFilePath(true, isMulti, serviceName, folderName, subFolderName, fileName)
+	urlstr = fmt.Sprintf("%v/api/v4/projects/%v/repository/files/%v/raw?ref=%v",
+		PREGITHTTPURL, id, name, app_env)
+	return
+}
+
 func (d Gitlab) checkTestFile(projectDto *ProjectDto, fileName string) (err error) {
-	urlstr, err := d.getFileUrl(projectDto.IsMulti,
+	urlstr, err := d.GetFileUrl(projectDto.IsMulti,
 		projectDto.GitShortPath, projectDto.ServiceName, projectDto.ExecPath, "", fileName)
 	if err != nil {
 		return
@@ -59,23 +107,6 @@ func (d Gitlab) checkTestFile(projectDto *ProjectDto, fileName string) (err erro
 	if err != nil {
 		return
 	}
-	return
-}
-
-func (d Gitlab) FileErr(projectDto *ProjectDto, folderName, subFolderName, fileName string, errParam error) (err error) {
-	url := fmt.Sprintf("%v/%v/raw/%v/%v", PREGITHTTPURL, projectDto.GitShortPath, app_env,
-		d.getFilePath(false, projectDto.IsMulti, projectDto.ServiceName, folderName, subFolderName, fileName))
-	return fmt.Errorf("check gitlab file,url:%v,err:%v", url, errParam)
-}
-
-func (d Gitlab) getFileUrl(isMulti bool, gitShortPath, serviceName, folderName, subFolderName, fileName string) (urlstr string, err error) {
-	id, err := d.getProjectId(gitShortPath)
-	if err != nil {
-		return
-	}
-	name := d.getFilePath(true, isMulti, serviceName, folderName, subFolderName, fileName)
-	urlstr = fmt.Sprintf("%v/api/v4/projects/%v/repository/files/%v/raw?ref=%v",
-		PREGITHTTPURL, id, name, app_env)
 	return
 }
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -79,7 +78,6 @@ func (File) WriteUrl(url, fileName, privateToken string) (err error) {
 
 	out, err := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if err != nil {
-		log.Println(err)
 		return
 	}
 	defer out.Close()
