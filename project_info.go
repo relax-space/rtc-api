@@ -30,7 +30,7 @@ const createMysql = "CREATE DATABASE IF NOT EXISTS `$name`;\n"
 const createSqlserver = "CREATE DATABASE $name;\n"
 
 func (d ProjectInfo) initDatabase(project *ProjectDto) (err error) {
-	list := Database{}.All(project)
+	list := Database{}.All(project, true)
 	//1.create folder database
 	path := "./" + TEMP_FILE + "/database"
 	if err = os.MkdirAll(path, os.ModePerm); err != nil {
@@ -96,7 +96,8 @@ func (ProjectInfo) WriteYml(serviceName, fileName, ymlStr string) (err error) {
 func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err error) {
 	dbNames := Database{}.GetDbNamesForData(projectDto)
 	for _, v := range dbNames {
-		fileNames, errd := Gitlab{}.GetFiles(projectDto.GitShortPath, TEST_INFO+"/"+v, app_env)
+		name := Gitlab{}.GetFolderPath(true, projectDto.IsMulti, projectDto.ServiceName, TEST_INFO, v)
+		fileNames, errd := Gitlab{}.GetFiles(projectDto.GitShortPath, name, app_env)
 		if errd != nil {
 			err = errd
 			return
@@ -110,9 +111,9 @@ func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err 
 			}
 
 			urlstr, errd := Gitlab{}.GetFileUrl(projectDto.IsMulti,
-				projectDto.GitShortPath, projectDto.ServiceName, TEST_INFO, v, f)
+				projectDto.GitShortPath, projectDto.ServiceName, TEST_INFO, v, f, app_env)
 			if errd != nil {
-				err = Gitlab{}.FileErr(projectDto, TEST_INFO, v, f, errd)
+				err = Gitlab{}.FileErr(projectDto, TEST_INFO, v, f, app_env, errd)
 				return
 			}
 			if err = os.MkdirAll(localDbFolderPath, os.ModePerm); err != nil {
@@ -122,7 +123,7 @@ func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err 
 				return
 			}
 			if err = (File{}).WriteUrl(urlstr, localDbPath, PRIVATETOKEN); err != nil {
-				err = Gitlab{}.FileErr(projectDto, TEST_INFO, v, f, err)
+				err = Gitlab{}.FileErr(projectDto, TEST_INFO, v, f, app_env, err)
 				return
 			}
 		}
@@ -141,7 +142,7 @@ func (d ProjectInfo) ReadYml(projectDto *ProjectDto) (err error) {
 		}
 		err = Gitlab{}.CheckTestFile(projectDto)
 		if err != nil {
-			err = Gitlab{}.FileErr(projectDto, projectDto.ExecPath, "", "config.test.yml", err)
+			err = Gitlab{}.FileErr(projectDto, projectDto.ExecPath, "", "config.test.yml", app_env, err)
 			return
 		}
 	}
@@ -228,13 +229,13 @@ func (d ProjectInfo) readYmlLocal(projectDto *ProjectDto) (err error) {
 	return
 }
 func (d ProjectInfo) readYmlRemote(projectDto *ProjectDto) (err error) {
-	b, err := Gitlab{}.RequestFile(projectDto, "test_info", "", "project.yml")
+	b, err := Gitlab{}.RequestFile(projectDto, "test_info", "", "project.yml", app_env)
 	if err != nil {
-		err = Gitlab{}.FileErr(projectDto, "test_info", "", "project.yml", err)
+		err = Gitlab{}.FileErr(projectDto, "test_info", "", "project.yml", app_env, err)
 		return
 	}
 	if err = yaml.Unmarshal(b, projectDto); err != nil {
-		err = Gitlab{}.FileErr(projectDto, "test_info", "", "project.yml", err)
+		err = Gitlab{}.FileErr(projectDto, "test_info", "", "project.yml", app_env, err)
 		return
 	}
 	if d.shouldWriteYml(projectDto) {

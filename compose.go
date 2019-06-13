@@ -318,7 +318,7 @@ func (d Compose) setComposeDependency(project *ProjectDto) (deps map[string]stri
 	if (ProjectInfo{}).ShouldKafka(project) {
 		deps["kafka"] = ""
 	}
-	list := Database{}.All(project)
+	list := Database{}.All(project, true)
 	for k := range list {
 		deps[k] = ""
 	}
@@ -366,12 +366,12 @@ func (d Compose) upperKafkaEnv(ymlStr string) string {
 func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string) (err error) {
 
 	dt := Database{}
-	if dt.ShouldDb(&project, MYSQL) {
+	if dt.ShouldDb(&project, MYSQL,true) {
 		if err = d.checkMysql(dockercompose, port.Mysql); err != nil {
 			return
 		}
 	}
-	if dt.ShouldDb(&project, SQLSERVER) {
+	if dt.ShouldDb(&project, SQLSERVER,true) {
 		if err = d.checkSqlServer(dockercompose, port.SqlServer); err != nil {
 			return
 		}
