@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/ghodss/yaml"
 
@@ -211,4 +212,8 @@ func Unique(params []string) (list []string) {
 		list = append(list, k)
 	}
 	return
+}
+
+func CurrentDatetime() string {
+	return time.Now().Format("20060102150405")
 }

@@ -366,12 +366,12 @@ func (d Compose) upperKafkaEnv(ymlStr string) string {
 func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string) (err error) {
 
 	dt := Database{}
-	if dt.ShouldDb(&project, MYSQL,true) {
+	if dt.ShouldDbLoop(&project, MYSQL) {
 		if err = d.checkMysql(dockercompose, port.Mysql); err != nil {
 			return
 		}
 	}
-	if dt.ShouldDb(&project, SQLSERVER,true) {
+	if dt.ShouldDbLoop(&project, SQLSERVER) {
 		if err = d.checkSqlServer(dockercompose, port.SqlServer); err != nil {
 			return
 		}

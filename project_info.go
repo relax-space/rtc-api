@@ -58,7 +58,7 @@ func (d ProjectInfo) initDatabase(project *ProjectDto) (err error) {
 		if err = os.MkdirAll(path, os.ModePerm); err != nil {
 			return
 		}
-		path += "/init.sql"
+		path += "/-init.sql"
 		if err = (File{}).WriteString(path, mysqlScript); err != nil {
 			return
 		}
@@ -69,7 +69,7 @@ func (d ProjectInfo) initDatabase(project *ProjectDto) (err error) {
 		if err = os.MkdirAll(path, os.ModePerm); err != nil {
 			return
 		}
-		path += "/init.sql"
+		path += "/-init.sql"
 		if err = (File{}).WriteString(path, sqlserverScript); err != nil {
 			return
 		}
@@ -93,7 +93,7 @@ func (ProjectInfo) WriteYml(serviceName, fileName, ymlStr string) (err error) {
 	return
 }
 
-func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err error) {
+func (d ProjectInfo) WriteUrlSql(projectDto *ProjectDto, privateToken string) (err error) {
 	dbNames := Database{}.GetDbNamesForData(projectDto)
 	for _, v := range dbNames {
 		name := Gitlab{}.GetFolderPath(true, projectDto.IsMulti, projectDto.ServiceName, TEST_INFO, v)
@@ -102,14 +102,13 @@ func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err 
 			err = errd
 			return
 		}
+		localDbFolderPath := fmt.Sprintf("%v/%v/%v", TEMP_FILE, "database", v)
+		// if err = (File{}).DeleteRegex(localDbFolderPath + "/*.sql"); err != nil {
+		// 	return
+		// }
 		for _, f := range fileNames {
-			localDbFolderPath := fmt.Sprintf("%v/%v/%v", TEMP_FILE, projectDto.ServiceName, v)
-			localDbPath := fmt.Sprintf("%v/%v", localDbFolderPath, f)
-
-			if err = (File{}).DeleteRegex(localDbPath); err != nil {
-				return
-			}
-
+			fName := projectDto.ServiceName + "-" + f
+			localDbPath := fmt.Sprintf("%v/%v", localDbFolderPath, fName)
 			urlstr, errd := Gitlab{}.GetFileUrl(projectDto.IsMulti,
 				projectDto.GitShortPath, projectDto.ServiceName, TEST_INFO, v, f, app_env)
 			if errd != nil {
@@ -119,7 +118,7 @@ func (d ProjectInfo) WriteUrl(projectDto *ProjectDto, privateToken string) (err 
 			if err = os.MkdirAll(localDbFolderPath, os.ModePerm); err != nil {
 				return
 			}
-			if err = (File{}).CreateEmpty(localDbPath); err != nil {
+			if err = (File{}).CreateSafe(localDbPath); err != nil {
 				return
 			}
 			if err = (File{}).WriteUrl(urlstr, localDbPath, PRIVATETOKEN); err != nil {
@@ -195,7 +194,7 @@ func (d ProjectInfo) writeSubSql(projects []*ProjectDto) (err error) {
 		if len(projectDto.ServiceName) == 0 {
 			continue
 		}
-		if err = d.WriteUrl(projectDto, PRIVATETOKEN); err != nil {
+		if err = d.WriteUrlSql(projectDto, PRIVATETOKEN); err != nil {
 			return
 		}
 		if len(projectDto.SubProjects) != 0 {
