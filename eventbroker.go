@@ -29,7 +29,7 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 	if scope == LOCAL.String() {
 		return
 	}
-	err = ProjectInfo{}.WriteUrl(p, PRIVATETOKEN)
+	err = ProjectInfo{}.WriteUrlSql(p, PRIVATETOKEN)
 	return
 }
 

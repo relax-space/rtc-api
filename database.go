@@ -5,18 +5,28 @@ type Database struct {
 
 func (d Database) GetDbNamesForData(projectDto *ProjectDto) (dbNames []string) {
 	dbNames = make([]string, 0)
-	if d.ShouldDb(projectDto, MYSQL,true) == true {
+	if d.ShouldDb(projectDto, MYSQL) == true {
 		dbNames = append(dbNames, MYSQL.String())
 	}
-	if d.ShouldDb(projectDto, SQLSERVER,true) == true {
+	if d.ShouldDb(projectDto, SQLSERVER) == true {
 		dbNames = append(dbNames, SQLSERVER.String())
 	}
 	return
 }
+func (d Database) ShouldDbLoop(project *ProjectDto, dbType DateBaseType) (flag bool) {
 
-func (d Database) ShouldDb(project *ProjectDto, dbType DateBaseType, isLoop bool) (flag bool) {
+	list := d.All(project, true)
+	for k := range list {
+		if dbType.String() == k {
+			return true
+		}
+	}
+	return false
+}
 
-	list := d.All(project, isLoop)
+func (d Database) ShouldDb(project *ProjectDto, dbType DateBaseType) (flag bool) {
+
+	list := d.All(project, false)
 	for k := range list {
 		if dbType.String() == k {
 			return true

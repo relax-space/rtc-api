@@ -29,11 +29,17 @@ func (d Config) LoadEnv(serviceName string, flag *Flag) (c *FullDto, err error) 
 	if err = d.loadEnv(c, flag); err != nil {
 		return
 	}
+	if scope != LOCAL.String() {
+		if err = d.deleteTempFile(); err != nil {
+			return
+		}
+	}
 
 	err = d.readYml(serviceName, c, flag)
 	if err != nil {
 		return
 	}
+
 	return
 }
 
@@ -185,9 +191,17 @@ func (d Config) confirm(serviceName string, flag *Flag) (err error) {
 		if err = scan(warning); err != nil {
 			return
 		}
-		if err = (File{}).DeleteAll("./" + TEMP_FILE + "/"); err != nil {
+		if err = d.deleteTempFile(); err != nil {
 			return
 		}
+	}
+	return
+}
+
+func (Config) deleteTempFile() (err error) {
+
+	if err = (File{}).DeleteAll("./" + TEMP_FILE + "/"); err != nil {
+		return
 	}
 	return
 }
