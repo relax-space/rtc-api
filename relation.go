@@ -51,11 +51,11 @@ func (d Relation) Fetch(serviceName string, flag *Flag) (relation *Relation, err
 
 	if BoolPointCheck(flag.RelationSource) {
 		// from gitlab
-		relation, err = d.fetchFromGitlab(serviceName)
+		relation, err = d.fetchFromMingbai(serviceName)
+
 		return
 	}
-
-	relation, err = d.fetchFromMingbai(serviceName)
+	relation, err = d.fetchFromGitlab(serviceName)
 	return
 }
 
