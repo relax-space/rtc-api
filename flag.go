@@ -46,8 +46,8 @@ func (Flag) Init() (serviceName *string, flag *Flag) {
 	return
 }
 
-func showList(q string) {
-	list, err := Relation{}.FetchAllNames()
+func showList(q string, r *bool) {
+	list, err := Relation{}.FetchAllNames(r)
 	if err != nil {
 		log.Println(err)
 		return
@@ -68,17 +68,21 @@ func showList(q string) {
 		return
 	}
 	for _, v := range newList {
-		log.Println(v)
+		fmt.Println(v)
 	}
 }
 
 func configureLsCommand(app *kingpin.Application) {
 	var q string
+	var r *bool
 	ls := kingpin.Command("ls", "List service names from remote.").Action(func(c *kingpin.ParseContext) error {
-		showList(q)
+		showList(q, r)
 		return nil
 	})
 	ls.Arg("q", "Fuzzy query service name by `q`").StringVar(&q)
+	r = ls.Flag("relation-source", `
+	1.false: default,fetch relation from mingbai-api.
+	2.true:fetch relation from https://gitlab.p2shop.cn:8443/data/rtc-data`).Short('r').Bool()
 }
 
 func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *Flag) {
@@ -101,7 +105,7 @@ func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *F
 		IgnorePull:  run.Flag("ignore-pull", "You can ignore pull images step.").Bool(),
 		RelationSource: run.Flag("relation-source", `
 	1.false: default,fetch relation from mingbai-api.
-	2.true:fetch relation from https://gitlab.p2shop.cn:8443/data/rtc-data.`).Short('r').Bool(),
+	2.true:fetch relation from https://gitlab.p2shop.cn:8443/data/rtc-data`).Short('r').Bool(),
 
 		MysqlPort:     run.Flag("mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
 		RedisPort:     run.Flag("redis-port", "You can change default redis port.").Default(outPort.Redis).String(),
