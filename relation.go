@@ -50,16 +50,25 @@ func (d Relation) FetchProject(serviceName string, flag *Flag) (project *Project
 func (d Relation) Fetch(serviceName string, flag *Flag) (relation *Relation, err error) {
 
 	if BoolPointCheck(flag.RelationSource) {
-		// from gitlab
 		relation, err = d.fetchFromMingbai(serviceName)
-
 		return
 	}
 	relation, err = d.fetchFromGitlab(serviceName)
 	return
 }
 
-func (d Relation) FetchAllNames() (names []string, err error) {
+func (d Relation) FetchAllNames(r *bool) (names []string, err error) {
+
+	if BoolPointCheck(r) {
+		names, err = d.fetchNamesFromMingbai()
+		return
+	}
+	names, err = d.fetchNamesFromGitlab()
+	return
+
+}
+
+func (d Relation) fetchNamesFromMingbai() (names []string, err error) {
 
 	url := fmt.Sprintf("%v/mingbai-api/service_groups/items/names?runtimeEnv=%v", P2SHOPHOST, "")
 	var apiResult ApiResultArray
@@ -76,8 +85,24 @@ func (d Relation) FetchAllNames() (names []string, err error) {
 	return
 }
 
+func (d Relation) fetchNamesFromGitlab() (names []string, err error) {
+	rs, err := d.fetchDataGitlab()
+	if err != nil {
+		err = d.gitlabErr(err)
+		return
+	}
+	names = make([]string, 0)
+	for _, m := range rs {
+		for _, v := range m {
+			if v != nil {
+				names = append(names, v.Service)
+			}
+		}
+	}
+	return
+}
+
 func (d Relation) fetchFromMingbai(serviceName string) (relation *Relation, err error) {
-	//strings.ToUpper(app_env)
 	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v&runtimeEnv=%v", P2SHOPHOST, serviceName, "")
 	var apiResult ApiResult
 	_, err = httpreq.New(http.MethodGet, url, nil).Call(&apiResult)
@@ -91,40 +116,23 @@ func (d Relation) fetchFromMingbai(serviceName string) (relation *Relation, err 
 	relation = &apiResult.Result
 	return
 }
-
 func (d Relation) fetchFromGitlab(serviceName string) (relation *Relation, err error) {
-	projectDto := &ProjectDto{
-		ServiceName:  "rtc-data",
-		GitShortPath: "data/rtc-data",
-	}
-	//this is qa not app_env by xiao.xinmiao
-	appEnv := "qa"
-	fileName := fmt.Sprintf("config.%v.yml", appEnv)
-	b, err := Gitlab{}.RequestFile(projectDto, "", "", fileName, appEnv)
+	rs, err := d.fetchDataGitlab()
 	if err != nil {
-		err = Gitlab{}.FileErr(projectDto, "", "", fileName, app_env, err)
-		return
-	}
-	vip := viper.New()
-	vip.SetConfigType("yaml")
-	if err = vip.ReadConfig(bytes.NewBuffer(b)); err != nil {
-		err = Gitlab{}.FileErr(projectDto, "", "", fileName, app_env, err)
-		return
-	}
-	var rs []map[string]*Relation
-	if err = vip.Unmarshal(&rs); err != nil {
+		err = d.gitlabErr(err)
 		return
 	}
 
 	has, r := d.getRelation(serviceName, rs)
 	if has == false {
-		err = Gitlab{}.FileErr(projectDto, "", "", fileName, app_env, fmt.Errorf("service is missing:%v", serviceName))
+		err = d.gitlabErr(fmt.Errorf("service is missing:%v", serviceName))
 		return
 	}
 
 	err = d.setRelationDetail(r, rs)
 	if err != nil {
-		err = Gitlab{}.FileErr(projectDto, "", "", fileName, app_env, err)
+		err = d.gitlabErr(err)
+		return
 	}
 	relation = r
 	return
@@ -213,5 +221,44 @@ func (Relation) getRegistry(image string) (registry string) {
 	if i > 0 {
 		registry = registry[0:i] + "-" + app_env
 	}
+	return
+}
+
+func (d Relation) fetchDataGitlab() (relations []map[string]*Relation, err error) {
+	projectDto := &ProjectDto{
+		ServiceName:  "rtc-data",
+		GitShortPath: "data/rtc-data",
+	}
+	//this is qa not app_env by xiao.xinmiao
+	appEnv := "qa"
+	fileName := fmt.Sprintf("config.%v.yml", appEnv)
+	b, err := Gitlab{}.RequestFile(projectDto, "", "", fileName, appEnv)
+	if err != nil {
+		err = Gitlab{}.FileErr(projectDto, "", "", fileName, app_env, err)
+		return
+	}
+	vip := viper.New()
+	vip.SetConfigType("yaml")
+	if err = vip.ReadConfig(bytes.NewBuffer(b)); err != nil {
+		err = Gitlab{}.FileErr(projectDto, "", "", fileName, app_env, err)
+		return
+	}
+	var rs []map[string]*Relation
+	if err = vip.Unmarshal(&rs); err != nil {
+		return
+	}
+	relations = rs
+	return
+}
+
+func (d Relation) gitlabErr(errp error) (err error) {
+	projectDto := &ProjectDto{
+		ServiceName:  "rtc-data",
+		GitShortPath: "data/rtc-data",
+	}
+	//this is qa not app_env by xiao.xinmiao
+	appEnv := "qa"
+	fileName := fmt.Sprintf("config.%v.yml", appEnv)
+	err = Gitlab{}.FileErr(projectDto, "", "", fileName, appEnv, errp)
 	return
 }
