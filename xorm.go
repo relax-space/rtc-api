@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 
 	"github.com/go-xorm/xorm"
@@ -17,7 +16,7 @@ type Xorm struct {
 }
 
 func (Xorm) InitSql(project *ProjectDto, portDto PortDto) (err error) {
-	log.Println("sql data loading...")
+	Info("sql data loading...")
 	dbXorm := &Xorm{}
 	dbXorm.Mysql, err = xorm.NewEngine("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", portDto.Mysql))
 	if err != nil {
@@ -34,7 +33,7 @@ func (Xorm) InitSql(project *ProjectDto, portDto PortDto) (err error) {
 			return
 		}
 	}
-	log.Println("sql data loaded.")
+	Info("sql data loaded.")
 	return
 }
 

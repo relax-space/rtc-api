@@ -55,7 +55,7 @@ func (d Compose) WriteYml(viper *viper.Viper) (err error) {
 func (d Compose) Exec(c *FullDto, flag *Flag) (err error) {
 
 	if BoolPointCheck(flag.IgnoreLogin) == false {
-		log.Println("==> docker login " + REGISTRYELAND + " ...")
+		Info("==> docker login " + REGISTRYELAND + " ...")
 		if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, REGISTRYELAND); err != nil {
 			fmt.Printf("err:%v", err)
 			return
@@ -66,7 +66,7 @@ func (d Compose) Exec(c *FullDto, flag *Flag) (err error) {
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
 		return
 	}
-	log.Println("==> compose downed!")
+	Info("==> compose downed!")
 	if BoolPointCheck(flag.IgnorePull) == false {
 		if err = d.checkLatest(dockercompose, c); err != nil {
 			return
@@ -76,11 +76,11 @@ func (d Compose) Exec(c *FullDto, flag *Flag) (err error) {
 	if err = d.checkAll(project, c.Port, dockercompose); err != nil {
 		return
 	}
-	log.Println("check is ok.")
+	Info("check is ok.")
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate"); err != nil {
 		return
 	}
-	log.Println(`==> compose up!`)
+	Info(`==> compose up!`)
 	return
 }
 
@@ -91,12 +91,12 @@ func (d Compose) checkLatest(dockercompose string, c *FullDto) (err error) {
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "pull"); err != nil {
 		return
 	}
-	log.Println("==> compose pulled!")
+	Info("==> compose pulled!")
 
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "build"); err != nil {
 		return
 	}
-	log.Println("==> compose builded!")
+	Info("==> compose builded!")
 	return
 }
 
@@ -254,7 +254,6 @@ func (d Compose) setComposeNginx(viper *viper.Viper, projectName, port string) {
 	viper.Set(servicePre+".volumes", []string{
 		"./nginx/default.conf:/etc/nginx/conf.d/default.conf",
 		"./nginx/html:/usr/share/nginx/html",
-		//"./nginx:/var/log/nginx",
 	})
 
 }
@@ -391,10 +390,10 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 		fmt.Printf("err:%v", err)
 		return
 	}
+	Info("begin ping " + dbType + ",127.0.0.1:" + port)
 
 	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", port))
 	if err != nil {
-		log.Println(dbType, err)
 		return
 	}
 	defer db.Close()
@@ -403,7 +402,6 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 	logger := log.New(buffer, "prefix: ", 0)
 	mysql.SetLogger(logger)
 
-	log.Println("begin ping " + dbType + ",127.0.0.1:" + port)
 	for index := 0; index < 300; index++ {
 		err = db.Ping()
 		if err != nil {
@@ -414,10 +412,9 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 		break
 	}
 	if err != nil {
-		log.Println("error ping " + dbType)
 		return
 	}
-	log.Println("finish ping " + dbType)
+	Info("finish ping " + dbType)
 	return
 }
 
@@ -429,30 +426,30 @@ func (d Compose) checkSqlServer(dockercompose, port string) (err error) {
 		fmt.Printf("err:%v", err)
 		return
 	}
-
+	Info("begin ping " + dbType + ",127.0.0.1:" + port)
 	db, err := sql.Open("sqlserver",
 		fmt.Sprintf("sqlserver://sa:Eland123@127.0.0.1:%v?database=master", port))
 
 	if err != nil {
-		log.Println(dbType, err)
 		return
 	}
 	defer db.Close()
-	log.Println("begin ping " + dbType + ",127.0.0.1:" + port)
 	for index := 0; index < 300; index++ {
 		err = db.Ping()
 		if err != nil {
 			time.Sleep(2 * time.Second)
+			if index%30 == 0 {
+				Info(err.Error())
+			}
 			continue
 		}
 		err = nil
 		break
 	}
 	if err != nil {
-		log.Println("error ping " + dbType)
 		return
 	}
-	log.Println("finish ping " + dbType)
+	Info("finish ping " + dbType)
 	return
 }
 
@@ -467,20 +464,22 @@ func (d Compose) checkKafka(dockercompose, port string) (err error) {
 		return
 	}
 
-	log.Println("begin ping kafka,127.0.0.1:" + port)
+	Info("begin ping kafka,127.0.0.1:" + port)
 	for index := 0; index < 300; index++ {
 		if err = d.dailKafka(port); err != nil {
 			time.Sleep(2 * time.Second)
+			if index%30 == 0 {
+				Info(err.Error())
+			}
 			continue
 		}
 		err = nil
 		break
 	}
 	if err != nil {
-		log.Println("error ping kafka")
 		return
 	}
-	log.Println("finish ping kafka")
+	Info("finish ping kafka")
 	return
 }
 

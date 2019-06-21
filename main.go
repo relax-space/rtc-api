@@ -20,7 +20,7 @@ func main() {
 	}
 	c, err := Config{}.LoadEnv(*serviceName, flag)
 	if err != nil {
-		log.Println(err)
+		Error(err)
 		return
 	}
 	if err = composeWriteYml(c); err != nil {
@@ -31,21 +31,16 @@ func main() {
 	}
 
 	if err = writeLocal(c); err != nil {
-		log.Println(err)
+		Error(err)
 		return
 	}
 
 	if err = (Compose{}).Exec(c, flag); err != nil {
-		log.Println(err)
+		Error(err)
 		return
 	}
 
-	// if err = (Xorm{}).InitSql(c.Project, c.Port); err != nil {
-	// 	log.Println(err)
-	// 	return
-	// }
-
-	log.Println("==> you can start testing now. check health by `docker ps -a`")
+	Info("==> you can start testing now. check health by `docker ps -a`")
 	return
 
 }
@@ -85,7 +80,7 @@ func composeWriteYml(c *FullDto) (err error) {
 	if p.ShouldEventBroker(c.Project) {
 		streamNames := p.StreamList(c.Project)
 		if err = (EventBroker{}).SetEventBroker(viper, c.Port.EventBroker, streamNames); err != nil {
-			log.Println(err)
+			Error(err)
 		}
 	}
 	d.setComposeApp(viper, c.Project)
