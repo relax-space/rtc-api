@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,16 +40,18 @@ func (Flag) Init() (serviceName *string, flag *Flag) {
 		Version = "v1.0"
 	}
 	kingpin.CommandLine.Version(Version).VersionFlag.Short('v')
-	configureLsCommand(kingpin.CommandLine)
+	if err := configureLsCommand(kingpin.CommandLine); err != nil {
+		Error(err)
+		return
+	}
 	serviceName, flag = configureRunCommand(kingpin.CommandLine)
 	kingpin.Parse()
 	return
 }
 
-func showList(q string, r *bool) {
+func showList(q string, r *bool) (err error) {
 	list, err := Relation{}.FetchAllNames(r)
 	if err != nil {
-		log.Println(err)
 		return
 	}
 	newList := make([]string, 0)
@@ -64,25 +66,27 @@ func showList(q string, r *bool) {
 		newList = list
 	}
 	if len(newList) == 0 {
-		log.Println("no data has found.")
+		err = errors.New("no data has found.")
 		return
 	}
 	for _, v := range newList {
 		fmt.Println(v)
 	}
+	return
 }
 
-func configureLsCommand(app *kingpin.Application) {
+func configureLsCommand(app *kingpin.Application) (err error) {
 	var q string
 	var r *bool
 	ls := kingpin.Command("ls", "List service names from remote.").Action(func(c *kingpin.ParseContext) error {
-		showList(q, r)
-		return nil
+		err = showList(q, r)
+		return err
 	})
 	ls.Arg("q", "Fuzzy query service name by `q`").StringVar(&q)
 	r = ls.Flag("relation-source", `
 	1.false: default,fetch relation from mingbai-api.
 	2.true:fetch relation from https://gitlab.p2shop.cn:8443/data/rtc-data`).Short('r').Bool()
+	return
 }
 
 func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *Flag) {

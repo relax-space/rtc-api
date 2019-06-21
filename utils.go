@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -106,24 +105,6 @@ type ProjectDto struct {
 	SubProjects []*ProjectDto
 }
 
-func Cmd(name string, arg ...string) (result string, err error) {
-	cmd := exec.Command(name, arg...)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	if err != nil {
-		err = fmt.Errorf("err:%v--stderr:%v", err, stderr.String())
-		return
-	}
-	result = out.String()
-	if len(result) != 0 {
-		log.Println(result)
-	}
-	return
-}
-
 func CmdRealtime(name string, arg ...string) (result string, err error) {
 	cmd := exec.Command(name, arg...)
 	cmd.Stdout = os.Stdout
@@ -216,4 +197,12 @@ func Unique(params []string) (list []string) {
 
 func CurrentDatetime() string {
 	return time.Now().Format("20060102150405")
+}
+
+func Error(err error) {
+	log.Println(err)
+}
+
+func Info(message string) {
+	log.Println(message)
 }
