@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/ElandGroup/joblog"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
@@ -18,6 +19,18 @@ func main() {
 	} else {
 		log.SetFlags(0)
 	}
+	ip, err := currentIp()
+	if err != nil {
+		log.Println(jobLog.Err)
+		return
+	}
+
+	jobLog = joblog.New(jobLogUrl, "rtc", map[string]interface{}{"service name:": serviceName, "ip": ip})
+	if jobLog.Err != nil {
+		log.Println(jobLog.Err)
+		return
+	}
+	jobLog.Info(flag)
 	c, err := Config{}.LoadEnv(*serviceName, flag)
 	if err != nil {
 		Error(err)
