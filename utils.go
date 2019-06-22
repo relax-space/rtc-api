@@ -13,6 +13,7 @@ import (
 
 	"github.com/ghodss/yaml"
 
+	"github.com/ElandGroup/joblog"
 	"github.com/spf13/viper"
 )
 
@@ -20,11 +21,13 @@ var (
 	app_env = ""
 	scope   = ""
 )
+var jobLog *joblog.JobLog
 
 const (
 	TEST_INFO        = "test_info"
 	TEMP_FILE        = "temp"
 	EventBroker_Name = "event-broker-kafka"
+	jobLogUrl        = "https://gateway.p2shop.com.cn/batchjob-api/v1/jobs"
 )
 
 const (
@@ -201,8 +204,10 @@ func CurrentDatetime() string {
 
 func Error(err error) {
 	log.Println(err)
+	jobLog.Error(err)
 }
 
-func Info(message string) {
+func Info(message interface{}) {
+	jobLog.Info(message)
 	log.Println(message)
 }

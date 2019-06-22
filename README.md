@@ -14,6 +14,10 @@ Example
 $ ./docker-test run go-api
 ```
 
+## log
+https://job-monitor.p2shop.com.cn/#/
+service: rtc
+
 ## Help
 
 ```bash

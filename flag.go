@@ -32,7 +32,7 @@ type Flag struct {
 	ZookeeperPort   *string
 }
 
-func (Flag) Init() (serviceName *string, flag *Flag) {
+func (Flag) Init() (serviceName *string, flagParam *Flag) {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Author("qa group")
 	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies.For detail flags of each command run `help [<command>...]`."
 	kingpin.CommandLine.HelpFlag.Short('h')
@@ -44,7 +44,7 @@ func (Flag) Init() (serviceName *string, flag *Flag) {
 		Error(err)
 		return
 	}
-	serviceName, flag = configureRunCommand(kingpin.CommandLine)
+	serviceName, flagParam = configureRunCommand(kingpin.CommandLine)
 	kingpin.Parse()
 	return
 }
