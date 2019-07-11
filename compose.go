@@ -54,9 +54,9 @@ func (d Compose) WriteYml(viper *viper.Viper) (err error) {
 
 func (d Compose) Exec(c *FullDto, flag *Flag) (err error) {
 
-	if BoolPointCheck(flag.IgnoreLogin) == false {
-		Info("==> docker login " + REGISTRYELAND + " ...")
-		if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, REGISTRYELAND); err != nil {
+	if BoolPointCheck(flag.NoLogin) == false {
+		Info("==> docker login " + comboResource.Registry + " ...")
+		if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, comboResource.Registry); err != nil {
 			fmt.Printf("err:%v", err)
 			return
 		}
@@ -67,7 +67,7 @@ func (d Compose) Exec(c *FullDto, flag *Flag) (err error) {
 		return
 	}
 	Info("==> compose downed!")
-	if BoolPointCheck(flag.IgnorePull) == false {
+	if BoolPointCheck(flag.NoPull) == false {
 		if err = d.checkLatest(dockercompose, c); err != nil {
 			return
 		}
@@ -130,7 +130,7 @@ func (d Compose) setComposeSqlserver(viper *viper.Viper, port string) {
 	serviceName := "sqlserver"
 	servicePre := Compose{}.getServicePre(serviceName)
 	//docker-hub: genschsa/mssql-server-linux
-	viper.Set(servicePre+".image", REGISTRYELAND+"/mssql-server-linux")
+	viper.Set(servicePre+".image", comboResource.Registry+"/mssql-server-linux")
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.SqlServer})
 	viper.Set(servicePre+".volumes", []string{
@@ -151,7 +151,7 @@ func (d Compose) setComposeKafkaEland(viper *viper.Viper, port, secondPort, zook
 	servicePre := Compose{}.getServicePre(serviceName)
 	containerName := d.getContainerName(serviceName)
 
-	viper.Set(servicePre+".image", REGISTRYELAND+"/kafka")
+	viper.Set(servicePre+".image", comboResource.Registry+"/kafka")
 	viper.Set(servicePre+".container_name", containerName)
 	//viper.Set(servicePre+".restart", "always")
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Kafka, fmt.Sprintf("%v:%v", jmxPort, jmxPort)})
@@ -184,7 +184,7 @@ func (d Compose) setComposeZookeeperEland(viper *viper.Viper, port, ip string) {
 	servicePre := Compose{}.getServicePre(serviceName)
 	containerName := d.getContainerName(serviceName)
 
-	viper.Set(servicePre+".image", REGISTRYELAND+"/zookeeper")
+	viper.Set(servicePre+".image", comboResource.Registry+"/zookeeper")
 	viper.Set(servicePre+".container_name", containerName)
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Zookeeper, "2888:2888", "3888:3888"})
 	viper.Set(servicePre+".environment.ZOO_MY_ID", 1)
@@ -434,7 +434,7 @@ func (d Compose) checkSqlServer(dockercompose, port string) (err error) {
 		return
 	}
 	defer db.Close()
-	for index := 0; index < 300; index++ {
+	for index := 1; index < 300; index++ {
 		err = db.Ping()
 		if err != nil {
 			time.Sleep(2 * time.Second)
@@ -465,7 +465,7 @@ func (d Compose) checkKafka(dockercompose, port string) (err error) {
 	}
 
 	Info("begin ping kafka,127.0.0.1:" + port)
-	for index := 0; index < 300; index++ {
+	for index := 1; index < 300; index++ {
 		if err = d.dailKafka(port); err != nil {
 			time.Sleep(2 * time.Second)
 			if index%30 == 0 {

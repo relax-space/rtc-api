@@ -11,6 +11,8 @@ import (
 )
 
 type Gitlab struct {
+	Url          string
+	PrivateToken string
 }
 
 type ApiProject struct {
@@ -30,7 +32,7 @@ func (d Gitlab) RequestFile(projectDto *ProjectDto, folderName, subFolderName, f
 	if err != nil {
 		return
 	}
-	b, err = (File{}).ReadUrl(urlstr, PRIVATETOKEN)
+	b, err = (File{}).ReadUrl(urlstr, d.getPrivateToken())
 	if err != nil {
 		return
 	}
@@ -46,10 +48,10 @@ func (d Gitlab) GetFiles(gitShortPath, subPath, ref string) (fileNames []string,
 		return
 	}
 	url := fmt.Sprintf("%v/api/v4/projects/%v/repository/tree?path=%v&ref=%v&per_page=1000",
-		PREGITHTTPURL, projectId, subPath, ref)
+		d.getUrl(), projectId, subPath, ref)
 	var apiResult []ApiFile
 	req := httpreq.New(http.MethodGet, url, nil)
-	req.Req.Header.Set("PRIVATE-TOKEN", PRIVATETOKEN)
+	req.Req.Header.Set("PRIVATE-TOKEN", d.getPrivateToken())
 	_, err = req.Call(&apiResult)
 	if err != nil {
 		return
@@ -109,7 +111,7 @@ func (d Gitlab) CheckTestFile(projectDto *ProjectDto) (err error) {
 }
 
 func (d Gitlab) FileErr(projectDto *ProjectDto, folderName, subFolderName, fileName, appEnv string, errParam error) (err error) {
-	url := fmt.Sprintf("%v/%v/raw/%v/%v", PREGITHTTPURL, projectDto.GitShortPath, appEnv,
+	url := fmt.Sprintf("%v/%v/raw/%v/%v", d.getUrl(), projectDto.GitShortPath, appEnv,
 		d.GetFilePath(false, projectDto.IsMulti, projectDto.ServiceName, folderName, subFolderName, fileName))
 	return fmt.Errorf("check gitlab file,url:%v,err:%v", url, errParam)
 }
@@ -121,7 +123,7 @@ func (d Gitlab) GetFileUrl(isMulti bool, gitShortPath, serviceName, folderName, 
 	}
 	name := d.GetFilePath(true, isMulti, serviceName, folderName, subFolderName, fileName)
 	urlstr = fmt.Sprintf("%v/api/v4/projects/%v/repository/files/%v/raw?ref=%v",
-		PREGITHTTPURL, id, name, appEnv)
+		d.getUrl(), id, name, appEnv)
 	return
 }
 
@@ -131,7 +133,7 @@ func (d Gitlab) checkTestFile(projectDto *ProjectDto, fileName string) (err erro
 	if err != nil {
 		return
 	}
-	_, err = (File{}).ReadUrl(urlstr, PRIVATETOKEN)
+	_, err = (File{}).ReadUrl(urlstr, d.getPrivateToken())
 	if err != nil {
 		return
 	}
@@ -141,10 +143,10 @@ func (d Gitlab) checkTestFile(projectDto *ProjectDto, fileName string) (err erro
 func (d Gitlab) getProjectId(gitShortPath string) (projectId int, err error) {
 	groupName, projectName := d.getGroupProject(gitShortPath)
 	url := fmt.Sprintf("%v/api/v4/groups/%v/projects?search=%v&simple=true",
-		PREGITHTTPURL, groupName, projectName)
+		d.getUrl(), groupName, projectName)
 	var apiResult []ApiProject
 	req := httpreq.New(http.MethodGet, url, nil)
-	req.Req.Header.Set("PRIVATE-TOKEN", PRIVATETOKEN)
+	req.Req.Header.Set("PRIVATE-TOKEN", d.getPrivateToken())
 	_, err = req.Call(&apiResult)
 	if err != nil {
 		return
@@ -170,4 +172,18 @@ func (d Gitlab) getGroupProject(gitShortPath string) (groupName, projectName str
 	projectName = strs[1]
 	return
 
+}
+
+func (d Gitlab) getUrl() string {
+	if len(d.Url) == 0 {
+		return comboResource.PerGitHttpUrl
+	}
+	return d.Url
+}
+
+func (d Gitlab) getPrivateToken() string {
+	if len(d.PrivateToken) == 0 {
+		return comboResource.PrivateToken
+	}
+	return d.PrivateToken
 }
