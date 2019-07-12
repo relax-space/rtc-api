@@ -235,7 +235,7 @@ func (d Compose) setComposeRedis(viper *viper.Viper, port string) {
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".hostname", d.getContainerName(serviceName))
 	//	viper.Set("services.redisserver.restart", "always")
-	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Nginx})
+	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Redis})
 	viper.Set(servicePre+".volumes", []string{
 		"./redis/redis.conf:/usr/local/etc/redis/redis.conf",
 	})
@@ -402,10 +402,13 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 	logger := log.New(buffer, "prefix: ", 0)
 	mysql.SetLogger(logger)
 
-	for index := 0; index < 300; index++ {
+	for index := 1; index < 300; index++ {
 		err = db.Ping()
 		if err != nil {
 			time.Sleep(2 * time.Second)
+			if index%30 == 0 {
+				Info(err.Error())
+			}
 			continue
 		}
 		err = nil

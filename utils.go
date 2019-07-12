@@ -54,14 +54,14 @@ var inPort = PortDto{
 }
 
 var outPort = PortDto{
-	Mysql:     "3306",
-	Redis:     "6379",
-	Mongo:     "27017",
-	SqlServer: "1433",
+	Mysql:     "3308",
+	Redis:     "6381",
+	Mongo:     "27019",
+	SqlServer: "1435",
 	Kafka:     "9092",
 
 	KafkaSecond: "29092",
-	EventBroker: "3000",
+	EventBroker: "3002",
 	Nginx:       "3001",
 	Zookeeper:   "2181",
 }
