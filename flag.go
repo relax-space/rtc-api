@@ -13,12 +13,14 @@ import (
 var Version string
 
 type Flag struct {
-	Updated        *string
-	ImageEnv       *string
-	Log            *bool
-	IgnoreLogin    *bool
-	IgnorePull     *bool
+	Updated  *string
+	ImageEnv *string
+	Log      *bool
+	NoLogin  *bool
+	NoPull   *bool
+
 	RelationSource *bool
+	ComboResource  *string
 
 	MysqlPort     *string
 	RedisPort     *string
@@ -92,7 +94,7 @@ func configureLsCommand(app *kingpin.Application) (err error) {
 func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *Flag) {
 	run := kingpin.Command("run", "Run a service and its dependencies.")
 	pName := filepath.Base(os.Args[0])
-	desc := fmt.Sprintf("The name of the service, you can get it by `%v ls -h`.", pName)
+	desc := fmt.Sprintf("The name of the service, you can get it by `./%v ls`.", pName)
 	serviceName = run.Arg("service-name", desc).Required().String()
 	flag = &Flag{
 		Updated: run.Flag("updated", `
@@ -104,12 +106,18 @@ func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *F
 	2.The program will download the latest image from Jenkins.
 	3.The default is qa, you can choose other option`).Default("qa").String(),
 
-		Log:         run.Flag("log", "You can see log for debug.").Bool(),
-		IgnoreLogin: run.Flag("ignore-login", "You can ignore login step.").Bool(),
-		IgnorePull:  run.Flag("ignore-pull", "You can ignore pull images step.").Bool(),
+		Log:     run.Flag("log", "You can see log for debug.").Bool(),
+		NoLogin: run.Flag("no-login", "You can ignore login step.").Bool(),
+		NoPull:  run.Flag("no-pull", "You can ignore pull images step.").Bool(),
 		RelationSource: run.Flag("relation-source", `
 	1.false: default,fetch relation from mingbai-api.
-	2.true:fetch relation from https://gitlab.p2shop.cn:8443/data/rtc-data`).Short('r').Bool(),
+	2.true:fetch relation from gitlab,like https://gitlab.p2shop.cn:8443/data/rtc-data`).Short('r').Bool(),
+		ComboResource: run.Flag("combo-resource", `
+	1.Optional [msl, srx , srx-msl].
+	2.msl git:https://gitlab.p2shop.cn:8443 jenkins:https://ci.p2shop.com.cn
+	  srx git:https://gitlab.srxcloud.com jenkins:https://jenkins.srxcloud.com
+	 srx-msl git:https://gitlab.srxcloud.com jenkins:https://ci.p2shop.com.cn
+	3.The default is srx-msl, you can choose other option`).Default("srx-msl").Short('c').String(),
 
 		MysqlPort:     run.Flag("mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
 		RedisPort:     run.Flag("redis-port", "You can change default redis port.").Default(outPort.Redis).String(),

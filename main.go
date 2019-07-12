@@ -19,18 +19,12 @@ func main() {
 	} else {
 		log.SetFlags(0)
 	}
-	ip, err := currentIp()
-	if err != nil {
-		log.Println(jobLog.Err)
+	initJobLog(serviceName, flag)
+	if comboResource = (ComboResource{}).GetInstance(flag.ComboResource); comboResource == nil {
+		Info("The --combo-resource parameter supports msl, srx, msl-srx. For details, see ./rtc run -h")
 		return
 	}
 
-	jobLog = joblog.New(jobLogUrl, "rtc", map[string]interface{}{"service name:": serviceName, "ip": ip})
-	if jobLog.Err != nil {
-		log.Println(jobLog.Err)
-		return
-	}
-	jobLog.Info(flag)
 	c, err := Config{}.LoadEnv(*serviceName, flag)
 	if err != nil {
 		Error(err)
@@ -56,6 +50,21 @@ func main() {
 	Info("==> you can start testing now. check health by `docker ps -a`")
 	return
 
+}
+
+func initJobLog(serviceName *string, flag *Flag) {
+	ip, err := currentIp()
+	if err != nil {
+		log.Println(jobLog.Err)
+		return
+	}
+
+	jobLog = joblog.New(jobLogUrl, "rtc", map[string]interface{}{"service name:": serviceName, "ip": ip})
+	if jobLog.Err != nil {
+		log.Println(jobLog.Err)
+		return
+	}
+	jobLog.Info(flag)
 }
 
 func writeLocal(c *FullDto) (err error) {

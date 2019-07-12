@@ -29,7 +29,7 @@ func (d EventBroker) SetEventBroker(viper *viper.Viper, port string, streamNames
 	if scope == LOCAL.String() {
 		return
 	}
-	err = ProjectInfo{}.WriteUrlSql(p, PRIVATETOKEN)
+	err = ProjectInfo{}.WriteUrlSql(p, comboResource.PrivateToken)
 	return
 }
 
@@ -69,7 +69,7 @@ func (EventBroker) setComposeProducer(viper *viper.Viper, port string, project *
 	serviceName := EventBroker_Name
 	compose := &Compose{
 		ServiceName: serviceName,
-		ImageName:   REGISTRYELAND + "/" + serviceName + "-" + app_env,
+		ImageName:   comboResource.Registry + "/" + serviceName + "-" + app_env,
 		Restart:     "on-failure:10",
 		Environment: project.Envs,
 		Ports:       []string{port + ":" + inPort.EventBroker},
@@ -82,7 +82,7 @@ func (EventBroker) setComposeConsumer(viper *viper.Viper, project *ProjectDto, s
 	d := Compose{}
 	compose := &Compose{
 		ServiceName: serverName,
-		ImageName:   REGISTRYELAND + "/" + serverName + "-" + app_env,
+		ImageName:   comboResource.Registry + "/" + serverName + "-" + app_env,
 		Restart:     "on-failure:10",
 		Environment: project.Envs,
 		Ports:       project.Ports,

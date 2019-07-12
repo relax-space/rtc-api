@@ -70,7 +70,7 @@ func (d Relation) FetchAllNames(r *bool) (names []string, err error) {
 
 func (d Relation) fetchNamesFromMingbai() (names []string, err error) {
 
-	url := fmt.Sprintf("%v/mingbai-api/service_groups/items/names?runtimeEnv=%v", P2SHOPHOST, "")
+	url := fmt.Sprintf("%v/mingbai-api/service_groups/items/names?runtimeEnv=%v", comboResource.MingbaiHost, "")
 	var apiResult ApiResultArray
 	_, err = httpreq.New(http.MethodGet, url, nil).Call(&apiResult)
 	if err != nil {
@@ -103,7 +103,7 @@ func (d Relation) fetchNamesFromGitlab() (names []string, err error) {
 }
 
 func (d Relation) fetchFromMingbai(serviceName string) (relation *Relation, err error) {
-	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v&runtimeEnv=%v", P2SHOPHOST, serviceName, "")
+	url := fmt.Sprintf("%v/mingbai-api/service_groups/docker?name=%v&runtimeEnv=%v", comboResource.MingbaiHost, serviceName, "")
 	var apiResult ApiResult
 	_, err = httpreq.New(http.MethodGet, url, nil).Call(&apiResult)
 	if err != nil {
@@ -215,7 +215,7 @@ func (d Relation) setSubProject(relations map[string]*Relation, project *Project
 }
 
 func (Relation) getRegistry(image string) (registry string) {
-	registry = strings.Replace(image, REGISTRYQA, REGISTRYELAND, -1)
+	registry = strings.Replace(image, comboResource.MingbaiRegistry, comboResource.Registry, -1)
 
 	i := strings.LastIndex(registry, "-")
 	if i > 0 {
@@ -232,15 +232,16 @@ func (d Relation) fetchDataGitlab() (relations []map[string]*Relation, err error
 	//this is qa not app_env by xiao.xinmiao
 	appEnv := "qa"
 	fileName := fmt.Sprintf("config.%v.yml", appEnv)
-	b, err := Gitlab{}.RequestFile(projectDto, "", "", fileName, appEnv)
+	gitlab := Gitlab{Url: RtcPreGitUrl, PrivateToken: RtcPrivateToken}
+	b, err := gitlab.RequestFile(projectDto, "", "", fileName, appEnv)
 	if err != nil {
-		err = Gitlab{}.FileErr(projectDto, "", "", fileName, app_env, err)
+		err = gitlab.FileErr(projectDto, "", "", fileName, app_env, err)
 		return
 	}
 	vip := viper.New()
 	vip.SetConfigType("yaml")
 	if err = vip.ReadConfig(bytes.NewBuffer(b)); err != nil {
-		err = Gitlab{}.FileErr(projectDto, "", "", fileName, app_env, err)
+		err = gitlab.FileErr(projectDto, "", "", fileName, app_env, err)
 		return
 	}
 	var rs []map[string]*Relation
@@ -259,6 +260,7 @@ func (d Relation) gitlabErr(errp error) (err error) {
 	//this is qa not app_env by xiao.xinmiao
 	appEnv := "qa"
 	fileName := fmt.Sprintf("config.%v.yml", appEnv)
-	err = Gitlab{}.FileErr(projectDto, "", "", fileName, appEnv, errp)
+	gitlab := Gitlab{Url: RtcPreGitUrl, PrivateToken: RtcPrivateToken}
+	err = gitlab.FileErr(projectDto, "", "", fileName, appEnv, errp)
 	return
 }

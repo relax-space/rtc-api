@@ -24,28 +24,20 @@ var (
 var jobLog *joblog.JobLog
 
 const (
-	TEST_INFO        = "test_info"
-	TEMP_FILE        = "temp"
-	EventBroker_Name = "event-broker-kafka"
-	jobLogUrl        = "https://gateway.p2shop.com.cn/batchjob-api/v1/jobs"
-)
+	RtcPreGitUrl    = "https://gitlab.p2shop.cn:8443"
+	RtcPrivateToken = "bY2kmqs8x8N3wfQxgw6s"
 
-const (
-	PRIVATETOKEN         = "bY2kmqs8x8N3wfQxgw6s"
-	PreGitSshUrl         = "ssh://git@gitlab.p2shop.cn:822"
-	PREGITHTTPURL        = "https://gitlab.p2shop.cn:8443"
 	YMLNAMECONFIG        = "config"
 	YMLNAMEPROJEC        = "project"
 	YMLNAMEDOCKERCOMPOSE = "docker-compose"
 	CONFIGNAMENGINX      = "default"
-	REGISTRYELAND        = "registry.elandsystems.cn"
-	PREWAIT              = "wait-"
 	SUFSERVER            = "-server"
 	PRETEST              = "test-"
-	P2SHOPHOST           = "https://gateway.p2shop.com.cn"
-	REGISTRYQA           = "registry.p2shop.com.cn"
-	WAITIMAGE            = "waisbrot/wait" //xiaoxinmiao/wait:0.0.2
 
+	TEST_INFO        = "test_info"
+	TEMP_FILE        = "temp"
+	EventBroker_Name = "event-broker-kafka"
+	jobLogUrl        = "https://gateway.p2shop.com.cn/batchjob-api/v1/jobs"
 )
 
 var inPort = PortDto{

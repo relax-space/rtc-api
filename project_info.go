@@ -121,7 +121,7 @@ func (d ProjectInfo) WriteUrlSql(projectDto *ProjectDto, privateToken string) (e
 			if err = (File{}).CreateSafe(localDbPath); err != nil {
 				return
 			}
-			if err = (File{}).WriteUrl(urlstr, localDbPath, PRIVATETOKEN); err != nil {
+			if err = (File{}).WriteUrl(urlstr, localDbPath, comboResource.PrivateToken); err != nil {
 				err = Gitlab{}.FileErr(projectDto, TEST_INFO, v, f, app_env, err)
 				return
 			}
@@ -194,7 +194,7 @@ func (d ProjectInfo) writeSubSql(projects []*ProjectDto) (err error) {
 		if len(projectDto.ServiceName) == 0 {
 			continue
 		}
-		if err = d.WriteUrlSql(projectDto, PRIVATETOKEN); err != nil {
+		if err = d.WriteUrlSql(projectDto, comboResource.PrivateToken); err != nil {
 			return
 		}
 		if len(projectDto.SubProjects) != 0 {
