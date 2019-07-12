@@ -28,14 +28,14 @@ func (ComboResource) GetInstance(comboResourceStr *string) *ComboResource {
 				MingbaiRegistry: "registry.p2shop.com.cn",
 			}
 		case "srx":
-			// comboResource = &ComboResource{
-			// 	PrivateToken:  "SjPC8PnY6N8ntaxcUXFM",
-			// 	PreGitSshUrl:  "ssh://git@gitlab.srxcloud.com:622",
-			// 	PerGitHttpUrl: "https://gitlab.srxcloud.com",
-			// 	Registry:      "registry.elandsystems.cn",
-			// 	MingbaiHost:   "https://gateway.p2shop.com.cn",
-			//	MingbaiRegistry:   "swr.cn-north-1.myhuaweicloud.com/srx-cloud",
-			// }
+			comboResource = &ComboResource{
+				PrivateToken:    "SjPC8PnY6N8ntaxcUXFM",
+				PreGitSshUrl:    "ssh://git@gitlab.srxcloud.com:622",
+				PerGitHttpUrl:   "https://gitlab.srxcloud.com",
+				Registry:        "registry.elandsystems.cn",
+				MingbaiHost:     "https://gateway.p2shop.com.cn",
+				MingbaiRegistry: "swr.cn-north-1.myhuaweicloud.com/srx-cloud",
+			}
 		case "srx-msl":
 			comboResource = &ComboResource{
 				PrivateToken:    "SjPC8PnY6N8ntaxcUXFM",
