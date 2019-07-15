@@ -14,12 +14,15 @@ func main() {
 	if StringPointCheck(serviceName) == false {
 		return
 	}
-	if BoolPointCheck(flag.Log) {
+	if BoolPointCheck(flag.Debug) {
 		log.SetFlags(log.Lshortfile | log.LstdFlags)
 	} else {
 		log.SetFlags(0)
 	}
-	initJobLog(serviceName, flag)
+	if BoolPointCheck(flag.NoLog) == false {
+		log.Println("log init ...")
+		initJobLog(serviceName, flag)
+	}
 	if comboResource = (ComboResource{}).GetInstance(flag.ComboResource); comboResource == nil {
 		Info("The --combo-resource parameter supports msl, srx, msl-srx. For details, see ./rtc run -h")
 		return
