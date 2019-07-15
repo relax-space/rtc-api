@@ -196,10 +196,14 @@ func CurrentDatetime() string {
 
 func Error(err error) {
 	log.Println(err)
-	jobLog.Error(err)
+	if jobLog != nil {
+		jobLog.Error(err)
+	}
 }
 
 func Info(message interface{}) {
-	jobLog.Info(message)
 	log.Println(message)
+	if jobLog != nil {
+		jobLog.Info(message)
+	}
 }

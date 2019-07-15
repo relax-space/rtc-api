@@ -15,12 +15,13 @@ var Version string
 type Flag struct {
 	Updated  *string
 	ImageEnv *string
-	Log      *bool
+	Debug    *bool
 	NoLogin  *bool
 	NoPull   *bool
 
 	RelationSource *bool
 	ComboResource  *string
+	NoLog          *bool
 
 	MysqlPort     *string
 	RedisPort     *string
@@ -106,9 +107,10 @@ func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *F
 	2.The program will download the latest image from Jenkins.
 	3.The default is qa, you can choose other option`).Default("qa").String(),
 
-		Log:     run.Flag("log", "You can see log for debug.").Bool(),
+		Debug:   run.Flag("debug", "You can see log for debug.").Bool(),
 		NoLogin: run.Flag("no-login", "You can ignore login step.").Bool(),
 		NoPull:  run.Flag("no-pull", "You can ignore pull images step.").Bool(),
+		NoLog:   run.Flag("no-log", "You can disable uploading logs.").Bool(),
 		RelationSource: run.Flag("relation-source", `
 	1.false: default,fetch relation from mingbai-api.
 	2.true:fetch relation from gitlab,like https://gitlab.p2shop.cn:8443/data/rtc-data`).Short('r').Bool(),
