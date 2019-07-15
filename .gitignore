@@ -22,3 +22,4 @@ temp/
 run-test-container
 *.exe
 *.exe~
+rtc
