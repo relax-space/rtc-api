@@ -236,9 +236,9 @@ func (d Compose) setComposeRedis(viper *viper.Viper, port string) {
 	viper.Set(servicePre+".hostname", d.getContainerName(serviceName))
 	//	viper.Set("services.redisserver.restart", "always")
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Redis})
-	viper.Set(servicePre+".volumes", []string{
-		"./redis/redis.conf:/usr/local/etc/redis/redis.conf",
-	})
+	// viper.Set(servicePre+".volumes", []string{
+	// 	"./redis/redis.conf:/usr/local/etc/redis/redis.conf",
+	// })
 }
 
 func (d Compose) setComposeNginx(viper *viper.Viper, projectName, port string) {
