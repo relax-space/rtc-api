@@ -62,8 +62,8 @@ func (Config) WriteYml(c *FullDto) (err error) {
 
 func (Config) CheckHost(ip string) (err error) {
 	mapHost := map[string]string{
-		"10.202.101.200": "registry.elandsystems.cn",
-		ip:               "test-kafka",
+		//"10.202.101.200": "registry.elandsystems.cn",
+		ip: "test-kafka",
 	}
 
 	hosts, err := goodhosts.NewHosts()

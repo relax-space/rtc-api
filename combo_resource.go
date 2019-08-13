@@ -23,7 +23,7 @@ func (ComboResource) GetInstance(comboResourceStr *string) *ComboResource {
 				PrivateToken:    "bY2kmqs8x8N3wfQxgw6s",
 				PreGitSshUrl:    "ssh://git@gitlab.p2shop.cn:822",
 				PerGitHttpUrl:   "https://gitlab.p2shop.cn:8443",
-				Registry:        "registry.elandsystems.cn",
+				Registry:        "registry.p2shop.com.cn",
 				MingbaiHost:     "https://gateway.p2shop.com.cn",
 				MingbaiRegistry: "registry.p2shop.com.cn",
 			}
@@ -32,7 +32,7 @@ func (ComboResource) GetInstance(comboResourceStr *string) *ComboResource {
 				PrivateToken:    "SjPC8PnY6N8ntaxcUXFM",
 				PreGitSshUrl:    "ssh://git@gitlab.srxcloud.com:622",
 				PerGitHttpUrl:   "https://gitlab.srxcloud.com",
-				Registry:        "registry.elandsystems.cn",
+				Registry:        "registry.p2shop.com.cn",
 				MingbaiHost:     "https://gateway.p2shop.com.cn",
 				MingbaiRegistry: "swr.cn-north-1.myhuaweicloud.com/srx-cloud",
 			}
@@ -41,7 +41,7 @@ func (ComboResource) GetInstance(comboResourceStr *string) *ComboResource {
 				PrivateToken:    "SjPC8PnY6N8ntaxcUXFM",
 				PreGitSshUrl:    "ssh://git@gitlab.srxcloud.com:622",
 				PerGitHttpUrl:   "https://gitlab.srxcloud.com",
-				Registry:        "registry.elandsystems.cn",
+				Registry:        "registry.p2shop.com.cn",
 				MingbaiHost:     "https://gateway.p2shop.com.cn",
 				MingbaiRegistry: "registry.p2shop.com.cn",
 			}
