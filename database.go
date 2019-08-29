@@ -43,10 +43,11 @@ func (d Database) All(project *ProjectDto, isLoop bool) (list map[string][]strin
 	for k, v := range list {
 		list[k] = Unique(v)
 	}
-	if (ProjectInfo{}).ShouldEventBroker(project) {
+	if (EventBroker{}).ShouldEventBroker(project) {
 		list[MYSQL.String()] = append(list[MYSQL.String()], "event_broker")
 		list[REDIS.String()] = append(list[REDIS.String()], "")
 	}
+
 	return
 }
 

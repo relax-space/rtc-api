@@ -12,4 +12,5 @@ RUN echo ">>> 3: go install" && go install
 FROM pangpanglabs/alpine-ssl
 WORKDIR /go/bin/
 # copy execute file to image
-COPY --from=builder /go/bin/run-test-container ./
+COPY --from=builder /go/bin/run-test-container ./run-test-container
+RUN chmod +x ./run-test-container

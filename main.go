@@ -23,7 +23,7 @@ func main() {
 		log.Println("log init ...")
 		initJobLog(serviceName, flag)
 	}
-	if comboResource = (ComboResource{}).GetInstance(flag.ComboResource); comboResource == nil {
+	if comboResource = (ComboResource{}).GetInstance(flag.ComboResource, flag.RegistryCommon); comboResource == nil {
 		Info("The --combo-resource parameter supports msl, srx, msl-srx. For details, see ./rtc run -h")
 		return
 	}
@@ -41,7 +41,7 @@ func main() {
 	if err = composeWriteYml(c); err != nil {
 		return
 	}
-	if err = (Nginx{}).WriteConfig(c.Project, c.Port.EventBroker); err != nil {
+	if err = (Nginx{}).WriteConfig(c.Project); err != nil {
 		return
 	}
 
@@ -94,6 +94,7 @@ func composeWriteYml(c *FullDto) (err error) {
 	p := ProjectInfo{}
 	database := Database{}
 	d := Compose{}
+	e := EventBroker{}
 	if p.ShouldKafka(c.Project) {
 		d.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)
 	}
@@ -106,15 +107,16 @@ func composeWriteYml(c *FullDto) (err error) {
 	if database.ShouldDbLoop(c.Project, SQLSERVER) {
 		d.setComposeSqlserver(viper, c.Port.SqlServer)
 	}
-
-	if p.ShouldEventBroker(c.Project) {
-		streamNames := p.StreamList(c.Project)
+	if e.ShouldEventBroker(c.Project) {
+		streamNames := e.StreamList(c.Project)
 		if err = (EventBroker{}).SetEventBroker(viper, c.Port.EventBroker, streamNames); err != nil {
 			Error(err)
 		}
 	}
+
 	d.setComposeApp(viper, c.Project)
-	d.setComposeNginx(viper, c.Project.ServiceName, c.Port.Nginx)
+	d.setComposeNginx(viper, c.Project, c.Port.Nginx)
+	d.setComposeWaitStart(viper, c.Project)
 	d.WriteYml(viper)
 	return
 }

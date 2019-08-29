@@ -10,13 +10,18 @@ type ComboResource struct {
 	PreGitSshUrl    string
 	PerGitHttpUrl   string
 	Registry        string
+	RegistryCommon  string
 	MingbaiHost     string
 	MingbaiRegistry string
 }
 
-func (ComboResource) GetInstance(comboResourceStr *string) *ComboResource {
+func (ComboResource) GetInstance(comboResourceStr, registryCommon *string) *ComboResource {
 
 	comboResourceOnce.Do(func() {
+		registry := ""
+		if StringPointCheck(registryCommon) {
+			registry = *registryCommon
+		}
 		switch *comboResourceStr {
 		case "msl":
 			comboResource = &ComboResource{
@@ -24,6 +29,7 @@ func (ComboResource) GetInstance(comboResourceStr *string) *ComboResource {
 				PreGitSshUrl:    "ssh://git@gitlab.p2shop.cn:822",
 				PerGitHttpUrl:   "https://gitlab.p2shop.cn:8443",
 				Registry:        "registry.p2shop.com.cn",
+				RegistryCommon:  registry,
 				MingbaiHost:     "https://gateway.p2shop.com.cn",
 				MingbaiRegistry: "registry.p2shop.com.cn",
 			}
@@ -33,6 +39,7 @@ func (ComboResource) GetInstance(comboResourceStr *string) *ComboResource {
 				PreGitSshUrl:    "ssh://git@gitlab.srxcloud.com:622",
 				PerGitHttpUrl:   "https://gitlab.srxcloud.com",
 				Registry:        "registry.p2shop.com.cn",
+				RegistryCommon:  registry,
 				MingbaiHost:     "https://gateway.p2shop.com.cn",
 				MingbaiRegistry: "swr.cn-north-1.myhuaweicloud.com/srx-cloud",
 			}
@@ -42,6 +49,7 @@ func (ComboResource) GetInstance(comboResourceStr *string) *ComboResource {
 				PreGitSshUrl:    "ssh://git@gitlab.srxcloud.com:622",
 				PerGitHttpUrl:   "https://gitlab.srxcloud.com",
 				Registry:        "registry.p2shop.com.cn",
+				RegistryCommon:  registry,
 				MingbaiHost:     "https://gateway.p2shop.com.cn",
 				MingbaiRegistry: "registry.p2shop.com.cn",
 			}

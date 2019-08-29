@@ -16,6 +16,7 @@ type Relation struct {
 	Container       string               `json:"container"`
 	Image           string               `json:"image"`
 	GitlabShortName string               `json:"gitlabShortName"`
+	Entrypoint      string               `json:"entrypoint"`
 	Children        map[string]*Relation `json:"children"`
 }
 
@@ -174,6 +175,7 @@ func (d Relation) setProject(r *Relation) (project *ProjectDto, err error) {
 		ServiceName:  r.Service,
 		GitShortPath: r.GitlabShortName,
 		Registry:     d.getRegistry(r.Image),
+		Entrypoint:   r.Entrypoint,
 	}
 	if err = d.setProjectDetail(project); err != nil {
 		return
@@ -200,6 +202,7 @@ func (d Relation) setSubProject(relations map[string]*Relation, project *Project
 			ServiceName:  r.Service,
 			GitShortPath: r.GitlabShortName,
 			Registry:     d.getRegistry(r.Image),
+			Entrypoint:   r.Entrypoint,
 		}
 		if err = d.setProjectDetail(p); err != nil {
 			return

@@ -33,6 +33,7 @@ func (File) WriteString(fileName, content string) (err error) {
 	if err != nil {
 		return
 	}
+	defer out.Close()
 	_, err = out.WriteString(content)
 	return
 }
@@ -167,5 +168,18 @@ func (File) ReadViper(env string, config interface{}) error {
 	if err := viper.Unmarshal(config); err != nil {
 		return fmt.Errorf("Fatal error config file: %s \n", err)
 	}
+	return nil
+}
+
+func (d File) Copy(to, source string) error {
+	input, err := ioutil.ReadFile(source)
+	if err != nil {
+		return err
+	}
+
+	if d.WriteString(to, string(input)); err != nil {
+		return err
+	}
+
 	return nil
 }
