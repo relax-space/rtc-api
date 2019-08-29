@@ -26,7 +26,7 @@ func (d Config) LoadEnv(serviceName string, flag *Flag) (c *FullDto, err error) 
 	c = &FullDto{
 		Ip: ip,
 	}
-	if err = d.loadEnv(c, flag); err != nil {
+	if err = d.LoadFlag(c, flag); err != nil {
 		return
 	}
 	if scope != LOCAL.String() {
@@ -138,7 +138,7 @@ func (d Config) readYml(serviceName string, c *FullDto, flag *Flag) (err error) 
 	return
 }
 
-func (d Config) loadEnv(c *FullDto, flag *Flag) (err error) {
+func (d Config) LoadFlag(c *FullDto, flag *Flag) (err error) {
 	updatedStr, err := Config{}.currentScope(flag.Updated)
 	if err != nil {
 		err = fmt.Errorf("read env updated error:%v", err)
@@ -157,20 +157,24 @@ func (d Config) loadEnv(c *FullDto, flag *Flag) (err error) {
 	if c.Project == nil {
 		c.Project = &ProjectDto{}
 	}
-	c.Port.Mysql = *flag.MysqlPort
-	c.Port.Redis = *flag.RedisPort
-	c.Port.Mongo = *flag.MongoPort
-	c.Port.SqlServer = *flag.SqlServerPort
-	c.Port.Kafka = *flag.KafkaPort
-
-	c.Port.KafkaSecond = *flag.KafkaSecondPort
-	c.Port.Zookeeper = *flag.ZookeeperPort
-	c.Port.EventBroker = *flag.EventBrokerPort
-	c.Port.Nginx = *flag.NginxPort
-
+	c.Port = d.LoadFlagPort(flag)
 	return
 }
 
+func (d Config) LoadFlagPort(flag *Flag) PortDto {
+	port := PortDto{}
+	port.Mysql = *flag.MysqlPort
+	port.Redis = *flag.RedisPort
+	port.Mongo = *flag.MongoPort
+	port.SqlServer = *flag.SqlServerPort
+	port.Kafka = *flag.KafkaPort
+
+	port.KafkaSecond = *flag.KafkaSecondPort
+	port.Zookeeper = *flag.ZookeeperPort
+	port.EventBroker = *flag.EventBrokerPort
+	port.Nginx = *flag.NginxPort
+	return port
+}
 func (d Config) confirm(serviceName string, flag *Flag) (err error) {
 	localServiceName, err := d.getServiceNameLocal()
 	if err != nil {

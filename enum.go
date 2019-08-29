@@ -49,3 +49,22 @@ func (YN) List() []string {
 func (d YN) String() string {
 	return d.List()[d]
 }
+
+// ServiceType
+type ServiceType int
+
+const (
+	EMPTYSERVER ServiceType = iota
+	KAFKASERVER
+	MYSQLSERVER
+	SQLSERVERSERVER
+	REDISSERVER
+)
+
+func (ServiceType) List() []string {
+	return []string{"empty-server", "kafka", "mysql", "sqlserver", "redis"}
+}
+
+func (d ServiceType) String() string {
+	return d.List()[d]
+}

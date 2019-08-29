@@ -27,6 +27,11 @@ func main() {
 		Info("The --combo-resource parameter supports msl, srx, msl-srx. For details, see ./rtc run -h")
 		return
 	}
+	if ContainString(EMPTYSERVER.List(), *serviceName) {
+		port := Config{}.LoadFlagPort(flag)
+		ComposeSimple{}.Start(*serviceName, "127.0.0.1", port, flag)
+		return
+	}
 
 	c, err := Config{}.LoadEnv(*serviceName, flag)
 	if err != nil {
