@@ -22,6 +22,8 @@ type Flag struct {
 	RelationSource *bool
 	ComboResource  *string
 	NoLog          *bool
+	RegistryCommon *string
+	DeployMode     *bool
 
 	MysqlPort     *string
 	RedisPort     *string
@@ -111,9 +113,16 @@ func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *F
 		NoLogin: run.Flag("no-login", "You can ignore login step.").Bool(),
 		NoPull:  run.Flag("no-pull", "You can ignore pull images step.").Bool(),
 		NoLog:   run.Flag("no-log", "You can disable uploading logs.").Bool(),
+		RegistryCommon: run.Flag("registry-common", `
+	1.You can set private registry.
+	2.default: registry.p2shop.com.cn.`).String(),
+		DeployMode: run.Flag("deploy-mode", `
+	1.false(default): Running natively on the developer.
+	2.true: Running on the gitlab runner server.`).Bool(),
+
 		RelationSource: run.Flag("relation-source", `
-	1.false: default,fetch relation from mingbai-api.
-	2.true:fetch relation from gitlab,like https://gitlab.p2shop.cn:8443/data/rtc-data`).Short('r').Bool(),
+	1.false: default,fetch relation from gitlab,like https://gitlab.p2shop.cn:8443/data/rtc-data.
+	2.true:fetch relation from mingbai-api`).Short('r').Bool(),
 		ComboResource: run.Flag("combo-resource", `
 	1.Optional [msl, srx , srx-msl].
 	2.msl git:https://gitlab.p2shop.cn:8443 jenkins:https://ci.p2shop.com.cn

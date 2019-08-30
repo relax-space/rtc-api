@@ -30,7 +30,7 @@ type Nginx struct {
 }
 
 // setNgnix set nginx default.conf
-func (d Nginx) WriteConfig(p *ProjectDto, eventBrokerPort string) (err error) {
+func (d Nginx) WriteConfig(p *ProjectDto) (err error) {
 
 	if len(p.Ports) == 0 {
 		err = fmt.Errorf("port is required,project:%v", p.ServiceName)
@@ -45,10 +45,10 @@ func (d Nginx) WriteConfig(p *ProjectDto, eventBrokerPort string) (err error) {
 		}
 		location += d.Location(sp.ServiceName, sp.Ports[0])
 	}
-
-	if (ProjectInfo{}).ShouldEventBroker(p) {
-		location += d.Location(EventBroker_Name, eventBrokerPort)
+	if (EventBroker{}).ShouldEventBroker(p) {
+		location += d.Location(EventBroker_Name, inPort.EventBroker)
 	}
+
 	if err = os.MkdirAll(TEMP_FILE+"/nginx", os.ModePerm); err != nil {
 		return
 	}

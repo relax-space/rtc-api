@@ -40,6 +40,11 @@ const (
 	jobLogUrl        = "https://gateway.p2shop.com.cn/batchjob-api/v1/jobs"
 )
 
+type IpPortDto struct {
+	Ip   string
+	Port string
+}
+
 var inPort = PortDto{
 	Mysql:     "3306",
 	Redis:     "6379",
@@ -91,6 +96,7 @@ type ProjectDto struct {
 	Envs           []string // from jenkins
 	IsProjectKafka bool
 	ExecPath       string
+	Entrypoint     string
 
 	Ports       []string
 	Databases   map[string][]string //mysql,redis,mongo,sqlserver
@@ -98,6 +104,7 @@ type ProjectDto struct {
 	Registry    string
 
 	SubProjects []*ProjectDto
+	DependsOn   []string
 }
 
 func CmdRealtime(name string, arg ...string) (result string, err error) {

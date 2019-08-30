@@ -17,17 +17,6 @@ import (
 )
 
 type Compose struct {
-	ServiceName string
-	ImageName   string
-	Restart     string
-	Environment []string
-	Ports       []string
-
-	DependsOn []string
-	Build     struct {
-		Context    string
-		Dockerfile string
-	}
 }
 
 type NamePortDto struct {
@@ -72,11 +61,18 @@ func (d Compose) Exec(c *FullDto, flag *Flag) (err error) {
 			return
 		}
 	}
-	project := *(c.Project)
-	if err = d.checkAll(project, c.Port, dockercompose); err != nil {
-		return
+
+	if (File{}).WriteString(TEMP_FILE+"/wait-for.sh", wait_for); err != nil {
+		return err
+	}
+	if BoolPointCheck(flag.DeployMode) == false {
+		project := *(c.Project)
+		if err = d.checkAll(project, c.Port, dockercompose); err != nil {
+			return
+		}
 	}
 	Info("check is ok.")
+
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate"); err != nil {
 		return
 	}
@@ -104,24 +100,36 @@ func (d Compose) setComposeApp(viper *viper.Viper, project *ProjectDto) {
 	viper.Set("version", "3")
 	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
 	viper.AddConfigPath(TEMP_FILE)
+	project.DependsOn = d.dependency(project)
 	d.appCompose(viper, project)
+
 	for _, sub := range project.SubProjects {
+		sub.DependsOn = d.dependency(sub)
 		d.appCompose(viper, sub)
 	}
+}
+
+func (d Compose) getRegistryCommon(name string, isDefault bool) string {
+	registry := name
+	if isDefault {
+		registry = comboResource.Registry + "/" + name
+	}
+	if len(comboResource.RegistryCommon) != 0 {
+		registry = comboResource.RegistryCommon + "/" + name
+	}
+	return registry
 }
 
 func (d Compose) setComposeMysql(viper *viper.Viper, port string) {
 
 	serviceName := "mysql"
 	servicePre := Compose{}.getServicePre(serviceName)
-
-	viper.Set(servicePre+".image", "mysql:5.7.22")
+	viper.Set(servicePre+".image", d.getRegistryCommon("mysql:5.7.22", false))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".volumes", []string{
 		"./database/mysql/:/docker-entrypoint-initdb.d",
 	})
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Mysql})
-	//viper.Set("services.mysqlserver.restart", "always")
 	viper.Set(servicePre+".environment", []string{"MYSQL_ROOT_PASSWORD=1234"})
 }
 
@@ -130,13 +138,12 @@ func (d Compose) setComposeSqlserver(viper *viper.Viper, port string) {
 	serviceName := "sqlserver"
 	servicePre := Compose{}.getServicePre(serviceName)
 	//docker-hub: genschsa/mssql-server-linux
-	viper.Set(servicePre+".image", comboResource.Registry+"/mssql-server-linux")
+	viper.Set(servicePre+".image", d.getRegistryCommon("mssql-server-linux", true))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.SqlServer})
 	viper.Set(servicePre+".volumes", []string{
 		"./database/sqlserver/:/docker-entrypoint-initdb.d",
 	})
-	//viper.Set("services.mysqlserver.restart", "always")
 	//MSSQL_PID=Developer,Express,Standard,Enterprise,EnterpriseCore SA_PASSWORD
 	viper.Set(servicePre+".environment", []string{"ACCEPT_EULA=Y", "MSSQL_SA_PASSWORD=Eland123", "MSSQL_PID=Developer"})
 }
@@ -146,20 +153,20 @@ func (d Compose) setComposeKafkaEland(viper *viper.Viper, port, secondPort, zook
 	portInt, _ := strconv.ParseInt(port, 10, 64)
 	jmxPort := 9097
 
-	d.setComposeZookeeperEland(viper, zookeeperPort, ip)
+	d.setComposeZookeeperEland(viper, zookeeperPort)
 	serviceName := "kafka"
 	servicePre := Compose{}.getServicePre(serviceName)
 	containerName := d.getContainerName(serviceName)
+	hostName := containerName
 
-	viper.Set(servicePre+".image", comboResource.Registry+"/kafka")
+	viper.Set(servicePre+".image", d.getRegistryCommon("kafka", true))
 	viper.Set(servicePre+".container_name", containerName)
-	//viper.Set(servicePre+".restart", "always")
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Kafka, fmt.Sprintf("%v:%v", jmxPort, jmxPort)})
 
 	viper.Set(servicePre+".environment.KAFKA_BROKER_ID", 1)
-	viper.Set(servicePre+".environment.KAFKA_ADVERTISED_HOST_NAME", "test-kafka")
+	viper.Set(servicePre+".environment.KAFKA_ADVERTISED_HOST_NAME", hostName)
 	viper.Set(servicePre+".environment.KAFKA_ADVERTISED_PORT", portInt)
-	viper.Set(servicePre+".environment.KAFKA_ZOOKEEPER_CONNECT", "test-kafka:"+inPort.Zookeeper)
+	viper.Set(servicePre+".environment.KAFKA_ZOOKEEPER_CONNECT", "test-zookeeper:"+inPort.Zookeeper)
 	viper.Set(servicePre+".environment.KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS", 60000)
 
 	viper.Set(servicePre+".environment.KAFKA_DELETE_TOPIC_ENABLE", "true")
@@ -172,24 +179,23 @@ func (d Compose) setComposeKafkaEland(viper *viper.Viper, port, secondPort, zook
 	viper.Set(servicePre+".environment.KAFKA_HEAP_OPTS", "-Xmx1G")
 	viper.Set(servicePre+".environment.JMX_PORT", jmxPort)
 	viper.Set(servicePre+".environment.KAFKA_JMX_OPTS",
-		fmt.Sprintf("-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.rmi.port=%v -Djava.rmi.server.hostname=%v", jmxPort, ip))
+		fmt.Sprintf("-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.rmi.port=%v -Djava.rmi.server.hostname=%v", jmxPort, hostName))
 
-	viper.Set(servicePre+".extra_hosts", []string{fmt.Sprintf("test-kafka:%v", ip)})
+	viper.Set(servicePre+".extra_hosts", []string{fmt.Sprintf("%v:%v", hostName, "127.0.0.1")})
 
 }
 
-func (d Compose) setComposeZookeeperEland(viper *viper.Viper, port, ip string) {
+func (d Compose) setComposeZookeeperEland(viper *viper.Viper, port string) {
 
 	serviceName := "zookeeper"
 	servicePre := Compose{}.getServicePre(serviceName)
 	containerName := d.getContainerName(serviceName)
 
-	viper.Set(servicePre+".image", comboResource.Registry+"/zookeeper")
+	viper.Set(servicePre+".image", d.getRegistryCommon("zookeeper", true))
 	viper.Set(servicePre+".container_name", containerName)
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Zookeeper, "2888:2888", "3888:3888"})
 	viper.Set(servicePre+".environment.ZOO_MY_ID", 1)
-	viper.Set(servicePre+".environment.ZOO_SERVERS", "server.1=0.0.0.0:2888:3888")
-	viper.Set(servicePre+".extra_hosts", []string{fmt.Sprintf("test-kafka:%v", ip)})
+	viper.Set(servicePre+".environment.ZOO_SERVERS", "server.1=test-zookeeper:2888:3888")
 }
 
 func (d Compose) setComposeKafka(viper *viper.Viper, port, secondPort, zookeeperPort, ip string) {
@@ -231,31 +237,67 @@ func (d Compose) setComposeRedis(viper *viper.Viper, port string) {
 	serviceName := "redis"
 	servicePre := Compose{}.getServicePre(serviceName)
 
-	viper.Set(servicePre+".image", "redis:3.2.11")
+	viper.Set(servicePre+".image", d.getRegistryCommon("redis:3.2.11", false))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".hostname", d.getContainerName(serviceName))
-	//	viper.Set("services.redisserver.restart", "always")
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Redis})
-	// viper.Set(servicePre+".volumes", []string{
-	// 	"./redis/redis.conf:/usr/local/etc/redis/redis.conf",
-	// })
 }
 
-func (d Compose) setComposeNginx(viper *viper.Viper, projectName, port string) {
+func (d Compose) setComposeNginx(viper *viper.Viper, project *ProjectDto, port string) {
 
+	names, _ := d.waitCommandAllProject(project)
 	serviceName := "nginx"
 	servicePre := Compose{}.getServicePre(serviceName)
 
-	viper.Set(servicePre+".image", "nginx:1.16")
+	viper.Set(servicePre+".image", d.getRegistryCommon("nginx:1.16", false))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + inPort.Nginx})
-	viper.Set(servicePre+".restart", "on-failure:10")
-	viper.Set(servicePre+".depends_on", []string{d.getServiceServer(projectName)})
+	viper.Set(servicePre+".restart", "always")
+	viper.Set(servicePre+".depends_on", names)
 	viper.Set(servicePre+".volumes", []string{
 		"./nginx/default.conf:/etc/nginx/conf.d/default.conf",
 		"./nginx/html:/usr/share/nginx/html",
 	})
 
+}
+
+func (d Compose) setComposeWaitStart(viper *viper.Viper, project *ProjectDto) {
+
+	names, namePorts := d.waitCommandAllProject(project)
+	names = append(names, d.getServiceServer("nginx"))
+	namePorts = append(namePorts,
+		d.getContainerName("nginx")+":"+inPort.Nginx)
+
+	serviceName := "wait-service"
+	servicePre := Compose{}.getServicePre(serviceName)
+	viper.Set(servicePre+".image", d.getRegistryCommon("alpine", false))
+	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
+	viper.Set(servicePre+".depends_on", names)
+	viper.Set(servicePre+".volumes", []string{"./wait-for.sh:/go/bin/wait-for.sh"})
+	command := fmt.Sprintf("sh -c '/go/bin/wait-for.sh %v -t 36000 -- echo \"wait-service is up!\" && sleep 100h'",
+		strings.Join(namePorts, " "))
+	viper.Set(servicePre+".command", command)
+
+}
+func (d Compose) waitCommandAllProject(project *ProjectDto) ([]string, []string) {
+	names, namePorts := d.getAllProjectAndPort(project.SubProjects)
+	names = append(names, d.getServiceServer(project.ServiceName))
+	namePorts = append(namePorts, d.getContainerName(project.ServiceName)+":"+project.Ports[0])
+	return names, namePorts
+}
+
+func (d Compose) getAllProjectAndPort(projectList []*ProjectDto) ([]string, []string) {
+	names := make([]string, 0)
+	namePorts := make([]string, 0)
+	for _, p := range projectList {
+		names = append(names, d.getServiceServer(p.ServiceName))
+		namePort := d.getContainerName(p.ServiceName) + ":" + p.Ports[0]
+		namePorts = append(namePorts, namePort)
+		if p.SubProjects != nil && len(p.SubProjects) != 0 {
+			d.getAllProjectAndPort(p.SubProjects)
+		}
+	}
+	return names, namePorts
 }
 
 func (d Compose) getServicePre(serviceName string) string {
@@ -269,51 +311,24 @@ func (Compose) getServiceServer(serviceName string) string {
 func (Compose) getContainerName(serviceName string) string {
 	return PRETEST + serviceName
 }
-func (d *Compose) setCompose(viper *viper.Viper) {
-	servicePre := Compose{}.getServicePre(d.ServiceName)
-
-	viper.Set(servicePre+".image", d.ImageName+":latest")
-	if len(d.Restart) != 0 {
-		viper.Set(servicePre+".restart", d.Restart)
-	}
-	viper.Set(servicePre+".container_name", d.getContainerName(d.ServiceName))
-	viper.Set(servicePre+".environment", d.Environment)
-	viper.Set(servicePre+".ports", d.Ports)
-
-	viper.Set(servicePre+".depends_on", d.DependsOn)
-}
-
 func (d Compose) appCompose(viper *viper.Viper, project *ProjectDto) {
+	servicePre := Compose{}.getServicePre(project.ServiceName)
 
-	deps := d.dependency(project)
-	compose := &Compose{
-		ServiceName: project.ServiceName,
-		ImageName:   project.Registry,
-		Restart:     "on-failure:10",
-		Environment: project.Envs,
-		Ports:       project.Ports,
+	viper.Set(servicePre+".image", project.Registry+":latest")
 
-		DependsOn: deps,
-	}
-	compose.setCompose(viper)
+	viper.Set(servicePre+".container_name", d.getContainerName(project.ServiceName))
+	viper.Set(servicePre+".environment", project.Envs)
+	viper.Set(servicePre+".ports", project.Ports)
+
+	viper.Set(servicePre+".depends_on", project.DependsOn)
+	viper.Set(servicePre+".volumes", []string{"./wait-for.sh:/go/bin/wait-for.sh"})
+	viper.Set(servicePre+".command", d.setAppCommand(project.Entrypoint, project.DependsOn))
+
 }
 
-func (d Compose) dependency(project *ProjectDto) (depends []string) {
-	deps := d.setComposeDependency(project)
-	depends = make([]string, 0)
-	for dep := range deps {
-		depends = append(depends, d.getServiceServer(dep))
-	}
-	return
-}
-
-func (d Compose) setComposeDependency(project *ProjectDto) (deps map[string]string) {
-
-	deps = make(map[string]string, 0)
-
-	for _, sub := range project.SubProjects {
-		deps[strings.ToLower(sub.ServiceName)] = ""
-	}
+func (d Compose) dependency(project *ProjectDto) []string {
+	deps := make(map[string]string, 0)
+	d.subDependency(project.SubProjects, deps)
 	if (ProjectInfo{}).ShouldKafka(project) {
 		deps["kafka"] = ""
 	}
@@ -321,8 +336,20 @@ func (d Compose) setComposeDependency(project *ProjectDto) (deps map[string]stri
 	for k := range list {
 		deps[k] = ""
 	}
+	depends := make([]string, 0)
+	for k := range deps {
+		depends = append(depends, d.getServiceServer(k))
+	}
+	return depends
+}
 
-	return
+func (d Compose) subDependency(projectList []*ProjectDto, deps map[string]string) {
+	for _, sub := range projectList {
+		deps[strings.ToLower(sub.ServiceName)] = ""
+		if sub.SubProjects != nil && len(sub.SubProjects) != 0 {
+			d.subDependency(sub.SubProjects, deps)
+		}
+	}
 }
 
 func (d Compose) upperKafkaEnvEland(ymlStr string) string {
@@ -362,6 +389,36 @@ func (d Compose) upperKafkaEnv(ymlStr string) string {
 	return ymlStr
 }
 
+func dockerWaitCommand(entrypoint string, ipPorts []IpPortDto) string {
+	var nameports string
+
+	for _, ipPort := range ipPorts {
+		nameports += ipPort.Ip + ":" + ipPort.Port + " "
+	}
+	command := fmt.Sprintf("sh -c '/go/bin/wait-for.sh %v -t 36000 -- %v'",
+		nameports, entrypoint)
+	return command
+
+}
+
+func (d Compose) setAppCommand(entrypoint string, serviceNames []string) string {
+	newIpPorts := make([]IpPortDto, 0)
+	databases := []IpPortDto{
+		IpPortDto{Ip: d.getContainerName("kafka"), Port: inPort.Kafka},
+		IpPortDto{Ip: d.getContainerName("mysql"), Port: inPort.Mysql},
+		IpPortDto{Ip: d.getContainerName("sqlserver"), Port: inPort.SqlServer},
+	}
+	for _, name := range serviceNames {
+		name := PRETEST + strings.TrimSuffix(name, SUFSERVER)
+		for _, dto := range databases {
+			if name == dto.Ip {
+				newIpPorts = append(newIpPorts, dto)
+			}
+		}
+	}
+	return dockerWaitCommand(entrypoint, newIpPorts)
+}
+
 func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string) (err error) {
 
 	dt := Database{}
@@ -391,7 +448,6 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 		return
 	}
 	Info("begin ping " + dbType + ",127.0.0.1:" + port)
-
 	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", port))
 	if err != nil {
 		return

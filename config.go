@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/lextoumbourou/goodhosts"
@@ -16,10 +17,11 @@ func (d Config) LoadEnv(serviceName string, flag *Flag) (c *FullDto, err error) 
 	if err = d.confirm(serviceName, flag); err != nil {
 		return
 	}
-	ip, err := currentIp()
-	if err != nil {
-		return
-	}
+	// ip, err := currentIp()
+	// if err != nil {
+	// 	return
+	// }
+	ip := "127.0.0.1"
 	if err = (Config{}).CheckHost(ip); err != nil {
 		return
 	}
@@ -61,6 +63,9 @@ func (Config) WriteYml(c *FullDto) (err error) {
 }
 
 func (Config) CheckHost(ip string) (err error) {
+	if runtime.GOOS != "windows" {
+		return
+	}
 	mapHost := map[string]string{
 		//"10.202.101.200": "registry.elandsystems.cn",
 		ip: "test-kafka",

@@ -152,9 +152,7 @@ func (d ProjectInfo) ReadYml(projectDto *ProjectDto) (err error) {
 }
 
 func (d ProjectInfo) ShouldKafka(project *ProjectDto) (isKafka bool) {
-	if d.ShouldEventBroker(project) {
-		return true
-	}
+
 	if project.IsProjectKafka {
 		isKafka = true
 		return
@@ -163,25 +161,6 @@ func (d ProjectInfo) ShouldKafka(project *ProjectDto) (isKafka bool) {
 		if subProject.IsProjectKafka {
 			isKafka = true
 			break
-		}
-	}
-	return
-}
-
-func (d ProjectInfo) ShouldEventBroker(project *ProjectDto) bool {
-	if list := d.StreamList(project); len(list) != 0 {
-		return true
-	}
-	return false
-}
-func (ProjectInfo) StreamList(project *ProjectDto) (list map[string]string) {
-	list = make(map[string]string, 0)
-	for _, d := range project.StreamNames {
-		list[d] = d
-	}
-	for _, subProject := range project.SubProjects {
-		for _, d := range subProject.StreamNames {
-			list[d] = d
 		}
 	}
 	return

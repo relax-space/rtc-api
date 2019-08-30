@@ -67,27 +67,47 @@ func (EventBroker) setConsumerEnv(evns []string, streamName string) {
 
 func (EventBroker) setComposeProducer(viper *viper.Viper, port string, project *ProjectDto) {
 	serviceName := EventBroker_Name
-	compose := &Compose{
-		ServiceName: serviceName,
-		ImageName:   comboResource.Registry + "/" + serviceName + "-" + app_env,
-		Restart:     "on-failure:10",
-		Environment: project.Envs,
-		Ports:       []string{port + ":" + inPort.EventBroker},
+	p := &ProjectDto{
+		ServiceName: EventBroker_Name,
+		Registry:    comboResource.Registry + "/" + serviceName + "-" + app_env,
+		Envs:        project.Envs,
+		Ports:       []string{inPort.EventBroker},
+		Entrypoint:  "./kafka-producer",
 		DependsOn:   []string{Compose{}.getServiceServer("kafka")},
 	}
-	compose.setCompose(viper)
+	Compose{}.appCompose(viper, p)
 }
 
 func (EventBroker) setComposeConsumer(viper *viper.Viper, project *ProjectDto, serverName string) {
 	d := Compose{}
-	compose := &Compose{
+	p := &ProjectDto{
 		ServiceName: serverName,
-		ImageName:   comboResource.Registry + "/" + serverName + "-" + app_env,
-		Restart:     "on-failure:10",
-		Environment: project.Envs,
+		Registry:    comboResource.Registry + "/" + serverName + "-" + app_env,
+		Envs:        project.Envs,
 		Ports:       project.Ports,
+		Entrypoint:  "./kafka-consumer",
 		DependsOn: []string{d.getServiceServer("kafka"),
-			d.getServiceServer("mysql"), d.getServiceServer("redis")},
+			d.getServiceServer("mysql"),
+			d.getServiceServer("redis")},
 	}
-	compose.setCompose(viper)
+	Compose{}.appCompose(viper, p)
+}
+
+func (d EventBroker) ShouldEventBroker(project *ProjectDto) bool {
+	if list := d.StreamList(project); len(list) != 0 {
+		return true
+	}
+	return false
+}
+func (EventBroker) StreamList(project *ProjectDto) (list map[string]string) {
+	list = make(map[string]string, 0)
+	for _, d := range project.StreamNames {
+		list[d] = d
+	}
+	for _, subProject := range project.SubProjects {
+		for _, d := range subProject.StreamNames {
+			list[d] = d
+		}
+	}
+	return
 }
