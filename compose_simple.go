@@ -22,17 +22,17 @@ func (d ComposeSimple) Start(serviceName, ip string, port PortDto, flag *Flag) {
 		compose.setComposeKafkaEland(viper, port.Kafka, port.KafkaSecond, port.Zookeeper, ip)
 		compose.WriteYml(viper)
 		d.Down(dockercompose, flag)
-		compose.checkKafka(dockercompose, port.Kafka)
+		compose.checkKafka(dockercompose, port.Kafka, ip)
 	case MYSQLSERVER.String():
 		compose.setComposeMysql(viper, port.Mysql)
 		compose.WriteYml(viper)
 		d.Down(dockercompose, flag)
-		compose.checkMysql(dockercompose, port.Mysql)
+		compose.checkMysql(dockercompose, port.Mysql, ip)
 	case SQLSERVERSERVER.String():
 		compose.setComposeSqlserver(viper, port.SqlServer)
 		compose.WriteYml(viper)
 		d.Down(dockercompose, flag)
-		compose.checkSqlServer(dockercompose, port.SqlServer)
+		compose.checkSqlServer(dockercompose, port.SqlServer, ip)
 	case REDISSERVER.String():
 		compose.setComposeSqlserver(viper, port.Redis)
 		compose.WriteYml(viper)

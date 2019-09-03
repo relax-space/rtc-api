@@ -13,16 +13,8 @@ import (
 type Config struct {
 }
 
-func (d Config) LoadEnv(serviceName string, flag *Flag) (c *FullDto, err error) {
+func (d Config) LoadEnv(serviceName, ip string, flag *Flag) (c *FullDto, err error) {
 	if err = d.confirm(serviceName, flag); err != nil {
-		return
-	}
-	// ip, err := currentIp()
-	// if err != nil {
-	// 	return
-	// }
-	ip := "127.0.0.1"
-	if err = (Config{}).CheckHost(ip); err != nil {
 		return
 	}
 	c = &FullDto{

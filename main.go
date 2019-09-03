@@ -19,9 +19,10 @@ func main() {
 	} else {
 		log.SetFlags(0)
 	}
+	ip := getIp(flag.HostIp)
 	if BoolPointCheck(flag.NoLog) == false {
 		log.Println("log init ...")
-		initJobLog(serviceName, flag)
+		initJobLog(serviceName, flag, ip)
 	}
 	if comboResource = (ComboResource{}).GetInstance(flag.ComboResource, flag.RegistryCommon); comboResource == nil {
 		Info("The --combo-resource parameter supports msl, srx, msl-srx. For details, see ./rtc run -h")
@@ -33,12 +34,12 @@ func main() {
 		return
 	}
 
-	c, err := Config{}.LoadEnv(*serviceName, flag)
+	c, err := Config{}.LoadEnv(*serviceName, ip, flag)
 	if err != nil {
 		Error(err)
 		return
 	}
-	if err = composeWriteYml(c); err != nil {
+	if err = composeWriteYml(c, ip); err != nil {
 		return
 	}
 	if err = (Nginx{}).WriteConfig(c.Project); err != nil {
@@ -50,7 +51,7 @@ func main() {
 		return
 	}
 
-	if err = (Compose{}).Exec(c, flag); err != nil {
+	if err = (Compose{}).Exec(c, flag, ip); err != nil {
 		Error(err)
 		return
 	}
@@ -60,12 +61,7 @@ func main() {
 
 }
 
-func initJobLog(serviceName *string, flag *Flag) {
-	ip, err := currentIp()
-	if err != nil {
-		log.Println(jobLog.Err)
-		return
-	}
+func initJobLog(serviceName *string, flag *Flag, ip string) {
 
 	jobLog = joblog.New(jobLogUrl, "rtc", map[string]interface{}{"service name:": serviceName, "ip": ip})
 	if jobLog.Err != nil {
@@ -89,13 +85,16 @@ func writeLocal(c *FullDto) (err error) {
 	return
 }
 
-func composeWriteYml(c *FullDto) (err error) {
+func composeWriteYml(c *FullDto, ip string) (err error) {
 	viper := viper.New()
 	p := ProjectInfo{}
 	database := Database{}
 	d := Compose{}
 	e := EventBroker{}
 	if p.ShouldKafka(c.Project) {
+		if err = (Config{}).CheckHost(ip); err != nil {
+			return
+		}
 		d.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)
 	}
 	if database.ShouldDbLoop(c.Project, MYSQL) {
@@ -119,4 +118,16 @@ func composeWriteYml(c *FullDto) (err error) {
 	d.setComposeWaitStart(viper, c.Project)
 	d.WriteYml(viper)
 	return
+}
+
+func getIp(ipFlag *string) string {
+	if StringPointCheck(ipFlag) {
+		return *ipFlag
+	}
+	ip, err := currentIp()
+	if err != nil {
+		log.Println("WARNING: fetch ip failure, has set ip to 127.0.0.1")
+		return "127.0.0.1"
+	}
+	return ip
 }
