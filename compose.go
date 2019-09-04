@@ -41,7 +41,7 @@ func (d Compose) WriteYml(viper *viper.Viper) (err error) {
 	return
 }
 
-func (d Compose) Exec(c *FullDto, flag *Flag) (err error) {
+func (d Compose) Exec(c *FullDto, flag *Flag, ip string) (err error) {
 
 	if BoolPointCheck(flag.NoLogin) == false {
 		Info("==> docker login " + comboResource.Registry + " ...")
@@ -65,11 +65,9 @@ func (d Compose) Exec(c *FullDto, flag *Flag) (err error) {
 	if (File{}).WriteString(TEMP_FILE+"/wait-for.sh", wait_for); err != nil {
 		return err
 	}
-	if BoolPointCheck(flag.DeployMode) == false {
-		project := *(c.Project)
-		if err = d.checkAll(project, c.Port, dockercompose); err != nil {
-			return
-		}
+	project := *(c.Project)
+	if err = d.checkAll(project, c.Port, ip, dockercompose); err != nil {
+		return
 	}
 	Info("check is ok.")
 
@@ -181,7 +179,7 @@ func (d Compose) setComposeKafkaEland(viper *viper.Viper, port, secondPort, zook
 	viper.Set(servicePre+".environment.KAFKA_JMX_OPTS",
 		fmt.Sprintf("-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.rmi.port=%v -Djava.rmi.server.hostname=%v", jmxPort, hostName))
 
-	viper.Set(servicePre+".extra_hosts", []string{fmt.Sprintf("%v:%v", hostName, "127.0.0.1")})
+	viper.Set(servicePre+".extra_hosts", []string{fmt.Sprintf("%v:%v", hostName, ip)})
 
 }
 
@@ -215,7 +213,7 @@ func (d Compose) setComposeKafka(viper *viper.Viper, port, secondPort, zookeeper
 	viper.Set(servicePre+".environment.KAFKA_LISTENERS", fmt.Sprintf("INSIDE://:%v,OUTSIDE://:%v", inPort.Kafka, secondPort))
 	viper.Set(servicePre+".environment.KAFKA_INTER_BROKER_LISTENER_NAME", "INSIDE")
 	viper.Set(servicePre+".environment.KAFKA_ADVERTISED_LISTENERS",
-		fmt.Sprintf("INSIDE://%v:%v,OUTSIDE://127.0.0.1:%v", containerName, inPort.Kafka, secondPort))
+		fmt.Sprintf("INSIDE://%v:%v,OUTSIDE://%v:%v", containerName, inPort.Kafka, ip, secondPort))
 	viper.Set(servicePre+".environment.KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT")
 	viper.Set(servicePre+".environment.KAFKA_ZOOKEEPER_CONNECT", d.getContainerName("zookeeper")+":"+inPort.Zookeeper)
 
@@ -419,36 +417,36 @@ func (d Compose) setAppCommand(entrypoint string, serviceNames []string) string 
 	return dockerWaitCommand(entrypoint, newIpPorts)
 }
 
-func (d Compose) checkAll(project ProjectDto, port PortDto, dockercompose string) (err error) {
+func (d Compose) checkAll(project ProjectDto, port PortDto, ip, dockercompose string) (err error) {
 
 	dt := Database{}
 	if dt.ShouldDbLoop(&project, MYSQL) {
-		if err = d.checkMysql(dockercompose, port.Mysql); err != nil {
+		if err = d.checkMysql(dockercompose, port.Mysql, ip); err != nil {
 			return
 		}
 	}
 	if dt.ShouldDbLoop(&project, SQLSERVER) {
-		if err = d.checkSqlServer(dockercompose, port.SqlServer); err != nil {
+		if err = d.checkSqlServer(dockercompose, port.SqlServer, ip); err != nil {
 			return
 		}
 	}
 	if (ProjectInfo{}).ShouldKafka(&project) {
-		if err = d.checkKafka(dockercompose, port.Kafka); err != nil {
+		if err = d.checkKafka(dockercompose, port.Kafka, ip); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func (d Compose) checkMysql(dockercompose, port string) (err error) {
+func (d Compose) checkMysql(dockercompose, port, ip string) (err error) {
 	dbType := MYSQL.String()
 
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", dbType+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
 	}
-	Info("begin ping " + dbType + ",127.0.0.1:" + port)
-	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(127.0.0.1:%v)/mysql?charset=utf8", port))
+	Info(fmt.Sprintf("begin ping %v,%v:%v", dbType, ip, port))
+	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(%v:%v)/mysql?charset=utf8", ip, port))
 	if err != nil {
 		return
 	}
@@ -477,7 +475,7 @@ func (d Compose) checkMysql(dockercompose, port string) (err error) {
 	return
 }
 
-func (d Compose) checkSqlServer(dockercompose, port string) (err error) {
+func (d Compose) checkSqlServer(dockercompose, port, ip string) (err error) {
 
 	dbType := SQLSERVER.String()
 
@@ -485,9 +483,9 @@ func (d Compose) checkSqlServer(dockercompose, port string) (err error) {
 		fmt.Printf("err:%v", err)
 		return
 	}
-	Info("begin ping " + dbType + ",127.0.0.1:" + port)
+	Info(fmt.Sprintf("begin ping %v,%v:%v", dbType, ip, port))
 	db, err := sql.Open("sqlserver",
-		fmt.Sprintf("sqlserver://sa:Eland123@127.0.0.1:%v?database=master", port))
+		fmt.Sprintf("sqlserver://sa:Eland123@%v:%v?database=master", ip, port))
 
 	if err != nil {
 		return
@@ -512,7 +510,7 @@ func (d Compose) checkSqlServer(dockercompose, port string) (err error) {
 	return
 }
 
-func (d Compose) checkKafka(dockercompose, port string) (err error) {
+func (d Compose) checkKafka(dockercompose, port, ip string) (err error) {
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", "zookeeper"+SUFSERVER); err != nil {
 		fmt.Printf("err:%v", err)
 		return
@@ -523,9 +521,9 @@ func (d Compose) checkKafka(dockercompose, port string) (err error) {
 		return
 	}
 
-	Info("begin ping kafka,127.0.0.1:" + port)
+	Info(fmt.Sprintf("begin ping kafka%v:%v", ip, port))
 	for index := 1; index < 300; index++ {
-		if err = d.dailKafka(port); err != nil {
+		if err = d.dailKafka(port, ip); err != nil {
 			time.Sleep(2 * time.Second)
 			if index%30 == 0 {
 				Info(err.Error())
@@ -542,8 +540,8 @@ func (d Compose) checkKafka(dockercompose, port string) (err error) {
 	return
 }
 
-func (d Compose) dailKafka(port string) (err error) {
-	_, err = kafkautil.DialLeader(context.Background(), "tcp", "127.0.0.1:"+port, "ping", 0)
+func (d Compose) dailKafka(port, ip string) (err error) {
+	_, err = kafkautil.DialLeader(context.Background(), "tcp", ip+":"+port, "ping", 0)
 	if err != nil {
 		return
 	}

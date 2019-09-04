@@ -23,7 +23,7 @@ type Flag struct {
 	ComboResource  *string
 	NoLog          *bool
 	RegistryCommon *string
-	DeployMode     *bool
+	HostIp         *string
 
 	MysqlPort     *string
 	RedisPort     *string
@@ -116,9 +116,9 @@ func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *F
 		RegistryCommon: run.Flag("registry-common", `
 	1.You can set private registry.
 	2.default: registry.p2shop.com.cn.`).String(),
-		DeployMode: run.Flag("deploy-mode", `
-	1.false(default): Running natively on the developer.
-	2.true: Running on the gitlab runner server.`).Bool(),
+		HostIp: run.Flag("host-ip", `
+	1.ip(default): auto get ip.
+	2.You can specify your host ip.`).String(),
 
 		RelationSource: run.Flag("relation-source", `
 	1.false: default,fetch relation from gitlab,like https://gitlab.p2shop.cn:8443/data/rtc-data.
