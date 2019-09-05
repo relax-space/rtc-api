@@ -25,7 +25,7 @@ func main() {
 		initJobLog(serviceName, flag, ip)
 	}
 	if comboResource = (ComboResource{}).GetInstance(flag.ComboResource, flag.RegistryCommon); comboResource == nil {
-		Info("The --combo-resource parameter supports msl, srx, msl-srx. For details, see ./rtc run -h")
+		Info("The --combo-resource parameter supports p2shop, srx, p2shop-srx. For details, see ./rtc run -h")
 		return
 	}
 	if ContainString(EMPTYSERVER.List(), *serviceName) {

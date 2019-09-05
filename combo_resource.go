@@ -23,7 +23,7 @@ func (ComboResource) GetInstance(comboResourceStr, registryCommon *string) *Comb
 			registry = *registryCommon
 		}
 		switch *comboResourceStr {
-		case "msl":
+		case "p2shop":
 			comboResource = &ComboResource{
 				PrivateToken:    "bY2kmqs8x8N3wfQxgw6s",
 				PreGitSshUrl:    "ssh://git@gitlab.p2shop.cn:822",
@@ -43,7 +43,7 @@ func (ComboResource) GetInstance(comboResourceStr, registryCommon *string) *Comb
 				MingbaiHost:     "https://gateway.p2shop.com.cn",
 				MingbaiRegistry: "swr.cn-north-1.myhuaweicloud.com/srx-cloud",
 			}
-		case "srx-msl":
+		case "srx-p2shop":
 			comboResource = &ComboResource{
 				PrivateToken:    "SjPC8PnY6N8ntaxcUXFM",
 				PreGitSshUrl:    "ssh://git@gitlab.srxcloud.com:622",
