@@ -206,6 +206,7 @@ func Error(err error) {
 	if jobLog != nil {
 		jobLog.Error(err)
 	}
+	panic(err)
 }
 
 func Info(message interface{}) {
