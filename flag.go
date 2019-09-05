@@ -124,11 +124,11 @@ func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *F
 	1.false: default,fetch relation from gitlab,like https://gitlab.p2shop.cn:8443/data/rtc-data.
 	2.true:fetch relation from mingbai-api`).Short('r').Bool(),
 		ComboResource: run.Flag("combo-resource", `
-	1.Optional [msl, srx , srx-msl].
-	2.msl git:https://gitlab.p2shop.cn:8443 jenkins:https://ci.p2shop.com.cn
+	1.Optional [p2shop, srx , srx-p2shop].
+	2.p2shop git:https://gitlab.p2shop.cn:8443 jenkins:https://ci.p2shop.com.cn
 	  srx git:https://gitlab.srxcloud.com jenkins:https://jenkins.srxcloud.com
-	 srx-msl git:https://gitlab.srxcloud.com jenkins:https://ci.p2shop.com.cn
-	3.The default is srx-msl, you can choose other option`).Default("srx-msl").Short('c').String(),
+	 srx-p2shop git:https://gitlab.srxcloud.com jenkins:https://ci.p2shop.com.cn
+	3.The default is srx-p2shop, you can choose other option`).Default("srx-p2shop").Short('c').String(),
 
 		MysqlPort:     run.Flag("mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
 		RedisPort:     run.Flag("redis-port", "You can change default redis port.").Default(outPort.Redis).String(),
