@@ -9,7 +9,7 @@ import (
 type ComposeSimple struct {
 }
 
-func (d ComposeSimple) Start(serviceName, ip string, port PortDto, flag *Flag) {
+func (d ComposeSimple) Start(serviceName, ip string, port PortDto, flag *Flag) error {
 	viper := viper.New()
 	viper.Set("version", "3")
 	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
@@ -21,26 +21,43 @@ func (d ComposeSimple) Start(serviceName, ip string, port PortDto, flag *Flag) {
 	case KAFKASERVER.String():
 		compose.setComposeKafkaEland(viper, port.Kafka, port.KafkaSecond, port.Zookeeper, ip)
 		compose.WriteYml(viper)
-		d.Down(dockercompose, flag)
-		compose.checkKafka(dockercompose, port.Kafka, ip)
+		if err := d.Down(dockercompose, flag); err != nil {
+			return err
+		}
+		if err := compose.checkKafka(dockercompose, port.Kafka, ip); err != nil {
+			return err
+		}
 	case MYSQLSERVER.String():
 		compose.setComposeMysql(viper, port.Mysql)
 		compose.WriteYml(viper)
-		d.Down(dockercompose, flag)
-		compose.checkMysql(dockercompose, port.Mysql, ip)
+		if err := d.Down(dockercompose, flag); err != nil {
+			return err
+		}
+		if err := compose.checkMysql(dockercompose, port.Mysql, ip); err != nil {
+			return err
+		}
 	case SQLSERVERSERVER.String():
 		compose.setComposeSqlserver(viper, port.SqlServer)
 		compose.WriteYml(viper)
-		d.Down(dockercompose, flag)
-		compose.checkSqlServer(dockercompose, port.SqlServer, ip)
+		if err := d.Down(dockercompose, flag); err != nil {
+			return err
+		}
+		if err := compose.checkSqlServer(dockercompose, port.SqlServer, ip); err != nil {
+			return err
+		}
 	case REDISSERVER.String():
 		compose.setComposeSqlserver(viper, port.Redis)
 		compose.WriteYml(viper)
-		d.Down(dockercompose, flag)
-		d.Up(dockercompose, flag)
+		if err := d.Down(dockercompose, flag); err != nil {
+			return err
+		}
+		if err := d.Up(dockercompose, flag); err != nil {
+			return err
+		}
 	}
 
 	Info(`==> compose up!`)
+	return nil
 }
 func (d ComposeSimple) Down(dockercompose string, flag *Flag) (err error) {
 

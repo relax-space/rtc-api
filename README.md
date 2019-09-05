@@ -69,5 +69,5 @@ v2.0 74c0659 2019-07-16 02:08:34
   - [viper](https://github.com/spf13/viper) 
   - [yaml](github.com/ghodss/yaml)
   - [kingpin](github.com/alecthomas/kingpin)
-- wait-for: [wait-for](https://github.com/Eficode/wait-for)
+- wait-for: [wait-for](https://github.com/fmiguelez/wait-for.git)
 - utils: https://github.com/pangpanglabs/goutils

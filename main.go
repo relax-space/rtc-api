@@ -12,7 +12,7 @@ import (
 func main() {
 	serviceName, flag := (Flag{}).Init()
 	if StringPointCheck(serviceName) == false {
-		return
+		panic("service name is required.")
 	}
 	if BoolPointCheck(flag.Debug) {
 		log.SetFlags(log.Lshortfile | log.LstdFlags)
@@ -22,15 +22,21 @@ func main() {
 	ip := getIp(flag.HostIp)
 	if BoolPointCheck(flag.NoLog) == false {
 		log.Println("log init ...")
-		initJobLog(serviceName, flag, ip)
+		if err := initJobLog(serviceName, flag, ip); err != nil {
+			log.Println(err)
+			panic(err)
+		}
 	}
 	if comboResource = (ComboResource{}).GetInstance(flag.ComboResource, flag.RegistryCommon); comboResource == nil {
-		Info("The --combo-resource parameter supports p2shop, srx, p2shop-srx. For details, see ./rtc run -h")
-		return
+		panic("The --combo-resource parameter supports p2shop, srx, p2shop-srx. For details, see ./rtc run -h")
 	}
+	// simple service
 	if ContainString(EMPTYSERVER.List(), *serviceName) {
 		port := Config{}.LoadFlagPort(flag)
-		ComposeSimple{}.Start(*serviceName, "127.0.0.1", port, flag)
+		if err := (ComposeSimple{}).Start(*serviceName, "127.0.0.1", port, flag); err != nil {
+			Error(err)
+			return
+		}
 		return
 	}
 
@@ -40,9 +46,11 @@ func main() {
 		return
 	}
 	if err = composeWriteYml(c, ip); err != nil {
+		Error(err)
 		return
 	}
 	if err = (Nginx{}).WriteConfig(c.Project); err != nil {
+		Error(err)
 		return
 	}
 
@@ -61,14 +69,14 @@ func main() {
 
 }
 
-func initJobLog(serviceName *string, flag *Flag, ip string) {
+func initJobLog(serviceName *string, flag *Flag, ip string) error {
 
 	jobLog = joblog.New(jobLogUrl, "rtc", map[string]interface{}{"service name:": serviceName, "ip": ip})
 	if jobLog.Err != nil {
-		log.Println(jobLog.Err)
-		return
+		return jobLog.Err
 	}
 	jobLog.Info(flag)
+	return nil
 }
 
 func writeLocal(c *FullDto) (err error) {
@@ -109,7 +117,7 @@ func composeWriteYml(c *FullDto, ip string) (err error) {
 	if e.ShouldEventBroker(c.Project) {
 		streamNames := e.StreamList(c.Project)
 		if err = (EventBroker{}).SetEventBroker(viper, c.Port.EventBroker, streamNames); err != nil {
-			Error(err)
+			return
 		}
 	}
 

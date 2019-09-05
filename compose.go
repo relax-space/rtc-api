@@ -46,7 +46,6 @@ func (d Compose) Exec(c *FullDto, flag *Flag, ip string) (err error) {
 	if BoolPointCheck(flag.NoLogin) == false {
 		Info("==> docker login " + comboResource.Registry + " ...")
 		if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, comboResource.Registry); err != nil {
-			fmt.Printf("err:%v", err)
 			return
 		}
 	}
