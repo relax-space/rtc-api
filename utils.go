@@ -8,10 +8,12 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
+	"github.com/lextoumbourou/goodhosts"
 
 	"github.com/ElandGroup/joblog"
 	"github.com/spf13/viper"
@@ -202,7 +204,6 @@ func CurrentDatetime() string {
 }
 
 func Error(err error) {
-	log.Println(err)
 	if jobLog != nil {
 		jobLog.Error(err)
 	}
@@ -214,4 +215,32 @@ func Info(message interface{}) {
 	if jobLog != nil {
 		jobLog.Info(message)
 	}
+}
+
+func CheckHost(ip string) (err error) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	mapHost := map[string]string{
+		//"10.202.101.200": "registry.elandsystems.cn",
+		ip: "test-kafka",
+	}
+
+	hosts, err := goodhosts.NewHosts()
+	if err != nil {
+		return
+	}
+
+	message := ""
+	for k, v := range mapHost {
+		if hosts.Has(k, v) == false {
+			message += fmt.Sprintf("%v %v\n", k, v)
+		}
+	}
+	if len(message) != 0 {
+		err = fmt.Errorf("Please manually set the host file: \n%v", message)
+		return
+	}
+
+	return
 }

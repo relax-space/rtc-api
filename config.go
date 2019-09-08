@@ -2,10 +2,7 @@ package main
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
-
-	"github.com/lextoumbourou/goodhosts"
 
 	"github.com/spf13/viper"
 )
@@ -24,7 +21,7 @@ func (d Config) LoadEnv(serviceName, ip string, flag *Flag) (c *FullDto, err err
 		return
 	}
 	if scope != LOCAL.String() {
-		if err = d.deleteTempFile(); err != nil {
+		if err = (File{}).DeleteAll("./" + TEMP_FILE + "/"); err != nil {
 			return
 		}
 	}
@@ -51,34 +48,6 @@ func (Config) WriteYml(c *FullDto) (err error) {
 		err = fmt.Errorf("write to config.yml error:%v", err)
 		return
 	}
-	return
-}
-
-func (Config) CheckHost(ip string) (err error) {
-	if runtime.GOOS != "windows" {
-		return
-	}
-	mapHost := map[string]string{
-		//"10.202.101.200": "registry.elandsystems.cn",
-		ip: "test-kafka",
-	}
-
-	hosts, err := goodhosts.NewHosts()
-	if err != nil {
-		return
-	}
-
-	message := ""
-	for k, v := range mapHost {
-		if hosts.Has(k, v) == false {
-			message += fmt.Sprintf("%v %v\n", k, v)
-		}
-	}
-	if len(message) != 0 {
-		err = fmt.Errorf("Please manually set the host file: \n%v", message)
-		return
-	}
-
 	return
 }
 
@@ -188,19 +157,18 @@ func (d Config) confirm(serviceName string, flag *Flag) (err error) {
 		if err != nil {
 			return
 		}
-		warning := `WARNING! This will remove all files in temp [y/N]?`
-		if err = scan(warning); err != nil {
-			return
-		}
-		if err = d.deleteTempFile(); err != nil {
+		if err = d.deleteTempFileWithTip(); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func (Config) deleteTempFile() (err error) {
-
+func (Config) deleteTempFileWithTip() (err error) {
+	warning := `WARNING! This will remove all files in temp [y/N]?`
+	if err = scan(warning); err != nil {
+		return
+	}
 	if err = (File{}).DeleteAll("./" + TEMP_FILE + "/"); err != nil {
 		return
 	}

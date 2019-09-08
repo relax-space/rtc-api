@@ -31,9 +31,9 @@ func main() {
 		panic("The --combo-resource parameter supports p2shop, srx, p2shop-srx. For details, see ./rtc run -h")
 	}
 	// simple service
-	if ContainString(EMPTYSERVER.List(), *serviceName) {
+	if (ComposeSimple{}).ShouldSimple(*serviceName) {
 		port := Config{}.LoadFlagPort(flag)
-		if err := (ComposeSimple{}).Start(*serviceName, "127.0.0.1", port, flag); err != nil {
+		if err := (ComposeSimple{}).Start(*serviceName, ip, port, flag); err != nil {
 			Error(err)
 			return
 		}
@@ -100,7 +100,7 @@ func composeWriteYml(c *FullDto, ip string) (err error) {
 	d := Compose{}
 	e := EventBroker{}
 	if p.ShouldKafka(c.Project) {
-		if err = (Config{}).CheckHost(ip); err != nil {
+		if err = CheckHost(ip); err != nil {
 			return
 		}
 		d.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)

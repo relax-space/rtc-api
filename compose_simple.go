@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -9,70 +11,106 @@ import (
 type ComposeSimple struct {
 }
 
+func (d ComposeSimple) ShouldSimple(serviceName string) bool {
+	if strings.Contains(serviceName, ",") {
+		return true
+	}
+	if ContainString(EMPTYSERVER.List(), serviceName) {
+		return true
+	}
+	return false
+}
+
 func (d ComposeSimple) Start(serviceName, ip string, port PortDto, flag *Flag) error {
+	if err := (File{}).DeleteAll("./" + TEMP_FILE + "/"); err != nil {
+		return err
+	}
+	// create directory
+	if err := os.MkdirAll(TEMP_FILE, os.ModePerm); err != nil {
+		return err
+	}
+	if err := d.ComposeYml(serviceName, ip, port); err != nil {
+		return err
+	}
+	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
+	if err := d.Down(dockercompose, flag); err != nil {
+		return err
+	}
+	if err := d.CheckAll(serviceName, ip, dockercompose, port); err != nil {
+		return err
+	}
+	if err := d.Up(dockercompose); err != nil {
+		return err
+	}
+	Info(`==> compose up!`)
+	return nil
+}
+
+func (d ComposeSimple) ComposeYml(serviceName, ip string, port PortDto) error {
 	viper := viper.New()
 	viper.Set("version", "3")
 	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
 	viper.AddConfigPath(TEMP_FILE)
 
 	compose := Compose{}
-	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
-	switch serviceName {
-	case KAFKASERVER.String():
-		compose.setComposeKafkaEland(viper, port.Kafka, port.KafkaSecond, port.Zookeeper, ip)
-		compose.WriteYml(viper)
-		if err := d.Down(dockercompose, flag); err != nil {
-			return err
-		}
-		if err := compose.checkKafka(dockercompose, port.Kafka, ip); err != nil {
-			return err
-		}
-	case MYSQLSERVER.String():
-		compose.setComposeMysql(viper, port.Mysql)
-		compose.WriteYml(viper)
-		if err := d.Down(dockercompose, flag); err != nil {
-			return err
-		}
-		if err := compose.checkMysql(dockercompose, port.Mysql, ip); err != nil {
-			return err
-		}
-	case SQLSERVERSERVER.String():
-		compose.setComposeSqlserver(viper, port.SqlServer)
-		compose.WriteYml(viper)
-		if err := d.Down(dockercompose, flag); err != nil {
-			return err
-		}
-		if err := compose.checkSqlServer(dockercompose, port.SqlServer, ip); err != nil {
-			return err
-		}
-	case REDISSERVER.String():
-		compose.setComposeSqlserver(viper, port.Redis)
-		compose.WriteYml(viper)
-		if err := d.Down(dockercompose, flag); err != nil {
-			return err
-		}
-		if err := d.Up(dockercompose, flag); err != nil {
+	serviceList := strings.Split(serviceName, ",")
+	if ContainString(serviceList, KAFKASERVER.String()) {
+		if err := CheckHost(ip); err != nil {
 			return err
 		}
 	}
+	for _, name := range serviceList {
+		switch name {
+		case KAFKASERVER.String():
+			compose.setComposeKafkaEland(viper, port.Kafka, port.KafkaSecond, port.Zookeeper, ip)
+		case MYSQLSERVER.String():
+			compose.setComposeMysql(viper, port.Mysql)
+		case SQLSERVERSERVER.String():
+			compose.setComposeSqlserver(viper, port.SqlServer)
+		case REDISSERVER.String():
+			compose.setComposeRedis(viper, port.Redis)
+		}
+	}
+	return compose.WriteYml(viper)
+}
 
-	Info(`==> compose up!`)
+func (d ComposeSimple) CheckAll(serviceName, ip, dockercompose string, port PortDto) error {
+	compose := Compose{}
+	serviceList := strings.Split(serviceName, ",")
+	for _, name := range serviceList {
+		switch name {
+		case KAFKASERVER.String():
+			if err := compose.checkKafka(dockercompose, port.Kafka, ip); err != nil {
+				return err
+			}
+		case MYSQLSERVER.String():
+			if err := compose.checkMysql(dockercompose, port.Mysql, ip); err != nil {
+				return err
+			}
+		case SQLSERVERSERVER.String():
+			if err := compose.checkSqlServer(dockercompose, port.SqlServer, ip); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
-func (d ComposeSimple) Down(dockercompose string, flag *Flag) (err error) {
 
+func (d ComposeSimple) Down(dockercompose string, flag *Flag) error {
 	if BoolPointCheck(flag.NoLogin) == false {
 		Info("==> docker login " + comboResource.Registry + " ...")
-		if _, err = CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, comboResource.Registry); err != nil {
-			fmt.Printf("err:%v", err)
-			return
+		if _, err := CmdRealtime("docker", "login", "-u", "eland", "-p", registryPwd, comboResource.Registry); err != nil {
+			return err
 		}
 	}
-
-	return
+	if _, err := CmdRealtime("docker-compose", "-f", dockercompose, "down", "--remove-orphans", "-v"); err != nil {
+		return err
+	}
+	Info("==> compose downed!")
+	return nil
 }
 
-func (d ComposeSimple) Up(dockercompose string, flag *Flag) error {
+func (d ComposeSimple) Up(dockercompose string) error {
 	if _, err := CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate"); err != nil {
 		return err
 	}
