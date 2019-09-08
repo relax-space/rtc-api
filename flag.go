@@ -37,20 +37,22 @@ type Flag struct {
 	ZookeeperPort   *string
 }
 
-func (Flag) Init() (serviceName *string, flagParam *Flag) {
+func (Flag) Init() (isContinue bool, serviceName *string, flagParam *Flag) {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Author("qa group")
 	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies.For detail flags of each command run `help [<command>...]`."
-	kingpin.CommandLine.HelpFlag.Short('h')
 	if len(Version) == 0 {
 		Version = "v1.0"
 	}
-	kingpin.CommandLine.Version(Version).VersionFlag.Short('v')
-	if err := configureLsCommand(kingpin.CommandLine); err != nil {
-		Error(err)
-		return
-	}
+	kingpin.CommandLine.Version(Version)
+	configureLsCommand(kingpin.CommandLine)
+	configureDownCommand(kingpin.CommandLine)
 	serviceName, flagParam = configureRunCommand(kingpin.CommandLine)
-	kingpin.Parse()
+	switch kingpin.Parse() {
+	case "ls", "down":
+		isContinue = false
+	default:
+		isContinue = true
+	}
 	return
 }
 
@@ -80,18 +82,74 @@ func showList(q string, r *bool) (err error) {
 	return
 }
 
-func configureLsCommand(app *kingpin.Application) (err error) {
+func configureLsCommand(app *kingpin.Application) {
 	var q string
 	var r *bool
 	ls := kingpin.Command("ls", "List service names from remote.").Action(func(c *kingpin.ParseContext) error {
-		err = showList(q, r)
-		return err
+		err := showList(q, r)
+		if err != nil {
+			panic(err)
+		}
+		return nil
 	})
 	ls.Arg("q", "Fuzzy query service name by `q`").StringVar(&q)
 	r = ls.Flag("relation-source", `
-	1.false: default,fetch relation from mingbai-api.
-	2.true:fetch relation from https://gitlab.p2shop.cn:8443/data/rtc-data`).Short('r').Bool()
-	return
+	1.false: default,fetch relation from https://gitlab.p2shop.cn:8443/data/rtc-data.
+	2.true:fetch relation from mingbai-api`).Short('r').Bool()
+}
+
+func configureDownCommand(app *kingpin.Application) {
+	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
+	var rmi *string
+	var v *bool
+	var remove *bool
+	var t *int
+	down := kingpin.Command("down", `
+	Stops containers and removes containers, networks, volumes, and images
+	created by 'up'.
+
+	By default, the only things removed are:
+
+	- Containers for services defined in the Compose file
+	- Networks defined in the 'networks' section of the Compose file
+	- The default network, if one is used
+
+	Networks and volumes defined as 'external' are never removed.`).
+		Action(func(c *kingpin.ParseContext) error {
+			param := make([]string, 0)
+			param = append(param, "-f", dockercompose, "down")
+			if StringPointCheck(rmi) {
+				param = append(param, "--rmi", *rmi)
+			}
+			if BoolPointCheck(v) {
+				param = append(param, "-v")
+			}
+			if BoolPointCheck(remove) {
+				param = append(param, "--remove-orphans")
+			}
+			if IntPointCheck(t) {
+				param = append(param, "--timeout", fmt.Sprint(*t))
+			}
+			if _, err := CmdRealtime("docker-compose", param...); err != nil {
+				panic(err)
+			}
+			return nil
+		})
+	rmi = down.Flag("rmi", `
+    Remove images. Type must be one of:
+        'all': Remove all images used by any service.
+        'local': Remove only images that don't have a
+    	custom tag set by the 'image' field.`).String()
+	v = down.Flag("volumes", `
+    Remove named volumes declared in the 'volumes'
+    section of the Compose file and anonymous volumes
+    attached to containers`).Short('v').Bool()
+	remove = down.Flag("remove-orphans", `
+    Remove containers for services not defined in the
+    Compose file`).Bool()
+	t = down.Flag("timeout", `
+    Specify a shutdown timeout in seconds.
+    (default: 10)`).Short('t').Int()
 }
 
 func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *Flag) {

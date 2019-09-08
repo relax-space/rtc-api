@@ -179,6 +179,14 @@ func BoolPointCheck(b *bool) (flag bool) {
 	return
 }
 
+func IntPointCheck(b *int) (flag bool) {
+	if b == nil || *b == 0 {
+		return
+	}
+	flag = true
+	return
+}
+
 func StringPointCheck(s *string) (flag bool) {
 	if s == nil || len(*s) == 0 {
 		return

@@ -10,7 +10,10 @@ import (
 )
 
 func main() {
-	serviceName, flag := (Flag{}).Init()
+	isContinue, serviceName, flag := (Flag{}).Init()
+	if isContinue==false {
+		return
+	}
 	if StringPointCheck(serviceName) == false {
 		panic("service name is required.")
 	}
