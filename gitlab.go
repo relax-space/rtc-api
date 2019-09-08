@@ -96,14 +96,14 @@ func (d Gitlab) GetFilePath(isEscape, isMulti bool, projectName, folderName, sub
 func (d Gitlab) CheckTestFile(projectDto *ProjectDto) (err error) {
 	err = d.checkTestFile(projectDto, "config.yml")
 	if err != nil {
-		//if `config.yml` not exist,then don't check `config.test.yml`
+		//if `config.yml` not exist,then don't check `config.rtc.yml`
 		if err.Error() == "status:404" {
 			err = nil
 			return
 		}
 		return
 	}
-	err = d.checkTestFile(projectDto, "config.test.yml")
+	err = d.checkTestFile(projectDto, "config.rtc.yml")
 	if err != nil {
 		return
 	}

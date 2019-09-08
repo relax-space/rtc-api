@@ -34,7 +34,7 @@ const (
 	YMLNAMEDOCKERCOMPOSE = "docker-compose"
 	CONFIGNAMENGINX      = "default"
 	SUFSERVER            = "-server"
-	PRETEST              = "test-"
+	PRETEST              = "rtc-"
 
 	TEST_INFO        = "test_info"
 	TEMP_FILE        = "temp"
@@ -223,7 +223,7 @@ func CheckHost(ip string) (err error) {
 	}
 	mapHost := map[string]string{
 		//"10.202.101.200": "registry.elandsystems.cn",
-		ip: "test-kafka",
+		ip: PRETEST + "kafka",
 	}
 
 	hosts, err := goodhosts.NewHosts()

@@ -141,7 +141,7 @@ func (d ProjectInfo) ReadYml(projectDto *ProjectDto) (err error) {
 		}
 		err = Gitlab{}.CheckTestFile(projectDto)
 		if err != nil {
-			err = Gitlab{}.FileErr(projectDto, projectDto.ExecPath, "", "config.test.yml", app_env, err)
+			err = Gitlab{}.FileErr(projectDto, projectDto.ExecPath, "", "config.rtc.yml", app_env, err)
 			return
 		}
 	}

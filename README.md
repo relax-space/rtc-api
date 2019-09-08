@@ -8,7 +8,7 @@ A tool that runs microservices and their dependent services. These services are 
 
 set etc/hosts: < your ip> like 10.202.101.43
 ```
-<your ip> test-kafka
+<your ip> rtc-kafka
 ```
 ### Download
 ```
