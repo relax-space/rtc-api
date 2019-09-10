@@ -22,6 +22,7 @@ import (
 var (
 	app_env = ""
 	scope   = ""
+	registryPwd=os.Getenv("REGISTRY_P2SHOP_PWD")
 )
 var jobLog *joblog.JobLog
 
