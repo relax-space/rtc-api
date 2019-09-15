@@ -1,5 +1,5 @@
 FROM pangpanglabs/golang:builder AS builder
-WORKDIR /go/src/run-test-container
+WORKDIR /go/src/rtc
 COPY . .
 # disable cgo
 ENV CGO_ENABLED=0
@@ -12,5 +12,5 @@ RUN echo ">>> 3: go install" && go install
 FROM pangpanglabs/alpine-ssl
 WORKDIR /go/bin/
 # copy execute file to image
-COPY --from=builder /go/bin/run-test-container ./run-test-container
-RUN chmod +x ./run-test-container
+COPY --from=builder /go/bin/rtc ./rtc
+RUN chmod +x ./rtc

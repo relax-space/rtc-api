@@ -35,6 +35,9 @@ type Flag struct {
 	EventBrokerPort *string
 	NginxPort       *string
 	ZookeeperPort   *string
+
+	UrlGitlab *string
+	PrivateTokenGitlab *string
 }
 
 func (Flag) Init() (isContinue bool, serviceName *string, flagParam *Flag) {
@@ -198,6 +201,8 @@ func configureRunCommand(app *kingpin.Application) (serviceName *string, flag *F
 		EventBrokerPort: run.Flag("event-broker-port", "You can change default event-broker port.").Default(outPort.EventBroker).String(),
 		NginxPort:       run.Flag("nginx-port", "You can change default nginx port.").Default(outPort.Nginx).String(),
 		ZookeeperPort:   run.Flag("zookeeper-port", "You can change default zookeeper port.").Default(outPort.Zookeeper).String(),
+		UrlGitlab:   run.Flag("url-gitlab", "You can change default zookeeper port.").String(),
+		PrivateTokenGitlab:   run.Flag("private-token-gitlab", "You can change default zookeeper port.").String(),
 	}
 	return
 }

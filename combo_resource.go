@@ -1,13 +1,14 @@
 package main
 
-import "sync"
+import(
+	"errors"
+)
 
 var comboResource *ComboResource
-var comboResourceOnce sync.Once
 
 type ComboResource struct {
 	PrivateToken    string
-	PreGitSshUrl    string
+	//PreGitSshUrl    string
 	PerGitHttpUrl   string
 	Registry        string
 	RegistryCommon  string
@@ -15,9 +16,8 @@ type ComboResource struct {
 	MingbaiRegistry string
 }
 
-func (ComboResource) GetInstance(comboResourceStr, registryCommon *string) *ComboResource {
+func (ComboResource) GetInstance(comboResourceStr, registryCommon,urlGitlab,privateTokenGitlab *string) (*ComboResource,error) {
 
-	comboResourceOnce.Do(func() {
 		registry := ""
 		if StringPointCheck(registryCommon) {
 			registry = *registryCommon
@@ -25,8 +25,7 @@ func (ComboResource) GetInstance(comboResourceStr, registryCommon *string) *Comb
 		switch *comboResourceStr {
 		case "p2shop":
 			comboResource = &ComboResource{
-				PrivateToken:    "bY2kmqs8x8N3wfQxgw6s",
-				PreGitSshUrl:    "ssh://git@gitlab.p2shop.cn:822",
+				PrivateToken:    p2shopToken,
 				PerGitHttpUrl:   "https://gitlab.p2shop.cn:8443",
 				Registry:        "registry.p2shop.com.cn",
 				RegistryCommon:  registry,
@@ -35,8 +34,7 @@ func (ComboResource) GetInstance(comboResourceStr, registryCommon *string) *Comb
 			}
 		case "srx":
 			comboResource = &ComboResource{
-				PrivateToken:    "SjPC8PnY6N8ntaxcUXFM",
-				PreGitSshUrl:    "ssh://git@gitlab.srxcloud.com:622",
+				PrivateToken:    srxToken,
 				PerGitHttpUrl:   "https://gitlab.srxcloud.com",
 				Registry:        "registry.p2shop.com.cn",
 				RegistryCommon:  registry,
@@ -45,15 +43,24 @@ func (ComboResource) GetInstance(comboResourceStr, registryCommon *string) *Comb
 			}
 		case "srx-p2shop":
 			comboResource = &ComboResource{
-				PrivateToken:    "SjPC8PnY6N8ntaxcUXFM",
-				PreGitSshUrl:    "ssh://git@gitlab.srxcloud.com:622",
+				PrivateToken:    srxToken,
 				PerGitHttpUrl:   "https://gitlab.srxcloud.com",
 				Registry:        "registry.p2shop.com.cn",
 				RegistryCommon:  registry,
 				MingbaiHost:     "https://gateway.p2shop.com.cn",
 				MingbaiRegistry: "registry.p2shop.com.cn",
 			}
+			fallthrough
+		default:
 		}
-	})
-	return comboResource
+		if StringPointCheck(urlGitlab) {
+			comboResource.PerGitHttpUrl = *urlGitlab
+		}
+		if StringPointCheck(privateTokenGitlab) {
+			comboResource.PrivateToken = *privateTokenGitlab
+		}
+		if len(comboResource.PerGitHttpUrl) ==0 || len(comboResource.PrivateToken)==0{
+			return nil,errors.New("Please check if the following environment variables are configured: REGISTRY_P2SHOP_PWD, GITLAB_P2SHOP_PRIVATETOKEN, GITLAB_SRX_PRIVATETOKEN")
+		}
+	return comboResource,nil
 }

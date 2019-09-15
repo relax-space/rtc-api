@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/ElandGroup/joblog"
 	_ "github.com/denisenkom/go-mssqldb"
@@ -9,9 +10,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	registryPwd = os.Getenv("REGISTRY_P2SHOP_PWD")
+	p2shopToken = os.Getenv("GITLAB_P2SHOP_PRIVATETOKEN")
+	srxToken    = os.Getenv("GITLAB_SRX_PRIVATETOKEN")
+)
+
 func main() {
+	if  len(p2shopToken) ==0{
+		panic("In the absence of privateToken, you can choose to add the environment variable GITLAB_P2SHOP_PRIVATETOKEN, or pass the parameter private-token-gitlab") 
+	}
 	isContinue, serviceName, flag := (Flag{}).Init()
-	if isContinue==false {
+	if isContinue == false {
 		return
 	}
 	if StringPointCheck(serviceName) == false {
@@ -30,8 +40,9 @@ func main() {
 			panic(err)
 		}
 	}
-	if comboResource = (ComboResource{}).GetInstance(flag.ComboResource, flag.RegistryCommon); comboResource == nil {
-		panic("The --combo-resource parameter supports p2shop, srx, p2shop-srx. For details, see ./rtc run -h")
+	var err error
+	if comboResource,err = (ComboResource{}).GetInstance(flag.ComboResource, flag.RegistryCommon, flag.UrlGitlab, flag.PrivateTokenGitlab); err != nil {
+		panic("err")
 	}
 	// simple service
 	if (ComposeSimple{}).ShouldSimple(*serviceName) {

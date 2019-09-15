@@ -22,13 +22,11 @@ import (
 var (
 	app_env = ""
 	scope   = ""
-	registryPwd=os.Getenv("REGISTRY_P2SHOP_PWD")
 )
 var jobLog *joblog.JobLog
 
 const (
 	RtcPreGitUrl    = "https://gitlab.p2shop.cn:8443"
-	RtcPrivateToken = "bY2kmqs8x8N3wfQxgw6s"
 
 	YMLNAMECONFIG        = "config"
 	YMLNAMEPROJEC        = "project"

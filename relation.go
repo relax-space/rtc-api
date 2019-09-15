@@ -235,7 +235,7 @@ func (d Relation) fetchDataGitlab() (relations []map[string]*Relation, err error
 	//this is qa not app_env by xiao.xinmiao
 	appEnv := "qa"
 	fileName := fmt.Sprintf("config.%v.yml", appEnv)
-	gitlab := Gitlab{Url: RtcPreGitUrl, PrivateToken: RtcPrivateToken}
+	gitlab := Gitlab{Url: RtcPreGitUrl, PrivateToken: p2shopToken}
 	b, err := gitlab.RequestFile(projectDto, "", "", fileName, appEnv)
 	if err != nil {
 		err = gitlab.FileErr(projectDto, "", "", fileName, app_env, err)
@@ -263,7 +263,7 @@ func (d Relation) gitlabErr(errp error) (err error) {
 	//this is qa not app_env by xiao.xinmiao
 	appEnv := "qa"
 	fileName := fmt.Sprintf("config.%v.yml", appEnv)
-	gitlab := Gitlab{Url: RtcPreGitUrl, PrivateToken: RtcPrivateToken}
+	gitlab := Gitlab{Url: RtcPreGitUrl, PrivateToken: p2shopToken}
 	err = gitlab.FileErr(projectDto, "", "", fileName, appEnv, errp)
 	return
 }
