@@ -19,7 +19,6 @@ debug
 tmp/
 swagger-ui
 temp/
-rtc
 *.exe
 *.exe~
-rtc
+rtc-api

@@ -17,8 +17,8 @@ var (
 )
 
 func main() {
-	if  len(p2shopToken) ==0{
-		panic("In the absence of privateToken, you can choose to add the environment variable GITLAB_P2SHOP_PRIVATETOKEN, or pass the parameter private-token-gitlab") 
+	if len(p2shopToken) == 0 {
+		panic("In the absence of privateToken, you can choose to add the environment variable GITLAB_P2SHOP_PRIVATETOKEN, or pass the parameter private-token-gitlab")
 	}
 	isContinue, serviceName, flag := (Flag{}).Init()
 	if isContinue == false {
@@ -41,7 +41,7 @@ func main() {
 		}
 	}
 	var err error
-	if comboResource,err = (ComboResource{}).GetInstance(flag.ComboResource, flag.RegistryCommon, flag.UrlGitlab, flag.PrivateTokenGitlab); err != nil {
+	if comboResource, err = (ComboResource{}).GetInstance(flag.ComboResource, flag.RegistryCommon, flag.UrlGitlab, flag.PrivateTokenGitlab); err != nil {
 		panic("err")
 	}
 	// simple service
@@ -85,7 +85,7 @@ func main() {
 
 func initJobLog(serviceName *string, flag *Flag, ip string) error {
 
-	jobLog = joblog.New(jobLogUrl, "rtc", map[string]interface{}{"service name:": serviceName, "ip": ip})
+	jobLog = joblog.New(jobLogUrl, "rtc-api", map[string]interface{}{"service name:": serviceName, "ip": ip})
 	if jobLog.Err != nil {
 		return jobLog.Err
 	}
