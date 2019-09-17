@@ -1,4 +1,4 @@
-package main
+package cmd
 
 const (
 	// https://github.com/fmiguelez/wait-for

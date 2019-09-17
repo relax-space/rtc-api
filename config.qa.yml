@@ -1,0 +1,15 @@
+database:
+  driver: mysql
+  connection: rtc_app:Eland123@tcp(10.30.8.55:3306)/rtc?charset=utf8&parseTime=True&loc=UTC
+  logger:
+    kafka:
+      brokers:
+        - 10.30.8.55:9092
+      topic: sqllog
+behaviorLog:
+  kafka:
+    brokers:
+      - 10.30.8.55:9092
+    topic: behaviorlog
+serviceName: rtc-api
+httpport: 8080

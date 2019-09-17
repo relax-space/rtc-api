@@ -1,155 +1,81 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/http"
+	"nomni/utils/validator"
 	"os"
+	"rtc-api/cmd"
+	"rtc-api/config"
+	"rtc-api/controllers"
+	"rtc-api/models"
+	"strings"
 
-	"github.com/ElandGroup/joblog"
-	_ "github.com/denisenkom/go-mssqldb"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/spf13/viper"
-)
+	"github.com/pangpanglabs/goutils/behaviorlog"
+	"github.com/pangpanglabs/goutils/echomiddleware"
 
-var (
-	registryPwd = os.Getenv("REGISTRY_P2SHOP_PWD")
-	p2shopToken = os.Getenv("GITLAB_P2SHOP_PRIVATETOKEN")
-	srxToken    = os.Getenv("GITLAB_SRX_PRIVATETOKEN")
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
+	"github.com/pangpanglabs/echoswagger"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	if len(p2shopToken) == 0 {
-		panic("In the absence of privateToken, you can choose to add the environment variable GITLAB_P2SHOP_PRIVATETOKEN, or pass the parameter private-token-gitlab")
-	}
-	isContinue, serviceName, flag := (Flag{}).Init()
-	if isContinue == false {
-		return
-	}
-	if StringPointCheck(serviceName) == false {
-		panic("service name is required.")
-	}
-	if BoolPointCheck(flag.Debug) {
-		log.SetFlags(log.Lshortfile | log.LstdFlags)
-	} else {
-		log.SetFlags(0)
-	}
-	ip := getIp(flag.HostIp)
-	if BoolPointCheck(flag.NoLog) == false {
-		log.Println("log init ...")
-		if err := initJobLog(serviceName, flag, ip); err != nil {
-			log.Println(err)
-			panic(err)
-		}
-	}
-	var err error
-	if comboResource, err = (ComboResource{}).GetInstance(flag.ComboResource, flag.RegistryCommon, flag.UrlGitlab, flag.PrivateTokenGitlab); err != nil {
-		panic("err")
-	}
-	// simple service
-	if (ComposeSimple{}).ShouldSimple(*serviceName) {
-		port := Config{}.LoadFlagPort(flag)
-		if err := (ComposeSimple{}).Start(*serviceName, ip, port, flag); err != nil {
-			Error(err)
-			return
-		}
+	isApi := os.Getenv("IS_RTC_API")
+	if isApi != "Y" {
+		cmd.Start()
 		return
 	}
 
-	c, err := Config{}.LoadEnv(*serviceName, ip, flag)
+	c := config.Init(os.Getenv("APP_ENV"))
+
+	fmt.Println("Config===", c)
+	db, err := models.InitDB(c.Database.Driver, c.Database.Connection)
 	if err != nil {
-		Error(err)
-		return
+		panic(err)
 	}
-	if err = composeWriteYml(c, ip); err != nil {
-		Error(err)
-		return
-	}
-	if err = (Nginx{}).WriteConfig(c.Project); err != nil {
-		Error(err)
-		return
+	defer db.Close()
+
+	if err := models.InitTable(db); err != nil {
+		panic(err)
 	}
 
-	if err = writeLocal(c); err != nil {
-		Error(err)
-		return
+	e := echo.New()
+
+	e.GET("/ping", func(c echo.Context) error {
+		return c.String(http.StatusOK, "pong")
+	})
+
+	r := echoswagger.New(e, "docs", &echoswagger.Info{
+		Title:       "Sample Relation API",
+		Description: "This is docs for relation service",
+		Version:     "1.0.0",
+	})
+	r.AddSecurityAPIKey("Authorization", "JWT token", echoswagger.SecurityInHeader)
+	r.SetUI(echoswagger.UISetting{
+		HideTop: true,
+	})
+	controllers.RelationApiController{}.Init(r.Group("relations", "v1/relations"))
+
+	e.Pre(middleware.RemoveTrailingSlash())
+	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
+
+	e.Use(middleware.RequestID())
+	e.Use(echomiddleware.ContextLogger())
+	e.Use(echomiddleware.ContextDB(c.ServiceName, db, c.Database.Logger.Kafka))
+	e.Use(echomiddleware.BehaviorLogger(c.ServiceName, c.BehaviorLog.Kafka))
+	if !strings.HasSuffix(c.Appenv, "production") {
+		behaviorlog.SetLogLevel(logrus.InfoLevel)
 	}
 
-	if err = (Compose{}).Exec(c, flag, ip); err != nil {
-		Error(err)
-		return
+	e.Validator = validator.New()
+
+	e.Debug = c.Debug
+
+	if err := e.Start(":" + c.HttpPort); err != nil {
+		log.Println(err)
 	}
 
-	Info("==> you can start testing now. check health by `docker ps -a`")
-	return
-
-}
-
-func initJobLog(serviceName *string, flag *Flag, ip string) error {
-
-	jobLog = joblog.New(jobLogUrl, "rtc-api", map[string]interface{}{"service name:": serviceName, "ip": ip})
-	if jobLog.Err != nil {
-		return jobLog.Err
-	}
-	jobLog.Info(flag)
-	return nil
-}
-
-func writeLocal(c *FullDto) (err error) {
-	if scope == LOCAL.String() {
-		return
-	}
-	if err = (ProjectInfo{}).WriteSql(c.Project); err != nil {
-		return
-	}
-
-	if err = (Config{}).WriteYml(c); err != nil {
-		return
-	}
-	return
-}
-
-func composeWriteYml(c *FullDto, ip string) (err error) {
-	viper := viper.New()
-	p := ProjectInfo{}
-	database := Database{}
-	d := Compose{}
-	e := EventBroker{}
-	if p.ShouldKafka(c.Project) {
-		if err = CheckHost(ip); err != nil {
-			return
-		}
-		d.setComposeKafkaEland(viper, c.Port.Kafka, c.Port.KafkaSecond, c.Port.Zookeeper, c.Ip)
-	}
-	if database.ShouldDbLoop(c.Project, MYSQL) {
-		d.setComposeMysql(viper, c.Port.Mysql)
-	}
-	if database.ShouldDbLoop(c.Project, REDIS) {
-		d.setComposeRedis(viper, c.Port.Redis)
-	}
-	if database.ShouldDbLoop(c.Project, SQLSERVER) {
-		d.setComposeSqlserver(viper, c.Port.SqlServer)
-	}
-	if e.ShouldEventBroker(c.Project) {
-		streamNames := e.StreamList(c.Project)
-		if err = (EventBroker{}).SetEventBroker(viper, c.Port.EventBroker, streamNames); err != nil {
-			return
-		}
-	}
-
-	d.setComposeApp(viper, c.Project)
-	d.setComposeNginx(viper, c.Project, c.Port.Nginx)
-	d.setComposeWaitStart(viper, c.Project)
-	d.WriteYml(viper)
-	return
-}
-
-func getIp(ipFlag *string) string {
-	if StringPointCheck(ipFlag) {
-		return *ipFlag
-	}
-	ip, err := currentIp()
-	if err != nil {
-		log.Println("WARNING: fetch ip failure, has set ip to 127.0.0.1")
-		return "127.0.0.1"
-	}
-	return ip
 }

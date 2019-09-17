@@ -1,0 +1,31 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "sJXfaiCxGlbTvKigIo/6+hMhKtQ=",
+			"path": "nomni/utils/api",
+			"revision": "5e35378b7ac0e07ac98ff4984565c6b5549c3804",
+			"revisionTime": "2019-09-12T02:54:05Z"
+		},
+		{
+			"checksumSHA1": "61Kp5jsbzDphYp8jmGnYkCFHj30=",
+			"path": "nomni/utils/auth",
+			"revision": "5e35378b7ac0e07ac98ff4984565c6b5549c3804",
+			"revisionTime": "2019-09-12T02:54:05Z"
+		},
+		{
+			"checksumSHA1": "eVF6IxVl+CgaP18KgR15+YAcvoQ=",
+			"path": "nomni/utils/eventconsume",
+			"revision": "5e35378b7ac0e07ac98ff4984565c6b5549c3804",
+			"revisionTime": "2019-09-12T02:54:05Z"
+		},
+		{
+			"checksumSHA1": "wkWqVrPNu6tmMlUU54aW6Zb+XrU=",
+			"path": "nomni/utils/validator",
+			"revision": "5e35378b7ac0e07ac98ff4984565c6b5549c3804",
+			"revisionTime": "2019-09-12T02:54:05Z"
+		}
+	],
+	"rootPath": "rtc-api"
+}

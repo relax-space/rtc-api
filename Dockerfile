@@ -1,4 +1,4 @@
-FROM pangpanglabs/golang:builder AS builder
+FROM pangpanglabs/golang:builder-beta AS builder
 WORKDIR /go/src/rtc-api
 COPY . .
 # disable cgo
