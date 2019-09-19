@@ -2,9 +2,11 @@ package factory
 
 import (
 	"context"
+	"github.com/pangpanglabs/goutils/behaviorlog"
 
 	"github.com/go-xorm/xorm"
 	"github.com/pangpanglabs/goutils/echomiddleware"
+	"github.com/sirupsen/logrus"
 )
 
 func DB(ctx context.Context) xorm.Interface {
@@ -21,3 +23,13 @@ func DB(ctx context.Context) xorm.Interface {
 	panic("DB is not exist")
 }
 
+func Logger(ctx context.Context) *logrus.Entry {
+	v := ctx.Value(behaviorlog.LogContextName)
+	if v == nil {
+		return logrus.WithFields(logrus.Fields{})
+	}
+	if logger, ok := v.(*logrus.Entry); ok {
+		return logger
+	}
+	return logrus.WithFields(logrus.Fields{})
+}
