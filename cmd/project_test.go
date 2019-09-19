@@ -17,7 +17,7 @@ func TestProject(t *testing.T) {
 	// names, err := cmd.Project{}.GetServiceNames("2")
 	// fmt.Println(names, err)
 
-	p, err := cmd.Project{}.GetProject("go-api")
+	p, err := cmd.Project{}.GetProject("offer-api-pangpang-brand")
 	test.Ok(t, err)
 	test.Assert(t, p != nil, "failure")
 	err = cmd.ProjectOwner{}.ReLoad(p)

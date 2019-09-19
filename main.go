@@ -15,8 +15,8 @@ import (
 	"github.com/pangpanglabs/goutils/behaviorlog"
 	"github.com/pangpanglabs/goutils/echomiddleware"
 
-	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/pangpanglabs/echoswagger"
@@ -58,7 +58,11 @@ func main() {
 	r.SetUI(echoswagger.UISetting{
 		HideTop: true,
 	})
-	controllers.RelationApiController{}.Init(r.Group("relations", "v1/relations"))
+	controllers.ProjectApiController{}.Init(r.Group("projects", "v1/projects"))
+	controllers.DbAccountApiController{}.Init(r.Group("db_accounts", "v1/db_accounts"))
+	controllers.ImageAccountApiController{}.Init(r.Group("image_accounts", "v1/image_accounts"))
+	controllers.NamespaceApiController{}.Init(r.Group("namespaces", "v1/namespaces"))
+	controllers.TenantApiController{}.Init(r.Group("tenants", "v1/tenants"))
 
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.Recover())
