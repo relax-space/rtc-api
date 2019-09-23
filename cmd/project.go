@@ -6,7 +6,7 @@ import (
 	"fmt"	
 	"os"
 	"net/http"
-	"github.com/pangpanglabs/goutils/jwtutil"
+	"errors"
 	"strings"
 )
 
@@ -69,7 +69,7 @@ func (d Project) GetServiceNames(q string)([]string,error){
 }
 
 func (d Project) GetProject(serviceName string)(*Project,error){
-	urlStr :=fmt.Sprintf("%v/v1/projects/%v?with_child=true",RtcApiUrl,serviceName)
+	urlStr :=fmt.Sprintf("%v/v1/projects/%v?with_child=true",env.RtcApiUrl,serviceName)
 	var resp struct{
 		Success bool        `json:"success"`
 		Project *Project `json:"result"`
@@ -114,7 +114,7 @@ func (d Project) isContinueSync(skipCount,maxResultCount,totalCount int64) bool 
 }
 
 func (d Project) get(skipCount,maxResultCount int64) (int64,[]Project,error){
-	urlStr :=fmt.Sprintf("%v/v1/projects?skipCount=%v&maxResultCount=%v",RtcApiUrl,skipCount,maxResultCount)
+	urlStr :=fmt.Sprintf("%v/v1/projects?skipCount=%v&maxResultCount=%v",env.RtcApiUrl,skipCount,maxResultCount)
 	var resp struct{
 		Success bool        `json:"success"`
 		ArrayResult struct {
@@ -134,12 +134,9 @@ func (d Project) get(skipCount,maxResultCount int64) (int64,[]Project,error){
 
 
 func (d Project) token()(string){
-	if s := os.Getenv("JWT_SECRET"); s != "" {
-		jwtutil.SetJwtSecret(s)
-	}
-	token,err := jwtutil.NewToken(map[string]interface{}{"aud": "colleague","iss":"colleague", "tenantCode": "test"})
-	if err !=nil{
-		panic(err)
+	token:=os.Getenv("JWT_TOKEN")
+	if len(token) ==0{
+		panic(errors.New("miss environment: JWT_TOKEN"))
 	}
 	return token
 }

@@ -11,9 +11,10 @@ func TestProject(t *testing.T){
 
 	// fmt.Println(ps,err)
 
-	// names,err :=cmd.Project{}.GetServiceNames("2")
-	// fmt.Println(names,err)
+	cmd.SetEnv("qa")
+	names,err :=cmd.Project{}.GetServiceNames("2")
+	fmt.Println(names,err)
 
-	p,err := cmd.Project{}.GetProject("go-api|")
-	fmt.Println(p,err)
+	// p,err := cmd.Project{}.GetProject("go-api|")
+	// fmt.Println(p,err)
 }
