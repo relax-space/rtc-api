@@ -24,7 +24,7 @@ import (
 func main() {
 	isApi := os.Getenv("IS_RTC_API")
 	if isApi != "Y" {
-		cmd.Start()
+		//cmd.Start()
 		return
 	}
 
