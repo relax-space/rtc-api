@@ -20,41 +20,16 @@ import (
 )
 var jobLog *joblog.JobLog
 const (
-	YMLNAMEPROJEC        = "project"
 	YMLNAMEDOCKERCOMPOSE = "docker-compose"
 	CONFIGNAMENGINX      = "default"
 	SUFSERVER            = "-server"
 	PRETEST              = "rtc-"
 
 	TEMP_FILE        = "temp"
-	EventBroker_Name = "event-broker-kafka"
+	//EventBroker_Name = "event-broker-kafka"
 	JobLogUrl="https://gateway.p2shop.com.cn"
 )
-var inPort = PortDto{
-	Mysql:     "3306",
-	Redis:     "6379",
-	Mongo:     "27017",
-	SqlServer: "1433",
-	Kafka:     "9092",
 
-	KafkaSecond: "29092",
-	EventBroker: "3000",
-	Nginx:       "80",
-	Zookeeper:   "2181",
-}
-
-var outPort = PortDto{
-	Mysql:     "3308",
-	Redis:     "6381",
-	Mongo:     "27019",
-	SqlServer: "1435",
-	Kafka:     "9092",
-
-	KafkaSecond: "29092",
-	EventBroker: "3002",
-	Nginx:       "3001",
-	Zookeeper:   "2181",
-}
 
 type PortDto struct {
 	Mysql       string
@@ -64,7 +39,7 @@ type PortDto struct {
 	Kafka       string
 	KafkaSecond string
 
-	EventBroker string
+	//EventBroker string
 	Nginx       string
 	Zookeeper   string
 }
@@ -130,7 +105,9 @@ func scan(message string) (err error) {
 	err = nil
 	return
 }
-
+func BoolPoint(b bool)  *bool {
+	return &b
+}
 func BoolPointCheck(b *bool) (flag bool) {
 	if b == nil || *b == false {
 		return

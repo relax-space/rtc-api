@@ -1,23 +1,25 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"errors"
+
 	"github.com/ElandGroup/joblog"
 	"github.com/alecthomas/kingpin"
 )
 
 var Version string
+
 type Flag struct {
-	Updated   *string
-	Env  *string
+	LocalSql *bool
+	Env      *string
 	ImageEnv *string
-	Debug     *bool
-	NoLogin   *bool
-	NoPull    *bool
+	Debug    *bool
+	NoLogin  *bool
+	NoPull   *bool
 
 	NoLog          *bool
 	RegistryCommon *string
@@ -30,9 +32,9 @@ type Flag struct {
 	KafkaPort     *string
 
 	KafkaSecondPort *string
-	EventBrokerPort *string
-	NginxPort       *string
-	ZookeeperPort   *string
+	//EventBrokerPort *string
+	NginxPort     *string
+	ZookeeperPort *string
 }
 
 func (d Flag) Init() (isContinue bool, serviceName *string, flag *Flag) {
@@ -50,6 +52,7 @@ func (d Flag) Init() (isContinue bool, serviceName *string, flag *Flag) {
 		isContinue = false
 	default:
 		isContinue = true
+		SetEnv(*flag.Env)
 		if StringPointCheck(serviceName) == false {
 			panic("service name is required.")
 		}
@@ -70,9 +73,9 @@ func (d Flag) Init() (isContinue bool, serviceName *string, flag *Flag) {
 	return
 }
 
-func (d Flag) showList(q string)  error {
-	names,err:=Project{}.GetServiceNames(q)
-	if err !=nil{
+func (d Flag) showList(q string) error {
+	names, err := Project{}.GetServiceNames(q)
+	if err != nil {
 		return err
 	}
 	if len(names) == 0 {
@@ -157,15 +160,25 @@ func (d Flag) configureDownCommand(app *kingpin.Application) {
 }
 
 func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string, flag *Flag) {
+	outPort := PortDto{
+		Mysql:     "3308",
+		Redis:     "6381",
+		Mongo:     "27019",
+		SqlServer: "1435",
+		Kafka:     "9092",
+
+		KafkaSecond: "29092",
+		//EventBroker: "3002",
+		Nginx: "3001",
+		//Zookeeper:   "2181",
+	}
+
 	run := kingpin.Command("run", "Run a service and its dependencies.")
 	pName := filepath.Base(os.Args[0])
 	desc := fmt.Sprintf("The name of the service, you can get it by `./%v ls`.", pName)
 	serviceName = run.Arg("service-name", desc).Required().String()
 	flag = &Flag{
-		Updated: run.Flag("updated", `
-	1.Optional [remote, local].
-	2.The program will get the following information from the remote: service information,basic test data and docker image.
-	3.The default is remote,if you don't want to get data from remote, please use local.`).Short('u').Default("remote").String(),
+		LocalSql: run.Flag("local-sql", `Load data from a local file.`).Bool(),
 		ImageEnv: run.Flag("image-env", `
 	1.Optional [staging, qa , production].
 	2.microservice docker image runtime environment variable.
@@ -193,9 +206,9 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 		KafkaPort:     run.Flag("kafka-port", "You can change default kafka port.").Default(outPort.Kafka).String(),
 
 		KafkaSecondPort: run.Flag("kafka-second-port", "This parameter is reserved.").Default(outPort.KafkaSecond).String(),
-		EventBrokerPort: run.Flag("event-broker-port", "You can change default event-broker port.").Default(outPort.EventBroker).String(),
-		NginxPort:       run.Flag("nginx-port", "You can change default nginx port.").Default(outPort.Nginx).String(),
-		ZookeeperPort:   run.Flag("zookeeper-port", "You can change default zookeeper port.").Default(outPort.Zookeeper).String(),
+		//EventBrokerPort: run.Flag("event-broker-port", "You can change default event-broker port.").Default(outPort.EventBroker).String(),
+		NginxPort: run.Flag("nginx-port", "You can change default nginx port.").Default(outPort.Nginx).String(),
+		//ZookeeperPort:   run.Flag("zookeeper-port", "You can change default zookeeper port.").Default(outPort.Zookeeper).String(),
 	}
 	return
 }
