@@ -58,6 +58,10 @@ func (d *Compose) Write(project *Project, flag *Flag) error {
 	if project.Owner.IsSqlServer {
 		d.setSqlServer(viper, *flag.SqlServerPort, flag.RegistryCommon)
 	}
+	if project.Owner.IsStream {
+		d.setEventBroker(viper, project, *flag.ImageEnv, *flag.HostIp)
+	}
+	d.setNginx(viper, project, *flag.NginxPort, flag.RegistryCommon)
 	d.SetApp(viper, project, *flag.ImageEnv)
 	if err := d.WriteYml(viper); err != nil {
 		return err
@@ -279,8 +283,7 @@ func (d *Compose) setNginx(viper *viper.Viper, project *Project, port string, re
 
 	serviceName := "nginx"
 	servicePre := d.getServicePre(serviceName)
-	deps := project.DependsOn
-	deps = append(deps, d.getServiceServer(project.Name))
+	deps := []string{d.getServiceServer(project.Name)}
 
 	viper.Set(servicePre+".image", d.getImage("nginx:1.16", registryCommon))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
@@ -323,6 +326,40 @@ func (d *Compose) appCompose(viper *viper.Viper, project *Project) {
 	viper.Set(servicePre+".ports", project.Setting.Ports)
 
 	viper.Set(servicePre+".depends_on", project.DependsOn)
+}
+
+func (d *Compose) setEventBroker(viper *viper.Viper, project *Project, imageEnv, ip string) {
+	d.setEventProducer(viper, project.Owner.EventProducer, imageEnv, ip)
+	d.setEventConsumer(viper, project.Owner.EventConsumer, project.Owner.StreamNames, imageEnv)
+}
+func (d *Compose) setEventProducer(viper *viper.Viper, project *Project, imageEnv, ip string) {
+	servicePre := d.getServicePre(project.Name)
+	envs :=append(project.Setting.Envs,fmt.Sprintf("KAFKA_BROKERS=%s:9092", ip))
+
+	viper.Set(servicePre+".image", project.Image+"-"+imageEnv+":latest")
+
+	viper.Set(servicePre+".container_name", d.getContainerName(project.Name))
+	viper.Set(servicePre+".environment", envs)
+	viper.Set(servicePre+".ports", project.Setting.Ports)
+
+	viper.Set(servicePre+".depends_on", []string{d.getServiceServer("kafka")})
+}
+func (d *Compose) setEventConsumer(viper *viper.Viper, project *Project, streamNames []string, imageEnv string) {
+	for _, sName := range streamNames {
+		envs := append(project.Setting.Envs, "CONSUMER_GROUP_ID="+sName)
+
+		name := project.Name + "-" + sName
+		servicePre := d.getServicePre(name)
+		viper.Set(servicePre+".image", project.Image+"-"+sName+"-"+imageEnv+":latest")
+
+		viper.Set(servicePre+".container_name", d.getContainerName(name))
+		viper.Set(servicePre+".environment", envs)
+		viper.Set(servicePre+".depends_on", []string{
+			d.getServiceServer("kafka"),
+			d.getServiceServer("mysql"),
+			d.getServiceServer("redis"),
+		})
+	}
 }
 
 func (d *Compose) upperKafkaEnvEland(ymlStr string) string {

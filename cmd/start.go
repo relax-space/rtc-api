@@ -16,7 +16,15 @@ func Start() {
 		return
 	}
 
-	ProjectOwner{}.ReLoad(project)
+	if err =(ProjectOwner{}).ReLoad(project);err!=nil{
+		Error(err)
+		return
+	}
+
+	if err = (Nginx{}).WriteConfig(project); err != nil {
+		Error(err)
+		return
+	}
 
 	if err = (&Compose{}).Write(project, flag); err != nil {
 		Error(err)

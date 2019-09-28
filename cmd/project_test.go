@@ -13,7 +13,7 @@ func TestProject(t *testing.T) {
 
 	// fmt.Println(ps,err)
 
-	cmd.SetEnv("")
+	cmd.SetEnv("qa")
 	// names, err := cmd.Project{}.GetServiceNames("2")
 	// fmt.Println(names, err)
 

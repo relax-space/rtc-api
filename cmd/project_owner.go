@@ -3,7 +3,7 @@ package cmd
 type ProjectOwner struct {
 }
 
-func (d ProjectOwner) ReLoad(p *Project) {
+func (d ProjectOwner) ReLoad(p *Project) error {
 	p.Owner.IsKafka = d.ShouldKafka(p)
 	p.Owner.IsMysql = d.ShouldDb(p, MYSQL)
 	p.Owner.IsSqlServer = d.ShouldDb(p, SQLSERVER)
@@ -14,7 +14,19 @@ func (d ProjectOwner) ReLoad(p *Project) {
 	d.SetNames(p)
 	d.SetDependLoop(p)
 	d.SetStreams(p)
-
+	p.Owner.IsStream = d.ShouldStream(p.Owner.StreamNames)
+	if p.Owner.IsStream {
+		var err error
+		p.Owner.EventProducer, err = Project{}.GetEventProducer()
+		if err !=nil{
+			return err
+		}
+		p.Owner.EventConsumer, err = Project{}.GetEventConsumer()
+		if err !=nil{
+			return err
+		}
+	}
+	return nil
 }
 
 func (d ProjectOwner) ShouldKafka(p *Project) bool {
@@ -29,6 +41,13 @@ func (d ProjectOwner) ShouldDb(p *Project, dbType DateBaseType) bool {
 		if dbType.String() == k {
 			return true
 		}
+	}
+	return false
+}
+
+func (d ProjectOwner) ShouldStream(streams []string) bool {
+	if len(streams) != 0 {
+		return true
 	}
 	return false
 }

@@ -22,9 +22,9 @@ type Project struct {
 	Registry    string      `json:"registry"`
 	RegistryPwd string      `json:"registryPwd"`
 
-	Children  []*Project `json:"children"`
-	DependsOn []string
-	Owner     ProjectOwnerDto
+	Children  []*Project      `json:"children"`
+	DependsOn []string        `json:"-"`
+	Owner     ProjectOwnerDto `json:"-"`
 }
 
 type ProjectOwnerDto struct {
@@ -32,10 +32,14 @@ type ProjectOwnerDto struct {
 	IsMysql     bool
 	IsSqlServer bool
 	IsRedis     bool
-	DbNames     []string
-	Databases   map[string][]string
-	ChildNames  []string
-	StreamNames []string
+	IsStream    bool
+
+	DbNames       []string
+	Databases     map[string][]string
+	ChildNames    []string
+	StreamNames   []string
+	EventProducer *Project
+	EventConsumer *Project
 }
 
 type SettingDto struct {
@@ -147,129 +151,10 @@ func (d Project) token() string {
 	return token
 }
 
-func (d *Project) LoadOwner() {
-	d.ShouldKafka()
-	d.Owner.IsMysql = d.ShouldDb(MYSQL)
-	d.Owner.IsSqlServer = d.ShouldDb(SQLSERVER)
-	d.Owner.IsRedis = d.ShouldDb(REDIS)
-	d.Owner.Databases = d.Database()
-	list := d.Database()
-	d.Owner.DbNames = d.DatabaseList(list)
-	d.SetNames()
-	d.SetDependLoop()
-	d.SetStreams()
-
+func (d Project) GetEventProducer() (*Project, error) {
+	return d.GetProject("kafka-producer")
 }
 
-func (d *Project) ShouldKafka() {
-	d.kafka([]*Project{d})
-	return
-}
-
-func (d *Project) ShouldDb(dbType DateBaseType) bool {
-	list := d.Database()
-	for k := range list {
-		if dbType.String() == k {
-			return true
-		}
-	}
-	return false
-}
-
-func (d *Project) DatabaseList(list map[string][]string) []string {
-	dbNames := make([]string, 0)
-	for k := range list {
-		dbNames = append(dbNames, k)
-	}
-	return dbNames
-}
-
-func (d *Project) Database() (list map[string][]string) {
-	list = make(map[string][]string, 0)
-	projects := []*Project{d}
-	d.database(list, projects)
-	for k, v := range list {
-		list[k] = Unique(v)
-	}
-	return
-}
-
-func (d *Project) database(list map[string][]string, projects []*Project) {
-	for _, project := range projects {
-		for k, v := range project.Setting.Databases {
-			if _, ok := list[k]; ok {
-				list[k] = append(list[k], v...)
-			} else {
-				list[k] = v
-			}
-		}
-		if len(project.Children) != 0 {
-			d.database(list, project.Children)
-		}
-	}
-	return
-}
-
-func (d *Project) kafka(projects []*Project) {
-	d.Owner.IsKafka = false
-	for _, project := range projects {
-		if project.Setting.IsProjectKafka {
-			d.Owner.IsKafka = true
-			return
-		}
-		if len(project.Children) != 0 {
-			d.kafka(project.Children)
-		}
-	}
-	return
-}
-
-func (d *Project) SetNames() {
-	d.childNames(d)
-}
-
-func (d *Project) childNames(pLoop *Project) {
-	for _, v := range pLoop.Children {
-		d.Owner.ChildNames = append(d.Owner.ChildNames, v.Name)
-		if len(v.Children) != 0 {
-			d.childNames(v)
-		}
-	}
-}
-
-func (d *Project) SetDependLoop() {
-	Project{}.setDepend(d)
-	Project{}.setDependLoop(d)
-}
-
-func (d Project) setDependLoop(pLoop *Project) {
-	for k, v := range pLoop.Children {
-		pLoop.DependsOn = append(pLoop.DependsOn, v.Name)
-		Project{}.setDepend(pLoop.Children[k])
-		if len(v.Children) != 0 {
-			d.setDependLoop(pLoop.Children[k])
-		}
-	}
-}
-func (d Project) setDepend(pLoop *Project) {
-	if pLoop.Setting.IsProjectKafka {
-		pLoop.DependsOn = append(pLoop.DependsOn, "kafka")
-	}
-	dbNames := pLoop.DatabaseList(pLoop.Setting.Databases)
-	pLoop.DependsOn = append(pLoop.DependsOn, dbNames...)
-}
-
-func (d *Project) SetStreams() {
-	d.setStreams(d)
-	d.Owner.StreamNames = append(d.Owner.StreamNames, d.Setting.StreamNames...)
-	d.Owner.StreamNames = Unique(d.Owner.StreamNames)
-}
-
-func (d *Project) setStreams(pLoop *Project) {
-	for _, v := range pLoop.Children {
-		d.Owner.StreamNames = append(d.Owner.StreamNames, v.Setting.StreamNames...)
-		if len(v.Children) != 0 {
-			d.setStreams(v)
-		}
-	}
+func (d Project) GetEventConsumer() (*Project, error) {
+	return d.GetProject("kafka-consumer")
 }
