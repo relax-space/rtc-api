@@ -1,9 +1,5 @@
 package cmd
 
-import (
-	_ "github.com/denisenkom/go-mssqldb"
-)
-
 func Start() {
 	isContinue, serviceName, flag := (Flag{}).Init()
 	if isContinue == false {
@@ -16,12 +12,22 @@ func Start() {
 		return
 	}
 
-	if err =(ProjectOwner{}).ReLoad(project);err!=nil{
+	if err = (ProjectOwner{}).ReLoad(project); err != nil {
 		Error(err)
 		return
 	}
 
-	if err = (Nginx{}).WriteConfig(project); err != nil {
+	if err = (Folder{}).DeleteAll(TEMP_FILE); err != nil {
+		Error(err)
+		return
+	}
+
+	if err = (BaseData{}).Write(project); err != nil {
+		Error(err)
+		return
+	}
+
+	if err = (Nginx{}).Write(project); err != nil {
 		Error(err)
 		return
 	}

@@ -12,7 +12,7 @@ import (
 
 type Project struct {
 	Id        int    `json:"id"`
-	Name      string `json:"name"` //service + "|" + namespace
+	Name      string `json:"name"` //service + "-" + namespace
 	Service   string `json:"service"`
 	Namespace string `json:"namespace"`
 	Image     string `json:"image"`
@@ -34,12 +34,21 @@ type ProjectOwnerDto struct {
 	IsRedis     bool
 	IsStream    bool
 
-	DbNames       []string
-	Databases     map[string][]string
-	ChildNames    []string
-	StreamNames   []string
-	EventProducer *Project
-	EventConsumer *Project
+	DbTypes          []string
+	ChildNames       []string
+	StreamNames      []string
+	EventProducer    *Project
+	EventConsumer    *Project
+	MysqlAccount     DbAccount
+	SqlServerAccount DbAccount
+}
+
+type DbAccount struct {
+	Host    string
+	Port    int
+	User    string
+	Pwd     string
+	DbNames []string
 }
 
 type SettingDto struct {
@@ -94,6 +103,21 @@ func (d Project) GetProject(serviceName string) (*Project, error) {
 	}
 	return resp.Project,nil
 }
+func (d Project) GetDbAccount(dbType DateBaseType) (DbAccount, error) {
+	urlStr := fmt.Sprintf("%v/v1/dbaccounts/%v", env.RtcApiUrl, dbType.String())
+	var resp struct {
+		Success   bool      `json:"success"`
+		DbAccount DbAccount `json:"result"`
+	}
+	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(d.token()).Call(&resp)
+	if err != nil {
+		return DbAccount{}, err
+	}
+	if statusCode != http.StatusOK {
+		return DbAccount{}, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
+	}
+	return resp.DbAccount, nil
+}
 func (d Project) GetAll() ([]*Project, error) {
 	pLoop := &PLoop{
 		Children: make([]*Project, 0),
@@ -137,8 +161,8 @@ func (d Project) get(skipCount, maxResultCount int64) (int64, []*Project, error)
 	if err != nil{
 		return int64(0),nil,err
 	}
-	if statusCode != http.StatusOK{
-		return int64(0),nil,fmt.Errorf("http status exp:200,act:%v",statusCode)
+	if statusCode != http.StatusOK {
+		return int64(0), nil, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
 	}
 	return resp.ArrayResult.TotalCount,resp.ArrayResult.Items,nil
 }

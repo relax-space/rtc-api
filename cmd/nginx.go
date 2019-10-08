@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -30,7 +29,7 @@ type Nginx struct {
 }
 
 // setNgnix set nginx default.conf
-func (d Nginx) WriteConfig(p *Project) (err error) {
+func (d Nginx) Write(p *Project) (err error) {
 
 	if len(p.Setting.Ports) == 0 {
 		err = fmt.Errorf("port is required,project:%v", p.Name)
@@ -48,11 +47,7 @@ func (d Nginx) WriteConfig(p *Project) (err error) {
 	if p.Owner.IsStream {
 		location += d.Location(p.Owner.EventProducer.Name, p.Owner.EventProducer.Setting.Ports[0])
 	}
-
-	if err = os.MkdirAll(TEMP_FILE+"/nginx", os.ModePerm); err != nil {
-		return
-	}
-	return (File{}).WriteString(TEMP_FILE+"/nginx/default.conf", ngnixTemplateServer+location+"\n}")
+	return (File{}).WriteString(TEMP_FILE+"/nginx", "default.conf", ngnixTemplateServer+location+"\n}")
 }
 
 func (Nginx) Location(serverName, port string) (location string) {

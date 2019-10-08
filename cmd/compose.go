@@ -76,7 +76,7 @@ func (d *Compose) WriteYml(viper *viper.Viper) error {
 
 	ymlStr = d.upperKafkaEnvEland(ymlStr)
 
-	if (File{}).WriteString(TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", ymlStr); err != nil {
+	if (File{}).WriteString("", TEMP_FILE+"/"+YMLNAMEDOCKERCOMPOSE+".yml", ymlStr); err != nil {
 	}
 	return nil
 }
@@ -143,7 +143,7 @@ func (d *Compose) SetAppLoop(viper *viper.Viper, projects []*Project, imageEnv s
 	}
 }
 
-func (d *Compose) getImage(name string, registryCommon *string) string {
+func (d *Compose) GetImage(name string, registryCommon *string) string {
 	var registry string
 	if name == "kafka" || name == "mssql-server-linux" || name == "zookeeper" {
 		registry = REGISTRYCOMMON
@@ -161,7 +161,7 @@ func (d *Compose) setMysql(viper *viper.Viper, port string, registryCommon *stri
 
 	serviceName := "mysql"
 	servicePre := d.getServicePre(serviceName)
-	viper.Set(servicePre+".image", d.getImage("mysql:5.7.22", registryCommon))
+	viper.Set(servicePre+".image", d.GetImage("mysql:5.7.22", registryCommon))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".volumes", []string{
 		"./database/mysql/:/docker-entrypoint-initdb.d",
@@ -175,7 +175,7 @@ func (d *Compose) setSqlServer(viper *viper.Viper, port string, registryCommon *
 	serviceName := "sqlserver"
 	servicePre := d.getServicePre(serviceName)
 	//docker-hub: genschsa/mssql-server-linux
-	viper.Set(servicePre+".image", d.getImage("mssql-server-linux", registryCommon))
+	viper.Set(servicePre+".image", d.GetImage("mssql-server-linux", registryCommon))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + d.InPort.SqlServer})
 	viper.Set(servicePre+".volumes", []string{
@@ -195,7 +195,7 @@ func (d *Compose) setKafkaEland(viper *viper.Viper, port, ip string, registryCom
 	containerName := d.getContainerName(serviceName)
 	hostName := containerName
 
-	viper.Set(servicePre+".image", d.getImage("kafka", registryCommon))
+	viper.Set(servicePre+".image", d.GetImage("kafka", registryCommon))
 	viper.Set(servicePre+".container_name", containerName)
 	viper.Set(servicePre+".ports", []string{port + ":" + d.InPort.Kafka, fmt.Sprintf("%v:%v", jmxPort, jmxPort)})
 
@@ -227,7 +227,7 @@ func (d *Compose) setZookeeperEland(viper *viper.Viper, registryCommon *string) 
 	servicePre := d.getServicePre(serviceName)
 	containerName := d.getContainerName(serviceName)
 
-	viper.Set(servicePre+".image", d.getImage("zookeeper", registryCommon))
+	viper.Set(servicePre+".image", d.GetImage("zookeeper", registryCommon))
 	viper.Set(servicePre+".container_name", containerName)
 	viper.Set(servicePre+".ports", []string{d.InPort.Zookeeper, "2888:2888", "3888:3888"})
 	viper.Set(servicePre+".environment.ZOO_MY_ID", 1)
@@ -273,7 +273,7 @@ func (d *Compose) setRedis(viper *viper.Viper, port string, registryCommon *stri
 	serviceName := "redis"
 	servicePre := d.getServicePre(serviceName)
 
-	viper.Set(servicePre+".image", d.getImage("redis:3.2.11", registryCommon))
+	viper.Set(servicePre+".image", d.GetImage("redis:3.2.11", registryCommon))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".hostname", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + d.InPort.Redis})
@@ -285,7 +285,7 @@ func (d *Compose) setNginx(viper *viper.Viper, project *Project, port string, re
 	servicePre := d.getServicePre(serviceName)
 	deps := []string{d.getServiceServer(project.Name)}
 
-	viper.Set(servicePre+".image", d.getImage("nginx:1.16", registryCommon))
+	viper.Set(servicePre+".image", d.GetImage("nginx:1.16", registryCommon))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + d.InPort.Nginx})
 	viper.Set(servicePre+".restart", "always")
@@ -334,7 +334,7 @@ func (d *Compose) setEventBroker(viper *viper.Viper, project *Project, imageEnv,
 }
 func (d *Compose) setEventProducer(viper *viper.Viper, project *Project, imageEnv, ip string) {
 	servicePre := d.getServicePre(project.Name)
-	envs :=append(project.Setting.Envs,fmt.Sprintf("KAFKA_BROKERS=%s:9092", ip))
+	envs := append(project.Setting.Envs, fmt.Sprintf("KAFKA_BROKERS=%s:9092", ip))
 
 	viper.Set(servicePre+".image", project.Image+"-"+imageEnv+":latest")
 
@@ -420,13 +420,17 @@ func (d *Compose) checkAll(project *Project, flag *Flag, dockercompose string) (
 	return
 }
 
-func (d *Compose) checkMysql(dockercompose, port, ip string) (err error) {
-	dbType := MYSQL.String()
-
-	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", dbType+SUFSERVER); err != nil {
-		fmt.Printf("err:%v", err)
-		return
+func (d *Compose) checkMysql(dockercompose, port, ip string) error {
+	if _, err := CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", MYSQL.String()+SUFSERVER); err != nil {
+		return err
+	} 
+	if err := d.DailMysql(port, ip); err != nil {
+		return err
 	}
+	return nil
+}
+func (d *Compose) DailMysql(port, ip string) (err error) {
+	dbType := MYSQL.String()
 	Info(fmt.Sprintf("begin ping %v,%v:%v", dbType, ip, port))
 	db, err := sql.Open("mysql", fmt.Sprintf("root:1234@tcp(%v:%v)/mysql?charset=utf8", ip, port))
 	if err != nil {
@@ -437,7 +441,6 @@ func (d *Compose) checkMysql(dockercompose, port, ip string) (err error) {
 	buffer := bytes.NewBuffer(make([]byte, 0, 64))
 	logger := log.New(buffer, "prefix: ", 0)
 	mysql.SetLogger(logger)
-
 	for index := 1; index < 300; index++ {
 		err = db.Ping()
 		if err != nil {
@@ -447,22 +450,19 @@ func (d *Compose) checkMysql(dockercompose, port, ip string) (err error) {
 			}
 			continue
 		}
-		err = nil
 		break
 	}
 	if err != nil {
-		return
+		return err
 	}
 	Info("finish ping " + dbType)
-	return
+	return nil
 }
-
 func (d *Compose) checkSqlServer(dockercompose, port, ip string) (err error) {
 
 	dbType := SQLSERVER.String()
 
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", dbType+SUFSERVER); err != nil {
-		fmt.Printf("err:%v", err)
 		return
 	}
 	Info(fmt.Sprintf("begin ping %v,%v:%v", dbType, ip, port))
@@ -494,12 +494,10 @@ func (d *Compose) checkSqlServer(dockercompose, port, ip string) (err error) {
 
 func (d *Compose) checkKafka(dockercompose, port, ip string) (err error) {
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", "zookeeper"+SUFSERVER); err != nil {
-		fmt.Printf("err:%v", err)
 		return
 	}
 
 	if _, err = CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", "kafka"+SUFSERVER); err != nil {
-		fmt.Printf("err:%v", err)
 		return
 	}
 

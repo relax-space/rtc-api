@@ -20,7 +20,8 @@ func TestProject(t *testing.T) {
 	p, err := cmd.Project{}.GetProject("go-api")
 	test.Ok(t, err)
 	test.Assert(t, p != nil, "failure")
-	cmd.ProjectOwner{}.ReLoad(p)
+	err = cmd.ProjectOwner{}.ReLoad(p)
+	test.Ok(t, err)
 	spew.Dump(p, err)
 
 }

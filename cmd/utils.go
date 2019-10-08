@@ -18,18 +18,19 @@ import (
 	"github.com/ElandGroup/joblog"
 	"github.com/spf13/viper"
 )
+
 var jobLog *joblog.JobLog
+
 const (
 	YMLNAMEDOCKERCOMPOSE = "docker-compose"
 	CONFIGNAMENGINX      = "default"
 	SUFSERVER            = "-server"
 	PRETEST              = "rtc-"
 
-	TEMP_FILE        = "temp"
+	TEMP_FILE = "temp"
 	//EventBroker_Name = "event-broker-kafka"
-	JobLogUrl="https://gateway.p2shop.com.cn"
+	JobLogUrl = "https://gateway.p2shop.com.cn"
 )
-
 
 type PortDto struct {
 	Mysql       string
@@ -40,8 +41,8 @@ type PortDto struct {
 	KafkaSecond string
 
 	//EventBroker string
-	Nginx       string
-	Zookeeper   string
+	Nginx     string
+	Zookeeper string
 }
 
 func CmdRealtime(name string, arg ...string) (result string, err error) {
@@ -105,7 +106,7 @@ func scan(message string) (err error) {
 	err = nil
 	return
 }
-func BoolPoint(b bool)  *bool {
+func BoolPoint(b bool) *bool {
 	return &b
 }
 func BoolPointCheck(b *bool) (flag bool) {
@@ -188,4 +189,8 @@ func CheckHost(ip string) (err error) {
 	}
 
 	return
+}
+
+func AddQuote(name string) string {
+	return "\"" + name + "\""
 }

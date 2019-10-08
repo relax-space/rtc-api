@@ -186,7 +186,7 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 		Env: run.Flag("env", `
 	1.Optional [staging, qa , production].
 	2.rtc runtime environment variable.
-	3.The default is qa, you can choose other option`).Default("qa").String(),
+	3.The default is qa, you can choose other option`).Short('t').Default("qa").String(),
 
 		Debug:   run.Flag("debug", "You can see log for debug.").Bool(),
 		NoLogin: run.Flag("no-login", "You can ignore login step.").Bool(),

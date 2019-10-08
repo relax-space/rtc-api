@@ -8,13 +8,47 @@ func (d ProjectOwner) ReLoad(p *Project) error {
 	p.Owner.IsMysql = d.ShouldDb(p, MYSQL)
 	p.Owner.IsSqlServer = d.ShouldDb(p, SQLSERVER)
 	p.Owner.IsRedis = d.ShouldDb(p, REDIS)
-	p.Owner.Databases = d.Database(p)
 	list := d.Database(p)
-	p.Owner.DbNames = d.DatabaseList(list)
+	p.Owner.DbTypes = d.DatabaseList(list)
 	d.SetNames(p)
 	d.SetDependLoop(p)
 	d.SetStreams(p)
 	p.Owner.IsStream = d.ShouldStream(p.Owner.StreamNames)
+	if err := d.SetEvent(p); err != nil {
+		return err
+	}
+	if err := d.SetDbAccount(p, list); err != nil {
+		return err
+	}
+	return nil
+}
+func (d ProjectOwner) SetDbAccount(p *Project, list map[string][]string) error {
+	var err error
+	if p.Owner.IsMysql {
+		p.Owner.MysqlAccount, err = Project{}.GetDbAccount(MYSQL)
+		if err != nil {
+			return err
+		}
+		p.Owner.MysqlAccount.DbNames = d.GetDbNameByType(MYSQL, list)
+	}
+	if p.Owner.IsSqlServer {
+		p.Owner.SqlServerAccount, err = Project{}.GetDbAccount(SQLSERVER)
+		if err != nil {
+			return err
+		}
+		p.Owner.SqlServerAccount.DbNames = d.GetDbNameByType(SQLSERVER, list)
+	}
+	return nil
+}
+func (ProjectOwner) GetDbNameByType(dbType DateBaseType, list map[string][]string) []string {
+	for k, v := range list {
+		if dbType.String() == k {
+			return v
+		}
+	}
+	return nil
+}
+func (d ProjectOwner) SetEvent(p *Project) error {
 	if p.Owner.IsStream {
 		var err error
 		p.Owner.EventProducer, err = Project{}.GetEventProducer()
@@ -53,11 +87,11 @@ func (d ProjectOwner) ShouldStream(streams []string) bool {
 }
 
 func (d ProjectOwner) DatabaseList(list map[string][]string) []string {
-	dbNames := make([]string, 0)
+	dbTypes := make([]string, 0)
 	for k := range list {
-		dbNames = append(dbNames, k)
+		dbTypes = append(dbTypes, k)
 	}
-	return dbNames
+	return dbTypes
 }
 
 func (d ProjectOwner) Database(p *Project) (list map[string][]string) {
@@ -130,8 +164,8 @@ func (d ProjectOwner) setDepend(pLoop *Project) {
 	if pLoop.Setting.IsProjectKafka {
 		pLoop.DependsOn = append(pLoop.DependsOn, "kafka")
 	}
-	dbNames := d.DatabaseList(pLoop.Setting.Databases)
-	pLoop.DependsOn = append(pLoop.DependsOn, dbNames...)
+	dbTypes := d.DatabaseList(pLoop.Setting.Databases)
+	pLoop.DependsOn = append(pLoop.DependsOn, dbTypes...)
 }
 
 func (d ProjectOwner) SetStreams(p *Project) {

@@ -16,6 +16,7 @@ import (
 	"github.com/pangpanglabs/goutils/echomiddleware"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/pangpanglabs/echoswagger"
