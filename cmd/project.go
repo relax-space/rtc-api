@@ -15,12 +15,9 @@ type Project struct {
 	Name      string `json:"name"` //service + "-" + namespace
 	Service   string `json:"service"`
 	Namespace string `json:"namespace"`
-	Image     string `json:"image"`
 
-	SubIds      []int       `json:"subIds"` //subIds
-	Setting     *SettingDto `json:"setting"`
-	Registry    string      `json:"registry"`
-	RegistryPwd string      `json:"registryPwd"`
+	SubIds  []int       `json:"subIds"` //subIds
+	Setting *SettingDto `json:"setting"`
 
 	Children  []*Project      `json:"children"`
 	DependsOn []string        `json:"-"`
@@ -39,11 +36,12 @@ type ProjectOwnerDto struct {
 	StreamNames      []string
 	EventProducer    *Project
 	EventConsumer    *Project
-	MysqlAccount     DbAccount
-	SqlServerAccount DbAccount
+	MysqlAccount     DbAccountDto
+	SqlServerAccount DbAccountDto
+	ImageAccounts    []ImageAccountDto
 }
 
-type DbAccount struct {
+type DbAccountDto struct {
 	Host    string
 	Port    int
 	User    string
@@ -51,8 +49,19 @@ type DbAccount struct {
 	DbNames []string
 }
 
+type ImageAccountDto struct {
+	Registry  string `json:"registry"`
+	LoginName string `json:"loginName"`
+	Pwd       string `json:"pwd"`
+}
+
+type NamespaceDto struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 type SettingDto struct {
-	Entrypoint     string              `json:"entrypoint"`
+	Image          string              `json:"image"`
 	Envs           []string            `json:"envs"`
 	IsProjectKafka bool                `json:"isProjectKafka"`
 	Ports          []string            `json:"ports"`
@@ -103,21 +112,22 @@ func (d Project) GetProject(serviceName string) (*Project, error) {
 	}
 	return resp.Project,nil
 }
-func (d Project) GetDbAccount(dbType DateBaseType) (DbAccount, error) {
-	urlStr := fmt.Sprintf("%v/v1/dbaccounts/%v", env.RtcApiUrl, dbType.String())
+func (d Project) GetDbAccount(dbType DateBaseType) (DbAccountDto, error) {
+	urlStr := fmt.Sprintf("%v/v1/db_accounts/%v", env.RtcApiUrl, dbType.String())
 	var resp struct {
-		Success   bool      `json:"success"`
-		DbAccount DbAccount `json:"result"`
+		Success   bool         `json:"success"`
+		DbAccount DbAccountDto `json:"result"`
 	}
 	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(d.token()).Call(&resp)
 	if err != nil {
-		return DbAccount{}, err
+		return resp.DbAccount, err
 	}
 	if statusCode != http.StatusOK {
-		return DbAccount{}, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
+		return resp.DbAccount, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
 	}
 	return resp.DbAccount, nil
 }
+
 func (d Project) GetAll() ([]*Project, error) {
 	pLoop := &PLoop{
 		Children: make([]*Project, 0),
@@ -128,9 +138,54 @@ func (d Project) GetAll() ([]*Project, error) {
 	return pLoop.Children, nil
 }
 
-func (d Project) getLoop(skipCount,maxResultCount int64,pLoop *PLoop) error{
-	totalCount,pList,err :=d.get(skipCount,maxResultCount)
-	if err !=nil{
+func (d Project) GetImageAccount() ([]ImageAccountDto, error) {
+	urlStr := fmt.Sprintf("%v/v1/image_accounts", env.RtcApiUrl)
+	var resp struct {
+		Success       bool              `json:"success"`
+		ImageAccounts []ImageAccountDto `json:"result"`
+	}
+	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(d.token()).Call(&resp)
+	if err != nil {
+		return resp.ImageAccounts, err
+	}
+	if statusCode != http.StatusOK {
+		return resp.ImageAccounts, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
+	}
+	return resp.ImageAccounts, nil
+}
+
+func (d Project) GetNamespace() ([]NamespaceDto, error) {
+	urlStr := fmt.Sprintf("%v/v1/namespaces", env.RtcApiUrl)
+	var resp struct {
+		Success    bool           `json:"success"`
+		Namespaces []NamespaceDto `json:"result"`
+	}
+	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(d.token()).Call(&resp)
+	if err != nil {
+		return resp.Namespaces, err
+	}
+	if statusCode != http.StatusOK {
+		return resp.Namespaces, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
+	}
+	return resp.Namespaces, nil
+}
+
+func (d Project) GetRegistryCommon() (ImageAccountDto, error) {
+	imageAccounts, err := d.GetImageAccount()
+	if err != nil {
+		return ImageAccountDto{}, err
+	}
+	for _, imageAccount := range imageAccounts {
+		if imageAccount.Registry == REGISTRYCOMMON {
+			return imageAccount, nil
+		}
+	}
+	return ImageAccountDto{}, errors.New("no found common registry")
+}
+
+func (d Project) getLoop(skipCount, maxResultCount int64, pLoop *PLoop) error {
+	totalCount, pList, err := d.get(skipCount, maxResultCount)
+	if err != nil {
 		return err
 	}
 	pLoop.Children = append(pLoop.Children, pList...)

@@ -6,6 +6,20 @@ func Start() {
 		return
 	}
 
+	if err := (Folder{}).DeleteAll(TEMP_FILE); err != nil {
+		Error(err)
+		return
+	}
+
+	// simple service
+	if (ComposeSimple{}).ShouldSimple(*serviceName) {
+		if err := (ComposeSimple{}).Start(*serviceName, flag); err != nil {
+			Error(err)
+			return
+		}
+		return
+	}
+
 	project, err := Project{}.GetProject(*serviceName)
 	if err != nil {
 		Error(err)
@@ -13,11 +27,6 @@ func Start() {
 	}
 
 	if err = (ProjectOwner{}).ReLoad(project); err != nil {
-		Error(err)
-		return
-	}
-
-	if err = (Folder{}).DeleteAll(TEMP_FILE); err != nil {
 		Error(err)
 		return
 	}

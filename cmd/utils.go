@@ -30,6 +30,7 @@ const (
 	TEMP_FILE = "temp"
 	//EventBroker_Name = "event-broker-kafka"
 	JobLogUrl = "https://gateway.p2shop.com.cn"
+	REGISTRYCOMMON = "registry.p2shop.com.cn"
 )
 
 type PortDto struct {

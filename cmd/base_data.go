@@ -3,6 +3,7 @@ package cmd
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/go-sql-driver/mysql"
 
@@ -28,9 +29,41 @@ func (d BaseData) Write(p *Project) error {
 	return nil
 }
 
-func (d BaseData) writeMysql(dbAccount DbAccount, folder string) error {
+func (d BaseData) getNamePure(name string) (string, error) {
+	namespaces, err := d.namespaceFilters()
+	if err != nil {
+		return "", err
+	}
+	namePure := name
+	for _, ns := range namespaces {
+		if strings.HasSuffix(name, ns) {
+			namePure = strings.TrimSuffix(name, ns)
+			break
+		}
+	}
+	return namePure, nil
+}
+func (d BaseData) namespaceFilters() ([]string, error) {
+	namespaces, err := (Project{}).GetNamespace()
+	if err != nil {
+		return nil, err
+	}
+	nsNew := make([]string, 0)
+	for _, ns := range namespaces {
+		ns.Name = "_" + strings.Replace(ns.Name, "-", "_", -1)
+		nsNew = append(nsNew, ns.Name)
+	}
+	return nsNew, nil
+}
+
+func (d BaseData) writeMysql(dbAccount DbAccountDto, folder string) error {
 
 	for _, dbName := range dbAccount.DbNames {
+		namePure, err := d.getNamePure(dbName)
+		if err != nil {
+			return err
+		}
+
 		config := mysql.NewConfig()
 		config.User = dbAccount.User
 		config.Passwd = dbAccount.Pwd
@@ -43,7 +76,7 @@ func (d BaseData) writeMysql(dbAccount DbAccount, folder string) error {
 		}
 		dumpDir := folder
 		dumpFilenameFormat := fmt.Sprintf("%s-20060102T150405", dbName)
-		dumper, err := mysqldump.Register(db, config.DBName, dumpDir, dumpFilenameFormat)
+		dumper, err := mysqldump.Register(db, namePure, dumpDir, dumpFilenameFormat)
 		if err != nil {
 			return err
 		}

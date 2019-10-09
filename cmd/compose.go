@@ -16,10 +16,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	REGISTRYCOMMON = "registry.p2shop.com.cn"
-)
-
 type Compose struct {
 	InPort PortDto
 }
@@ -42,6 +38,9 @@ func (d *Compose) SetPort() {
 func (d *Compose) Write(project *Project, flag *Flag) error {
 	d.SetPort()
 	viper := viper.New()
+	viper.Set("version", "3")
+	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
+	viper.AddConfigPath(TEMP_FILE)
 	if project.Owner.IsKafka {
 		ip := *flag.HostIp
 		if err := CheckHost(ip); err != nil {
@@ -83,9 +82,11 @@ func (d *Compose) WriteYml(viper *viper.Viper) error {
 
 func (d *Compose) Exec(project *Project, flag *Flag) error {
 	if BoolPointCheck(flag.NoLogin) == false {
-		Info("==> docker login " + REGISTRYCOMMON + " ...")
-		if _, err := CmdRealtime("docker", "login", "-u", "eland", "-p", project.RegistryPwd, REGISTRYCOMMON); err != nil {
-			return err
+		for _, r := range project.Owner.ImageAccounts {
+			Info("==> docker login " + r.Registry + " ...")
+			if _, err := CmdRealtime("docker", "login", "-u", r.LoginName, "-p", r.Pwd, r.Registry); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -126,16 +127,13 @@ func (d *Compose) checkLatest(dockercompose string) error {
 }
 
 func (d *Compose) SetApp(viper *viper.Viper, project *Project, imageEnv string) {
-	viper.Set("version", "3")
-	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
-	viper.AddConfigPath(TEMP_FILE)
 	d.SetAppLoop(viper, []*Project{project}, imageEnv)
 }
 
 func (d *Compose) SetAppLoop(viper *viper.Viper, projects []*Project, imageEnv string) {
 	for _, project := range projects {
 		project.DependsOn = d.dependsOn(project.DependsOn)
-		project.Image = project.Image + "-" + imageEnv
+		project.Setting.Image = project.Setting.Image + "-" + imageEnv
 		d.appCompose(viper, project)
 		if len(project.Children) > 0 {
 			d.SetAppLoop(viper, project.Children, imageEnv)
@@ -319,7 +317,7 @@ func (Compose) getContainerName(serviceName string) string {
 func (d *Compose) appCompose(viper *viper.Viper, project *Project) {
 	servicePre := d.getServicePre(project.Name)
 
-	viper.Set(servicePre+".image", project.Image+":latest")
+	viper.Set(servicePre+".image", project.Setting.Image+":latest")
 
 	viper.Set(servicePre+".container_name", d.getContainerName(project.Name))
 	viper.Set(servicePre+".environment", project.Setting.Envs)
@@ -336,7 +334,7 @@ func (d *Compose) setEventProducer(viper *viper.Viper, project *Project, imageEn
 	servicePre := d.getServicePre(project.Name)
 	envs := append(project.Setting.Envs, fmt.Sprintf("KAFKA_BROKERS=%s:9092", ip))
 
-	viper.Set(servicePre+".image", project.Image+"-"+imageEnv+":latest")
+	viper.Set(servicePre+".image", project.Setting.Image+"-"+imageEnv+":latest")
 
 	viper.Set(servicePre+".container_name", d.getContainerName(project.Name))
 	viper.Set(servicePre+".environment", envs)
@@ -350,7 +348,7 @@ func (d *Compose) setEventConsumer(viper *viper.Viper, project *Project, streamN
 
 		name := project.Name + "-" + sName
 		servicePre := d.getServicePre(name)
-		viper.Set(servicePre+".image", project.Image+"-"+sName+"-"+imageEnv+":latest")
+		viper.Set(servicePre+".image", project.Setting.Image+"-"+sName+"-"+imageEnv+":latest")
 
 		viper.Set(servicePre+".container_name", d.getContainerName(name))
 		viper.Set(servicePre+".environment", envs)
@@ -423,7 +421,7 @@ func (d *Compose) checkAll(project *Project, flag *Flag, dockercompose string) (
 func (d *Compose) checkMysql(dockercompose, port, ip string) error {
 	if _, err := CmdRealtime("docker-compose", "-f", dockercompose, "up", "-d", "--no-recreate", MYSQL.String()+SUFSERVER); err != nil {
 		return err
-	} 
+	}
 	if err := d.DailMysql(port, ip); err != nil {
 		return err
 	}

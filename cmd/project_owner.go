@@ -20,7 +20,15 @@ func (d ProjectOwner) ReLoad(p *Project) error {
 	if err := d.SetDbAccount(p, list); err != nil {
 		return err
 	}
+	if err := d.SetImageAccount(p); err != nil {
+		return err
+	}
 	return nil
+}
+func (d ProjectOwner) SetImageAccount(p *Project) error {
+	var err error
+	p.Owner.ImageAccounts, err = Project{}.GetImageAccount()
+	return err
 }
 func (d ProjectOwner) SetDbAccount(p *Project, list map[string][]string) error {
 	var err error
