@@ -318,7 +318,7 @@ func (d *Compose) appCompose(viper *viper.Viper, project *Project) {
 	servicePre := d.getServicePre(project.Name)
 
 	viper.Set(servicePre+".image", project.Setting.Image+":latest")
-
+	viper.Set(servicePre+".restart", "always")
 	viper.Set(servicePre+".container_name", d.getContainerName(project.Name))
 	viper.Set(servicePre+".environment", project.Setting.Envs)
 	viper.Set(servicePre+".ports", project.Setting.Ports)
@@ -332,12 +332,10 @@ func (d *Compose) setEventBroker(viper *viper.Viper, project *Project, imageEnv,
 }
 func (d *Compose) setEventProducer(viper *viper.Viper, project *Project, imageEnv, ip string) {
 	servicePre := d.getServicePre(project.Name)
-	envs := append(project.Setting.Envs, fmt.Sprintf("KAFKA_BROKERS=%s:9092", ip))
-
-	viper.Set(servicePre+".image", project.Setting.Image+"-"+imageEnv+":latest")
+	viper.Set(servicePre+".image", "registry.p2shop.com.cn/"+project.Name+"-"+imageEnv+":latest")
 
 	viper.Set(servicePre+".container_name", d.getContainerName(project.Name))
-	viper.Set(servicePre+".environment", envs)
+	viper.Set(servicePre+".environment", project.Setting.Envs)
 	viper.Set(servicePre+".ports", project.Setting.Ports)
 
 	viper.Set(servicePre+".depends_on", []string{d.getServiceServer("kafka")})
@@ -348,7 +346,7 @@ func (d *Compose) setEventConsumer(viper *viper.Viper, project *Project, streamN
 
 		name := project.Name + "-" + sName
 		servicePre := d.getServicePre(name)
-		viper.Set(servicePre+".image", project.Setting.Image+"-"+sName+"-"+imageEnv+":latest")
+		viper.Set(servicePre+".image", "registry.p2shop.com.cn/"+project.Name+"-"+sName+"-"+imageEnv+":latest")
 
 		viper.Set(servicePre+".container_name", d.getContainerName(name))
 		viper.Set(servicePre+".environment", envs)

@@ -229,11 +229,3 @@ func (d Project) token() string {
 	}
 	return token
 }
-
-func (d Project) GetEventProducer() (*Project, error) {
-	return d.GetProject("kafka-producer")
-}
-
-func (d Project) GetEventConsumer() (*Project, error) {
-	return d.GetProject("kafka-consumer")
-}

@@ -8,15 +8,17 @@ func (d ProjectOwner) ReLoad(p *Project) error {
 	p.Owner.IsMysql = d.ShouldDb(p, MYSQL)
 	p.Owner.IsSqlServer = d.ShouldDb(p, SQLSERVER)
 	p.Owner.IsRedis = d.ShouldDb(p, REDIS)
-	list := d.Database(p)
-	p.Owner.DbTypes = d.DatabaseList(list)
-	d.SetNames(p)
-	d.SetDependLoop(p)
 	d.SetStreams(p)
 	p.Owner.IsStream = d.ShouldStream(p.Owner.StreamNames)
 	if err := d.SetEvent(p); err != nil {
 		return err
 	}
+
+	list := d.Database(p)
+	p.Owner.DbTypes = d.DatabaseList(list)
+	d.SetNames(p)
+	d.SetDependLoop(p)
+
 	if err := d.SetDbAccount(p, list); err != nil {
 		return err
 	}
@@ -59,13 +61,28 @@ func (ProjectOwner) GetDbNameByType(dbType DateBaseType, list map[string][]strin
 func (d ProjectOwner) SetEvent(p *Project) error {
 	if p.Owner.IsStream {
 		var err error
-		p.Owner.EventProducer, err = Project{}.GetEventProducer()
-		if err !=nil{
+		p.Owner.EventProducer, err = Project{}.GetProject("event-broker-kafka")
+		if err != nil {
 			return err
 		}
-		p.Owner.EventConsumer, err = Project{}.GetEventConsumer()
-		if err !=nil{
+		p.Owner.EventConsumer, err = Project{}.GetProject("event-kafka-consumer")
+		if err != nil {
 			return err
+		}
+		p.Owner.IsKafka = true
+		p.Owner.IsMysql = true
+		p.Owner.IsRedis = true
+
+		list := d.Database(p.Owner.EventConsumer)
+		if p.Setting.Databases == nil {
+			p.Setting.Databases = make(map[string][]string, 0)
+		}
+		for k, v := range list {
+			if _, ok := p.Setting.Databases[k]; ok {
+				p.Setting.Databases[k] = append(p.Setting.Databases[k], v...)
+			} else {
+				p.Setting.Databases[k] = v
+			}
 		}
 	}
 	return nil
