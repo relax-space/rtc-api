@@ -22,11 +22,11 @@ import (
 	"github.com/pangpanglabs/echoswagger"
 	"github.com/sirupsen/logrus"
 )
-
+var Version string
 func main() {
 	isApi := os.Getenv("IS_RTC_API")
 	if isApi != "Y" {
-		cmd.Start()
+		cmd.Start(Version)
 		return
 	}
 
