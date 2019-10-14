@@ -1,12 +1,13 @@
 # variables:
   # SERVICE_NAME: go-api # for example: product-api-pangpang-brand from  https://gitlab.p2shop.cn:8443/data/rtc-data/blob/qa/config.qa.yml
-  # FOLDERNAME: "" # for example: nomni/
+  # FOLDERNAME: ""  # for example: nomni/
 variables:
   SERVICE_NAME: rtc-api
   LINUX_RTC: rtc-linux_amd64
   WINDOW_RTC: rtc-win64.exe
   MAC_RTC: rtc-$darwin_amd64
   GOTEST_ENV:  "-e JWT_SECRET=1234 -e JWT_TOKEN=1234"
+  RTC_ENV: " --no-login --mysql-port 3310 "
 include: 
   - project: 'open/gitlab-ci'
     file: '/templates/beta-go.gitlab-ci.yml'
