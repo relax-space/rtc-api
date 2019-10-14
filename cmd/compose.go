@@ -133,15 +133,20 @@ func (d *Compose) SetApp(viper *viper.Viper, project *Project, imageEnv string) 
 func (d *Compose) SetAppLoop(viper *viper.Viper, projects []*Project, imageEnv string) {
 	for _, project := range projects {
 		project.DependsOn = d.dependsOn(project.DependsOn)
-		project.Setting.Image = project.Setting.Image + "-" + imageEnv
-		d.appCompose(viper, project)
+		d.appCompose(viper, project, imageEnv)
 		if len(project.Children) > 0 {
 			d.SetAppLoop(viper, project.Children, imageEnv)
 		}
 	}
 }
-
-func (d *Compose) GetImage(name string, registryCommon *string) string {
+func (d *Compose) GetProjectImage(name, imageEnv string) string {
+	image := name
+	if len(imageEnv) != 0 {
+		image += "-" + imageEnv
+	}
+	return image
+}
+func (d *Compose) GetCommonImage(name string, registryCommon *string) string {
 	var registry string
 	if name == "kafka" || name == "mssql-server-linux" || name == "zookeeper" {
 		registry = REGISTRYCOMMON
@@ -155,11 +160,28 @@ func (d *Compose) GetImage(name string, registryCommon *string) string {
 	return name
 }
 
+func (d *Compose) setMysqlProject(viper *viper.Viper, port string, registryCommon *string, projectName string) {
+
+	serviceName := "mysql"
+	containerName := serviceName
+	if projectName == "rtc-api" {
+		containerName = "first-" + containerName
+	}
+	servicePre := d.getServicePre(serviceName)
+	viper.Set(servicePre+".image", d.GetCommonImage("mysql:5.7.22", registryCommon))
+	viper.Set(servicePre+".container_name", d.getContainerName(containerName))
+	viper.Set(servicePre+".volumes", []string{
+		"./database/mysql/:/docker-entrypoint-initdb.d",
+	})
+	viper.Set(servicePre+".ports", []string{port + ":" + d.InPort.Mysql})
+	viper.Set(servicePre+".environment", []string{"MYSQL_ROOT_PASSWORD=1234"})
+}
+
 func (d *Compose) setMysql(viper *viper.Viper, port string, registryCommon *string) {
 
 	serviceName := "mysql"
 	servicePre := d.getServicePre(serviceName)
-	viper.Set(servicePre+".image", d.GetImage("mysql:5.7.22", registryCommon))
+	viper.Set(servicePre+".image", d.GetCommonImage("mysql:5.7.22", registryCommon))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".volumes", []string{
 		"./database/mysql/:/docker-entrypoint-initdb.d",
@@ -173,7 +195,7 @@ func (d *Compose) setSqlServer(viper *viper.Viper, port string, registryCommon *
 	serviceName := "sqlserver"
 	servicePre := d.getServicePre(serviceName)
 	//docker-hub: genschsa/mssql-server-linux
-	viper.Set(servicePre+".image", d.GetImage("mssql-server-linux", registryCommon))
+	viper.Set(servicePre+".image", d.GetCommonImage("mssql-server-linux", registryCommon))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + d.InPort.SqlServer})
 	viper.Set(servicePre+".volumes", []string{
@@ -193,7 +215,7 @@ func (d *Compose) setKafkaEland(viper *viper.Viper, port, ip string, registryCom
 	containerName := d.getContainerName(serviceName)
 	hostName := containerName
 
-	viper.Set(servicePre+".image", d.GetImage("kafka", registryCommon))
+	viper.Set(servicePre+".image", d.GetCommonImage("kafka", registryCommon))
 	viper.Set(servicePre+".container_name", containerName)
 	viper.Set(servicePre+".ports", []string{port + ":" + d.InPort.Kafka, fmt.Sprintf("%v:%v", jmxPort, jmxPort)})
 
@@ -225,7 +247,7 @@ func (d *Compose) setZookeeperEland(viper *viper.Viper, registryCommon *string) 
 	servicePre := d.getServicePre(serviceName)
 	containerName := d.getContainerName(serviceName)
 
-	viper.Set(servicePre+".image", d.GetImage("zookeeper", registryCommon))
+	viper.Set(servicePre+".image", d.GetCommonImage("zookeeper", registryCommon))
 	viper.Set(servicePre+".container_name", containerName)
 	viper.Set(servicePre+".ports", []string{d.InPort.Zookeeper, "2888:2888", "3888:3888"})
 	viper.Set(servicePre+".environment.ZOO_MY_ID", 1)
@@ -271,7 +293,7 @@ func (d *Compose) setRedis(viper *viper.Viper, port string, registryCommon *stri
 	serviceName := "redis"
 	servicePre := d.getServicePre(serviceName)
 
-	viper.Set(servicePre+".image", d.GetImage("redis:3.2.11", registryCommon))
+	viper.Set(servicePre+".image", d.GetCommonImage("redis:3.2.11", registryCommon))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".hostname", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + d.InPort.Redis})
@@ -283,7 +305,7 @@ func (d *Compose) setNginx(viper *viper.Viper, project *Project, port string, re
 	servicePre := d.getServicePre(serviceName)
 	deps := []string{d.getServiceServer(project.Name)}
 
-	viper.Set(servicePre+".image", d.GetImage("nginx:1.16", registryCommon))
+	viper.Set(servicePre+".image", d.GetCommonImage("nginx:1.16", registryCommon))
 	viper.Set(servicePre+".container_name", d.getContainerName(serviceName))
 	viper.Set(servicePre+".ports", []string{port + ":" + d.InPort.Nginx})
 	viper.Set(servicePre+".restart", "always")
@@ -314,10 +336,10 @@ func (d *Compose) dependsOn(depends []string) []string {
 func (Compose) getContainerName(serviceName string) string {
 	return PRETEST + serviceName
 }
-func (d *Compose) appCompose(viper *viper.Viper, project *Project) {
+func (d *Compose) appCompose(viper *viper.Viper, project *Project, imageEnv string) {
 	servicePre := d.getServicePre(project.Name)
 
-	viper.Set(servicePre+".image", project.Setting.Image+":latest")
+	viper.Set(servicePre+".image", d.GetProjectImage(project.Setting.Image, imageEnv))
 	viper.Set(servicePre+".restart", "always")
 	viper.Set(servicePre+".container_name", d.getContainerName(project.Name))
 	viper.Set(servicePre+".environment", project.Setting.Envs)
@@ -332,7 +354,7 @@ func (d *Compose) setEventBroker(viper *viper.Viper, project *Project, imageEnv,
 }
 func (d *Compose) setEventProducer(viper *viper.Viper, project *Project, imageEnv, ip string) {
 	servicePre := d.getServicePre(project.Name)
-	viper.Set(servicePre+".image", "registry.p2shop.com.cn/"+project.Name+"-"+imageEnv+":latest")
+	viper.Set(servicePre+".image", d.GetProjectImage(project.Setting.Image, imageEnv))
 
 	viper.Set(servicePre+".container_name", d.getContainerName(project.Name))
 	viper.Set(servicePre+".environment", project.Setting.Envs)
@@ -346,7 +368,7 @@ func (d *Compose) setEventConsumer(viper *viper.Viper, project *Project, streamN
 
 		name := project.Name + "-" + sName
 		servicePre := d.getServicePre(name)
-		viper.Set(servicePre+".image", "registry.p2shop.com.cn/"+project.Name+"-"+sName+"-"+imageEnv+":latest")
+		viper.Set(servicePre+".image", d.GetProjectImage(project.Setting.Image, imageEnv))
 
 		viper.Set(servicePre+".container_name", d.getContainerName(name))
 		viper.Set(servicePre+".environment", envs)

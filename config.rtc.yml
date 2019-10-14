@@ -1,15 +1,15 @@
 database:
   driver: mysql
-  connection: root:1234@tcp(test-mysql:3306)/rtc?charset=utf8&parseTime=True&loc=UTC
+  connection: root:1234@tcp(rtc-first-mysql:3306)/rtc?charset=utf8&parseTime=True&loc=UTC
   logger:
     kafka:
       brokers:
-        - test-kafka:9092
+        - rtc-kafka:9092
       topic: sqllog
 behaviorLog:
   kafka:
     brokers:
-      - test-kafka:9092
+      - rtc-kafka:9092
     topic: behaviorlog
 serviceName: rtc-api
 httpport: 8080

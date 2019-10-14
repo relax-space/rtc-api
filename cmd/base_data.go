@@ -42,7 +42,7 @@ func (d BaseData) getDatabaseName(dbName, namespace string) string {
 func (d BaseData) writeMysql(dbAccounts []DbAccountDto, dbDtos []DatabaseDto, folder string) error {
 	for _, dbDto := range dbDtos {
 		dbAccount := Project{}.GetDbAccount(dbAccounts, MYSQL, dbDto.TenantName)
-
+		fmt.Println(dbAccount)
 		config := mysql.NewConfig()
 		config.User = dbAccount.User
 		config.Passwd = dbAccount.Pwd
