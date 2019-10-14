@@ -1,0 +1,31 @@
+services:
+  rtc-api-server:
+    container_name: rtc-api
+    depends_on:
+    - rtc-mysql-server
+    environment:
+    - APP_ENV=rtc
+    - IS_RTC_API=Y
+    image: xiaoxinmiao/rtc-api
+    ports:
+    - 8080:8080
+    restart: always
+  rtc-mysql-server:
+    container_name: rtc-mysql
+    environment:
+    - MYSQL_ROOT_PASSWORD=1234
+    image: mysql:5.7.22
+    ports:
+    - 3310:3306
+    volumes:
+    - ./settings.sql:/docker-entrypoint-initdb.d/settings.sql
+  rtc-base-mysql-server:
+    container_name: rtc-base-mysql
+    environment:
+    - MYSQL_ROOT_PASSWORD=1234
+    image: mysql:5.7.22
+    ports:
+    - 3311:3306
+    volumes:
+    - ./basedata.sql:/docker-entrypoint-initdb.d/basedata.sql
+version: "3"

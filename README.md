@@ -8,8 +8,8 @@ linux, mac, windows 10, windows 7
 
 ## start cmd
 
-[cmd](./cmd/README.md)
-[cmd](./cmd/README.zh-CN.md)
+- [README.md](./cmd/README.md)
+- [README.zh-CN.md](./cmd/README.zh-CN.md)
 
 ## start api
 
