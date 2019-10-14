@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/pangpanglabs/goutils/httpreq"
@@ -73,11 +72,19 @@ type PLoop struct {
 	Children []*Project `json:"projects"`
 }
 
+<<<<<<< HEAD
 func (d Project) GetServiceNames(q string)([]string,error){
 
 	projects,err :=d.GetAll()
 	if err != nil{
 		return nil,err
+=======
+func (d Project) GetServiceNames(q, jwtToken string) ([]string, error) {
+
+	projects, err := d.GetAll(jwtToken)
+	if err != nil {
+		return nil, err
+>>>>>>> 8b7cd30... #153 devloper self test
 	}
 	list:= make([]string,0)
 	for _, p := range projects {
@@ -97,28 +104,39 @@ func (d Project) GetServiceNames(q string)([]string,error){
 	return newList,nil
 }
 
-func (d Project) GetProject(serviceName string) (*Project, error) {
+func (d Project) GetProject(serviceName, jwtToken string) (*Project, error) {
 	urlStr := fmt.Sprintf("%v/v1/projects/%v?with_child=true", env.RtcApiUrl, serviceName)
 	var resp struct {
 		Success bool     `json:"success"`
 		Project *Project `json:"result"`
 	}
+<<<<<<< HEAD
 	statusCode,err:=httpreq.New(http.MethodGet, urlStr,nil).WithToken(d.token()).Call(&resp)
 	if err != nil{
 		return nil,err
+=======
+	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(jwtToken).Call(&resp)
+	if err != nil {
+		return nil, err
+>>>>>>> 8b7cd30... #153 devloper self test
 	}
 	if statusCode != http.StatusOK {
 		return nil, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
 	}
 	return resp.Project,nil
 }
+<<<<<<< HEAD
 func (d Project) GetDbAccount(dbType DateBaseType) (DbAccountDto, error) {
 	urlStr := fmt.Sprintf("%v/v1/db_accounts/%v", env.RtcApiUrl, dbType.String())
+=======
+func (d Project) GetAllDbAccount(jwtToken string) ([]DbAccountDto, error) {
+	urlStr := fmt.Sprintf("%v/v1/db_accounts", env.RtcApiUrl)
+>>>>>>> 8b7cd30... #153 devloper self test
 	var resp struct {
 		Success   bool         `json:"success"`
 		DbAccount DbAccountDto `json:"result"`
 	}
-	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(d.token()).Call(&resp)
+	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(jwtToken).Call(&resp)
 	if err != nil {
 		return resp.DbAccount, err
 	}
@@ -128,23 +146,23 @@ func (d Project) GetDbAccount(dbType DateBaseType) (DbAccountDto, error) {
 	return resp.DbAccount, nil
 }
 
-func (d Project) GetAll() ([]*Project, error) {
+func (d Project) GetAll(jwtToken string) ([]*Project, error) {
 	pLoop := &PLoop{
 		Children: make([]*Project, 0),
 	}
-	if err := d.getLoop(0, 2000, pLoop); err != nil {
+	if err := d.getLoop(0, 2000, jwtToken, pLoop); err != nil {
 		return nil, err
 	}
 	return pLoop.Children, nil
 }
 
-func (d Project) GetImageAccount() ([]ImageAccountDto, error) {
+func (d Project) GetImageAccount(jwtToken string) ([]ImageAccountDto, error) {
 	urlStr := fmt.Sprintf("%v/v1/image_accounts", env.RtcApiUrl)
 	var resp struct {
 		Success       bool              `json:"success"`
 		ImageAccounts []ImageAccountDto `json:"result"`
 	}
-	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(d.token()).Call(&resp)
+	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(jwtToken).Call(&resp)
 	if err != nil {
 		return resp.ImageAccounts, err
 	}
@@ -154,6 +172,7 @@ func (d Project) GetImageAccount() ([]ImageAccountDto, error) {
 	return resp.ImageAccounts, nil
 }
 
+<<<<<<< HEAD
 func (d Project) GetNamespace() ([]NamespaceDto, error) {
 	urlStr := fmt.Sprintf("%v/v1/namespaces", env.RtcApiUrl)
 	var resp struct {
@@ -172,6 +191,10 @@ func (d Project) GetNamespace() ([]NamespaceDto, error) {
 
 func (d Project) GetRegistryCommon() (ImageAccountDto, error) {
 	imageAccounts, err := d.GetImageAccount()
+=======
+func (d Project) GetRegistryCommon(jwtToken string) (ImageAccountDto, error) {
+	imageAccounts, err := d.GetImageAccount(jwtToken)
+>>>>>>> 8b7cd30... #153 devloper self test
 	if err != nil {
 		return ImageAccountDto{}, err
 	}
@@ -183,15 +206,19 @@ func (d Project) GetRegistryCommon() (ImageAccountDto, error) {
 	return ImageAccountDto{}, errors.New("no found common registry")
 }
 
-func (d Project) getLoop(skipCount, maxResultCount int64, pLoop *PLoop) error {
-	totalCount, pList, err := d.get(skipCount, maxResultCount)
+func (d Project) getLoop(skipCount, maxResultCount int64, jwtToken string, pLoop *PLoop) error {
+	totalCount, pList, err := d.get(skipCount, maxResultCount, jwtToken)
 	if err != nil {
 		return err
 	}
 	pLoop.Children = append(pLoop.Children, pList...)
 	if d.isContinueSync(skipCount, maxResultCount, totalCount) {
 		skipCount = skipCount + maxResultCount
+<<<<<<< HEAD
 		d.getLoop(skipCount,maxResultCount,pLoop)
+=======
+		d.getLoop(skipCount, maxResultCount, jwtToken, pLoop)
+>>>>>>> 8b7cd30... #153 devloper self test
 	}
 	return nil
 }
@@ -203,7 +230,7 @@ func (d Project) isContinueSync(skipCount,maxResultCount,totalCount int64) bool 
 	return false
 }
 
-func (d Project) get(skipCount, maxResultCount int64) (int64, []*Project, error) {
+func (d Project) get(skipCount, maxResultCount int64, jwtToken string) (int64, []*Project, error) {
 	urlStr := fmt.Sprintf("%v/v1/projects?skipCount=%v&maxResultCount=%v", env.RtcApiUrl, skipCount, maxResultCount)
 	var resp struct {
 		Success     bool `json:"success"`
@@ -212,20 +239,18 @@ func (d Project) get(skipCount, maxResultCount int64) (int64, []*Project, error)
 			TotalCount int64      `json:"totalCount"`
 		} `json:"result"`
 	}
+<<<<<<< HEAD
 	statusCode,err:=httpreq.New(http.MethodGet, urlStr,nil).WithToken(d.token()).Call(&resp)
 	if err != nil{
 		return int64(0),nil,err
+=======
+	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(jwtToken).Call(&resp)
+	if err != nil {
+		return int64(0), nil, err
+>>>>>>> 8b7cd30... #153 devloper self test
 	}
 	if statusCode != http.StatusOK {
 		return int64(0), nil, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
 	}
 	return resp.ArrayResult.TotalCount,resp.ArrayResult.Items,nil
-}
-
-func (d Project) token() string {
-	token := os.Getenv("JWT_TOKEN")
-	if len(token) == 0 {
-		panic(errors.New("miss environment: JWT_TOKEN"))
-	}
-	return token
 }

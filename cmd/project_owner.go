@@ -3,14 +3,14 @@ package cmd
 type ProjectOwner struct {
 }
 
-func (d ProjectOwner) ReLoad(p *Project) error {
+func (d ProjectOwner) ReLoad(p *Project,jwtToken string) error {
 	p.Owner.IsKafka = d.ShouldKafka(p)
 	p.Owner.IsMysql = d.ShouldDb(p, MYSQL)
 	p.Owner.IsSqlServer = d.ShouldDb(p, SQLSERVER)
 	p.Owner.IsRedis = d.ShouldDb(p, REDIS)
 	d.SetStreams(p)
 	p.Owner.IsStream = d.ShouldStream(p.Owner.StreamNames)
-	if err := d.SetEvent(p); err != nil {
+	if err := d.SetEvent(p,jwtToken); err != nil {
 		return err
 	}
 
@@ -18,18 +18,22 @@ func (d ProjectOwner) ReLoad(p *Project) error {
 	p.Owner.DbTypes = d.DatabaseList(list)
 	d.SetNames(p)
 	d.SetDependLoop(p)
+<<<<<<< HEAD
 
 	if err := d.SetDbAccount(p, list); err != nil {
 		return err
 	}
 	if err := d.SetImageAccount(p); err != nil {
+=======
+	if err := d.SetImageAccount(p,jwtToken); err != nil {
+>>>>>>> 8b7cd30... #153 devloper self test
 		return err
 	}
 	return nil
 }
-func (d ProjectOwner) SetImageAccount(p *Project) error {
+func (d ProjectOwner) SetImageAccount(p *Project,jwtToken string) error {
 	var err error
-	p.Owner.ImageAccounts, err = Project{}.GetImageAccount()
+	p.Owner.ImageAccounts, err = Project{}.GetImageAccount(jwtToken)
 	return err
 }
 func (d ProjectOwner) SetDbAccount(p *Project, list map[string][]string) error {
@@ -58,14 +62,14 @@ func (ProjectOwner) GetDbNameByType(dbType DateBaseType, list map[string][]strin
 	}
 	return nil
 }
-func (d ProjectOwner) SetEvent(p *Project) error {
+func (d ProjectOwner) SetEvent(p *Project,jwtToken string) error {
 	if p.Owner.IsStream {
 		var err error
-		p.Owner.EventProducer, err = Project{}.GetProject("event-broker-kafka")
+		p.Owner.EventProducer, err = Project{}.GetProject("event-broker-kafka",jwtToken)
 		if err != nil {
 			return err
 		}
-		p.Owner.EventConsumer, err = Project{}.GetProject("event-kafka-consumer")
+		p.Owner.EventConsumer, err = Project{}.GetProject("event-kafka-consumer",jwtToken)
 		if err != nil {
 			return err
 		}

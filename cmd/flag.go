@@ -11,19 +11,18 @@ import (
 	"github.com/alecthomas/kingpin"
 )
 
-
-
 type Flag struct {
 	LocalSql *bool
 	Env      *string
 	ImageEnv *string
 	Debug    *bool
 	NoLogin  *bool
-	NoPull   *bool
 
+	NoPull         *bool
 	NoLog          *bool
 	RegistryCommon *string
 	HostIp         *string
+	JwtToken       *string
 
 	MysqlPort     *string
 	RedisPort     *string
@@ -62,6 +61,7 @@ func (d Flag) Init(version string) (isContinue bool, serviceName *string, flag *
 			log.SetFlags(0)
 		}
 		flag.HostIp = d.getIp(flag.HostIp)
+		flag.JwtToken = d.getJwt(flag.JwtToken)
 		if BoolPointCheck(flag.NoLog) == false {
 			log.Println("log init ...")
 			if err := d.initJobLog(serviceName, flag); err != nil {
@@ -73,8 +73,8 @@ func (d Flag) Init(version string) (isContinue bool, serviceName *string, flag *
 	return
 }
 
-func (d Flag) showList(q string) error {
-	names, err := Project{}.GetServiceNames(q)
+func (d Flag) showList(q, jwtToken string) error {
+	names, err := Project{}.GetServiceNames(q, jwtToken)
 	if err != nil {
 		return err
 	}
@@ -90,15 +90,18 @@ func (d Flag) showList(q string) error {
 func (d Flag) configureLsCommand(app *kingpin.Application) {
 	var q string
 	var env *string
+	var jwtToken *string
 	ls := kingpin.Command("ls", "List service names from remote.").Action(func(c *kingpin.ParseContext) error {
 		SetEnv(*env)
-		err := d.showList(q)
+		jwt := d.getJwt(jwtToken)
+		err := d.showList(q, *jwt)
 		if err != nil {
 			panic(err)
 		}
 		return nil
 	})
 	ls.Arg("q", "Fuzzy query service name by `q`").StringVar(&q)
+	jwtToken = ls.Flag("jwt-token", "In order to access rtc-api you need to set the jwt-token, you can set the environment variable(JWT_TOKEN), or you can use this parameter.").String()
 	env = ls.Flag("env", `
 	1.Optional [staging, qa , production].
 	2.rtc runtime environment variable.
@@ -198,6 +201,7 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 		HostIp: run.Flag("host-ip", `
 	1.ip(default): auto get ip.
 	2.You can specify your host ip.`).String(),
+		JwtToken: run.Flag("jwt-token", "In order to access rtc-api you need to set the jwt-token, you can set the environment variable(JWT_TOKEN), or you can use this parameter.").String(),
 
 		MysqlPort:     run.Flag("mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
 		RedisPort:     run.Flag("redis-port", "You can change default redis port.").Default(outPort.Redis).String(),
@@ -223,6 +227,17 @@ func (d Flag) getIp(ipFlag *string) *string {
 		return func(ip string) *string { return &ip }(ip)
 	}
 	return &ip
+}
+
+func (d Flag) getJwt(jwtToken *string) *string {
+	token := os.Getenv("JWT_TOKEN")
+	if jwtToken != nil && len(*jwtToken) != 0 {
+		token = *jwtToken
+	}
+	if len(token) == 0 {
+		panic(errors.New("miss environment: JWT_TOKEN"))
+	}
+	return &token
 }
 
 func (d Flag) initJobLog(serviceName *string, flag *Flag) error {

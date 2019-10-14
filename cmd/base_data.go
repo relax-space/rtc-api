@@ -13,9 +13,16 @@ import (
 type BaseData struct {
 }
 
-func (d BaseData) Write(p *Project) error {
+func (d BaseData) Write(p *Project, jwtToken string) error {
 	Info("base data fetching ...")
 	folder := fmt.Sprintf("%v/database", TEMP_FILE)
+<<<<<<< HEAD
+=======
+	dbAccounts, err := Project{}.GetAllDbAccount(jwtToken)
+	if err != nil {
+		return err
+	}
+>>>>>>> 8b7cd30... #153 devloper self test
 	if p.Owner.IsMysql {
 		folder += "/mysql"
 		if err := (Folder{}).MkdirAll(folder); err != nil {
@@ -43,6 +50,7 @@ func (d BaseData) getNamePure(name string) (string, error) {
 	}
 	return namePure, nil
 }
+<<<<<<< HEAD
 func (d BaseData) namespaceFilters() ([]string, error) {
 	namespaces, err := (Project{}).GetNamespace()
 	if err != nil {
@@ -64,6 +72,11 @@ func (d BaseData) writeMysql(dbAccount DbAccountDto, folder string) error {
 			return err
 		}
 
+=======
+func (d BaseData) writeMysql(dbAccounts []DbAccountDto, dbDtos []DatabaseDto, folder string) error {
+	for _, dbDto := range dbDtos {
+		dbAccount := Project{}.GetDbAccount(dbAccounts, MYSQL, dbDto.TenantName)
+>>>>>>> 8b7cd30... #153 devloper self test
 		config := mysql.NewConfig()
 		config.User = dbAccount.User
 		config.Passwd = dbAccount.Pwd

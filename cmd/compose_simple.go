@@ -29,7 +29,7 @@ func (d ComposeSimple) Start(serviceName string, flag *Flag) error {
 		return err
 	}
 	if BoolPointCheck(flag.NoLogin) == false {
-		r, err := Project{}.GetRegistryCommon()
+		r, err := Project{}.GetRegistryCommon(*flag.JwtToken)
 		if err != nil {
 			return err
 		}

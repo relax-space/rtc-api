@@ -19,19 +19,18 @@ func Start(version string) {
 		}
 		return
 	}
-
-	project, err := Project{}.GetProject(*serviceName)
+	project, err := Project{}.GetProject(*serviceName, *flag.JwtToken)
 	if err != nil {
 		Error(err)
 		return
 	}
 
-	if err = (ProjectOwner{}).ReLoad(project); err != nil {
+	if err = (ProjectOwner{}).ReLoad(project, *flag.JwtToken); err != nil {
 		Error(err)
 		return
 	}
 
-	if err = (BaseData{}).Write(project); err != nil {
+	if err = (BaseData{}).Write(project, *flag.JwtToken); err != nil {
 		Error(err)
 		return
 	}
