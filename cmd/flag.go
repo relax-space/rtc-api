@@ -11,7 +11,7 @@ import (
 	"github.com/alecthomas/kingpin"
 )
 
-var Version string
+
 
 type Flag struct {
 	LocalSql *bool
@@ -37,13 +37,13 @@ type Flag struct {
 	ZookeeperPort *string
 }
 
-func (d Flag) Init() (isContinue bool, serviceName *string, flag *Flag) {
+func (d Flag) Init(version string) (isContinue bool, serviceName *string, flag *Flag) {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Author("qa group")
 	kingpin.CommandLine.Help = "A tool that runs microservices and its dependencies.For detail flags of each command run `help [<command>...]`."
-	if len(Version) == 0 {
-		Version = "v1.0"
+	if len(version) == 0 {
+		version = "v1.0"
 	}
-	kingpin.CommandLine.Version(Version)
+	kingpin.CommandLine.Version(version)
 	d.configureLsCommand(kingpin.CommandLine)
 	d.configureDownCommand(kingpin.CommandLine)
 	serviceName, flag = d.configureRunCommand(kingpin.CommandLine)

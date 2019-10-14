@@ -1,7 +1,7 @@
 package cmd
 
-func Start() {
-	isContinue, serviceName, flag := (Flag{}).Init()
+func Start(version string) {
+	isContinue, serviceName, flag := (Flag{}).Init(version)
 	if isContinue == false {
 		return
 	}
