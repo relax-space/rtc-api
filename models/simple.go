@@ -22,6 +22,12 @@ type Namespace struct {
 	Name       string `json:"name"`
 }
 
+func (Namespace) GetByTenantName(ctx context.Context, tenantName string) ([]Namespace, error) {
+	var namespace []Namespace
+	err := factory.DB(ctx).Where("tenant_name = ?", tenantName).Find(&namespace)
+	return namespace, err
+}
+
 func (Namespace) GetAll(ctx context.Context) ([]Namespace, error) {
 	var namespace []Namespace
 	err := factory.DB(ctx).Find(&namespace)

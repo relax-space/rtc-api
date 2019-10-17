@@ -11,29 +11,36 @@ import (
 	"github.com/alecthomas/kingpin"
 )
 
+const (
+	PRETEST = "rtc-"
+)
+
 type Flag struct {
-	LocalSql *bool
-	Env      *string
-	ImageEnv *string
-	Debug    *bool
-	NoLogin  *bool
-
-	NoPull         *bool
-	NoLog          *bool
+	LocalSql       *bool
+	Env            *string
+	ImageEnv       *string
+	Debug          *bool
 	RegistryCommon *string
-	HostIp         *string
 	JwtToken       *string
+	Prefix         *string
 
-	MysqlPort     *string
-	RedisPort     *string
-	MongoPort     *string
-	SqlServerPort *string
-	KafkaPort     *string
+	DockerNoLog   *bool
+	DockerNoLogin *bool
+	DockerNoPull  *bool
+	DockerNoDown  *bool
+	DockerNoCheck *bool
+	DockerHostIp  *string
 
-	KafkaSecondPort *string
+	DockerMysqlPort     *string
+	DockerRedisPort     *string
+	DockerMongoPort     *string
+	DockerSqlServerPort *string
+	DockerKafkaPort     *string
+
+	DockerKafkaSecondPort *string
 	//EventBrokerPort *string
-	NginxPort     *string
-	ZookeeperPort *string
+	DockerNginxPort     *string
+	DockerZookeeperPort *string
 }
 
 func (d Flag) Init(version string) (isContinue bool, serviceName *string, flag *Flag) {
@@ -60,9 +67,10 @@ func (d Flag) Init(version string) (isContinue bool, serviceName *string, flag *
 		} else {
 			log.SetFlags(0)
 		}
-		flag.HostIp = d.getIp(flag.HostIp)
+		flag.DockerHostIp = d.getIp(flag.DockerHostIp)
 		flag.JwtToken = d.getJwt(flag.JwtToken)
-		if BoolPointCheck(flag.NoLog) == false {
+		flag.Prefix = d.getPrefix(flag.Prefix)
+		if BoolPointCheck(flag.DockerNoLog) == false {
 			log.Println("log init ...")
 			if err := d.initJobLog(serviceName, flag); err != nil {
 				log.Println(err)
@@ -191,27 +199,30 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 	2.rtc runtime environment variable.
 	3.The default is qa, you can choose other option`).Short('t').Default("qa").String(),
 
-		Debug:   run.Flag("debug", "You can see log for debug.").Bool(),
-		NoLogin: run.Flag("no-login", "You can ignore login step.").Bool(),
-		NoPull:  run.Flag("no-pull", "You can ignore pull images step.").Bool(),
-		NoLog:   run.Flag("no-log", "You can disable uploading logs.").Bool(),
+		Debug: run.Flag("debug", "You can see log for debug.").Bool(),
 		RegistryCommon: run.Flag("registry-common", `
 	1.You can set private registry for common image,like: mysql,ngnix,kafka.
 	2.default: registry.p2shop.com.cn.`).String(),
-		HostIp: run.Flag("host-ip", `
+		JwtToken: run.Flag("jwt-token", "In order to access rtc-api you need to set the jwt-token, you can set the environment variable(JWT_TOKEN), or you can use this parameter.").String(),
+		Prefix:   run.Flag("prefix", "You can modify the prefix of the microserver's docker container name.").String(),
+
+		DockerNoLogin: run.Flag("docker-no-login", "You can ignore login step.").Bool(),
+		DockerNoPull:  run.Flag("docker-no-pull", "You can ignore pull images step.").Bool(),
+		DockerNoDown:  run.Flag("docker-no-down", "You can ignore docker-compose down step.").Bool(),
+		DockerNoCheck: run.Flag("docker-no-check", "You can ignore docker-compose check mysql kafka etc.").Bool(),
+		DockerNoLog:   run.Flag("docker-no-log", "You can disable uploading logs.").Bool(),
+		DockerHostIp: run.Flag("docker-host-ip", `
 	1.ip(default): auto get ip.
 	2.You can specify your host ip.`).String(),
-		JwtToken: run.Flag("jwt-token", "In order to access rtc-api you need to set the jwt-token, you can set the environment variable(JWT_TOKEN), or you can use this parameter.").String(),
+		DockerMysqlPort:     run.Flag("docker-mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
+		DockerRedisPort:     run.Flag("docker-redis-port", "You can change default redis port.").Default(outPort.Redis).String(),
+		DockerMongoPort:     run.Flag("docker-mongo-port", "You can change default mongo port.").Default(outPort.Mongo).String(),
+		DockerSqlServerPort: run.Flag("docker-sqlserver-port", "You can change default sqlserver port.").Default(outPort.SqlServer).String(),
+		DockerKafkaPort:     run.Flag("docker-kafka-port", "You can change default kafka port.").Default(outPort.Kafka).String(),
 
-		MysqlPort:     run.Flag("mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
-		RedisPort:     run.Flag("redis-port", "You can change default redis port.").Default(outPort.Redis).String(),
-		MongoPort:     run.Flag("mongo-port", "You can change default mongo port.").Default(outPort.Mongo).String(),
-		SqlServerPort: run.Flag("sqlserver-port", "You can change default sqlserver port.").Default(outPort.SqlServer).String(),
-		KafkaPort:     run.Flag("kafka-port", "You can change default kafka port.").Default(outPort.Kafka).String(),
-
-		KafkaSecondPort: run.Flag("kafka-second-port", "This parameter is reserved.").Default(outPort.KafkaSecond).String(),
+		DockerKafkaSecondPort: run.Flag("docker-kafka-second-port", "This parameter is reserved.").Default(outPort.KafkaSecond).String(),
 		//EventBrokerPort: run.Flag("event-broker-port", "You can change default event-broker port.").Default(outPort.EventBroker).String(),
-		NginxPort: run.Flag("nginx-port", "You can change default nginx port.").Default(outPort.Nginx).String(),
+		DockerNginxPort: run.Flag("docker-nginx-port", "You can change default nginx port.").Default(outPort.Nginx).String(),
 		//ZookeeperPort:   run.Flag("zookeeper-port", "You can change default zookeeper port.").Default(outPort.Zookeeper).String(),
 	}
 	return
@@ -239,10 +250,17 @@ func (d Flag) getJwt(jwtToken *string) *string {
 	}
 	return &token
 }
+func (d Flag) getPrefix(prefixFlag *string) *string {
+	if StringPointCheck(prefixFlag) {
+		return prefixFlag
+	}
+	prefix := PRETEST
+	return &prefix
+}
 
 func (d Flag) initJobLog(serviceName *string, flag *Flag) error {
 
-	jobLog = joblog.New(JobLogUrl+"/batchjob-api/v1/jobs", "rtc-api", map[string]interface{}{"service name:": serviceName, "ip": *flag.HostIp})
+	jobLog = joblog.New(JobLogUrl+"/batchjob-api/v1/jobs", "rtc-api", map[string]interface{}{"service name:": serviceName, "ip": *flag.DockerHostIp})
 	if jobLog.Err != nil {
 		return jobLog.Err
 	}

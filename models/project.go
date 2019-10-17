@@ -11,7 +11,7 @@ import (
 
 type Project struct {
 	Id         int    `json:"id" xorm:"pk autoincr"`
-	Name       string `json:"name" xorm:"unique"` //service + "|" + namespace
+	Name       string `json:"name" xorm:"unique"` //service + "-" + tenantName + "-" + namespace
 	Service    string `json:"service" xorm:"index notnull"`
 	Namespace  string `json:"namespace" xorm:"index"`
 	TenantName string `json:"tenantName"`
@@ -19,9 +19,36 @@ type Project struct {
 	SubIds  []int      `json:"subIds" xorm:"varchar(255)"` //subIds
 	Setting SettingDto `json:"setting" xorm:"json"`
 
-	Children  []*Project `json:"children" xorm:"-"`
-	CreatedAt *time.Time `json:"createdAt" xorm:"created"`
-	UpdatedAt *time.Time `json:"updatedAt" xorm:"updated"`
+	CreatedAt *time.Time      `json:"createdAt" xorm:"created"`
+	UpdatedAt *time.Time      `json:"updatedAt" xorm:"updated"`
+	Children  []*Project      `json:"children" xorm:"-"`
+	DependsOn []string        `json:"dependsOn" xorm:"-"`
+	Owner     ProjectOwnerDto `json:"owner" xorm:"-"`
+}
+type ProjectSimple struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type ProjectOwnerDto struct {
+	IsKafka     bool
+	IsMysql     bool
+	IsSqlServer bool
+	IsRedis     bool
+	IsStream    bool
+
+	DbTypes       []string
+	ChildNames    []string
+	StreamNames   []string
+	EventProducer *Project
+	EventConsumer *Project
+	Databases     map[string][]DatabaseDto
+	ImageAccounts []ImageAccount
+}
+type DatabaseDto struct {
+	TenantName string
+	Namespace  string
+	DbName     string
 }
 
 type SettingDto struct {
@@ -90,6 +117,15 @@ func (Project) GetByIds(ctx context.Context, ids []int) ([]*Project, error) {
 func (Project) GetAllReal(ctx context.Context) ([]*Project, error) {
 	var items []*Project
 	err := factory.DB(ctx).Find(&items)
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (Project) GetAllSimple(ctx context.Context) ([]ProjectSimple, error) {
+	var items []ProjectSimple
+	err := factory.DB(ctx).Table("project").Cols("id", "name").Find(&items)
 	if err != nil {
 		return nil, err
 	}
