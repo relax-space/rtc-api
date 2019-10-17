@@ -10,10 +10,11 @@ import (
 )
 
 type Project struct {
-	Id        int    `json:"id"`
-	Name      string `json:"name"` //service + "-" + namespace
-	Service   string `json:"service"`
-	Namespace string `json:"namespace"`
+	Id         int    `json:"id"`
+	Name       string `json:"name"` //service + "-" + namespace
+	Service    string `json:"service"`
+	Namespace  string `json:"namespace"`
+	TenantName string `json:"tenantName"`
 
 	SubIds  []int       `json:"subIds"` //subIds
 	Setting *SettingDto `json:"setting"`
@@ -30,24 +31,29 @@ type ProjectOwnerDto struct {
 	IsRedis     bool
 	IsStream    bool
 
-	DbTypes          []string
-	ChildNames       []string
-	StreamNames      []string
-	EventProducer    *Project
-	EventConsumer    *Project
-	MysqlAccount     DbAccountDto
-	SqlServerAccount DbAccountDto
-	ImageAccounts    []ImageAccountDto
+	DbTypes       []string
+	ChildNames    []string
+	StreamNames   []string
+	EventProducer *Project
+	EventConsumer *Project
+	Databases     map[string][]DatabaseDto
+	ImageAccounts []ImageAccountDto
+}
+
+type DatabaseDto struct {
+	TenantName string
+	Namespace  string
+	DbName     string
 }
 
 type DbAccountDto struct {
-	Host    string
-	Port    int
-	User    string
-	Pwd     string
-	DbNames []string
+	TenantName string
+	Name       string
+	Host       string
+	Port       int
+	User       string
+	Pwd        string
 }
-
 type ImageAccountDto struct {
 	Registry  string `json:"registry"`
 	LoginName string `json:"loginName"`
@@ -72,23 +78,15 @@ type PLoop struct {
 	Children []*Project `json:"projects"`
 }
 
-<<<<<<< HEAD
-func (d Project) GetServiceNames(q string)([]string,error){
-
-	projects,err :=d.GetAll()
-	if err != nil{
-		return nil,err
-=======
 func (d Project) GetServiceNames(q, jwtToken string) ([]string, error) {
 
 	projects, err := d.GetAll(jwtToken)
 	if err != nil {
 		return nil, err
->>>>>>> 8b7cd30... #153 devloper self test
 	}
-	list:= make([]string,0)
+	list := make([]string, 0)
 	for _, p := range projects {
-		list= append(list,p.Name)
+		list = append(list, p.Name)
 	}
 	newList := make([]string, 0)
 	if len(q) != 0 {
@@ -101,40 +99,37 @@ func (d Project) GetServiceNames(q, jwtToken string) ([]string, error) {
 	} else {
 		newList = list
 	}
-	return newList,nil
+	return newList, nil
 }
 
 func (d Project) GetProject(serviceName, jwtToken string) (*Project, error) {
-	urlStr := fmt.Sprintf("%v/v1/projects/%v?with_child=true", env.RtcApiUrl, serviceName)
+	urlStr := fmt.Sprintf("%v/v1/projects?name=%v&with_child=true", env.RtcApiUrl, serviceName)
 	var resp struct {
 		Success bool     `json:"success"`
 		Project *Project `json:"result"`
 	}
-<<<<<<< HEAD
-	statusCode,err:=httpreq.New(http.MethodGet, urlStr,nil).WithToken(d.token()).Call(&resp)
-	if err != nil{
-		return nil,err
-=======
 	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(jwtToken).Call(&resp)
 	if err != nil {
 		return nil, err
->>>>>>> 8b7cd30... #153 devloper self test
 	}
 	if statusCode != http.StatusOK {
 		return nil, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
 	}
-	return resp.Project,nil
+	return resp.Project, nil
 }
-<<<<<<< HEAD
-func (d Project) GetDbAccount(dbType DateBaseType) (DbAccountDto, error) {
-	urlStr := fmt.Sprintf("%v/v1/db_accounts/%v", env.RtcApiUrl, dbType.String())
-=======
+func (d Project) GetDbAccount(dbAccounts []DbAccountDto, dbType DateBaseType, tenant string) DbAccountDto {
+	for _, dbAccount := range dbAccounts {
+		if dbAccount.TenantName == tenant && dbAccount.Name == dbType.String() {
+			return dbAccount
+		}
+	}
+	return DbAccountDto{}
+}
 func (d Project) GetAllDbAccount(jwtToken string) ([]DbAccountDto, error) {
 	urlStr := fmt.Sprintf("%v/v1/db_accounts", env.RtcApiUrl)
->>>>>>> 8b7cd30... #153 devloper self test
 	var resp struct {
-		Success   bool         `json:"success"`
-		DbAccount DbAccountDto `json:"result"`
+		Success   bool           `json:"success"`
+		DbAccount []DbAccountDto `json:"result"`
 	}
 	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(jwtToken).Call(&resp)
 	if err != nil {
@@ -172,29 +167,8 @@ func (d Project) GetImageAccount(jwtToken string) ([]ImageAccountDto, error) {
 	return resp.ImageAccounts, nil
 }
 
-<<<<<<< HEAD
-func (d Project) GetNamespace() ([]NamespaceDto, error) {
-	urlStr := fmt.Sprintf("%v/v1/namespaces", env.RtcApiUrl)
-	var resp struct {
-		Success    bool           `json:"success"`
-		Namespaces []NamespaceDto `json:"result"`
-	}
-	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(d.token()).Call(&resp)
-	if err != nil {
-		return resp.Namespaces, err
-	}
-	if statusCode != http.StatusOK {
-		return resp.Namespaces, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
-	}
-	return resp.Namespaces, nil
-}
-
-func (d Project) GetRegistryCommon() (ImageAccountDto, error) {
-	imageAccounts, err := d.GetImageAccount()
-=======
 func (d Project) GetRegistryCommon(jwtToken string) (ImageAccountDto, error) {
 	imageAccounts, err := d.GetImageAccount(jwtToken)
->>>>>>> 8b7cd30... #153 devloper self test
 	if err != nil {
 		return ImageAccountDto{}, err
 	}
@@ -214,19 +188,15 @@ func (d Project) getLoop(skipCount, maxResultCount int64, jwtToken string, pLoop
 	pLoop.Children = append(pLoop.Children, pList...)
 	if d.isContinueSync(skipCount, maxResultCount, totalCount) {
 		skipCount = skipCount + maxResultCount
-<<<<<<< HEAD
-		d.getLoop(skipCount,maxResultCount,pLoop)
-=======
 		d.getLoop(skipCount, maxResultCount, jwtToken, pLoop)
->>>>>>> 8b7cd30... #153 devloper self test
 	}
 	return nil
 }
 
-func (d Project) isContinueSync(skipCount,maxResultCount,totalCount int64) bool {
-		if int64(skipCount+maxResultCount) < totalCount {
-			return true
-		}
+func (d Project) isContinueSync(skipCount, maxResultCount, totalCount int64) bool {
+	if int64(skipCount+maxResultCount) < totalCount {
+		return true
+	}
 	return false
 }
 
@@ -239,18 +209,12 @@ func (d Project) get(skipCount, maxResultCount int64, jwtToken string) (int64, [
 			TotalCount int64      `json:"totalCount"`
 		} `json:"result"`
 	}
-<<<<<<< HEAD
-	statusCode,err:=httpreq.New(http.MethodGet, urlStr,nil).WithToken(d.token()).Call(&resp)
-	if err != nil{
-		return int64(0),nil,err
-=======
 	statusCode, err := httpreq.New(http.MethodGet, urlStr, nil).WithToken(jwtToken).Call(&resp)
 	if err != nil {
 		return int64(0), nil, err
->>>>>>> 8b7cd30... #153 devloper self test
 	}
 	if statusCode != http.StatusOK {
 		return int64(0), nil, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
 	}
-	return resp.ArrayResult.TotalCount,resp.ArrayResult.Items,nil
+	return resp.ArrayResult.TotalCount, resp.ArrayResult.Items, nil
 }

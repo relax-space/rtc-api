@@ -1,59 +1,39 @@
 package cmd
 
+const (
+	DbAccount_Tenant_Split = "|"
+)
+
 type ProjectOwner struct {
 }
 
-func (d ProjectOwner) ReLoad(p *Project,jwtToken string) error {
+func (d ProjectOwner) ReLoad(p *Project, jwtToken string) error {
 	p.Owner.IsKafka = d.ShouldKafka(p)
 	p.Owner.IsMysql = d.ShouldDb(p, MYSQL)
 	p.Owner.IsSqlServer = d.ShouldDb(p, SQLSERVER)
 	p.Owner.IsRedis = d.ShouldDb(p, REDIS)
 	d.SetStreams(p)
 	p.Owner.IsStream = d.ShouldStream(p.Owner.StreamNames)
-	if err := d.SetEvent(p,jwtToken); err != nil {
+	if err := d.SetEvent(p, jwtToken); err != nil {
 		return err
 	}
 
 	list := d.Database(p)
-	p.Owner.DbTypes = d.DatabaseList(list)
+	p.Owner.Databases = list
+	p.Owner.DbTypes = d.DatabaseTypes(list)
 	d.SetNames(p)
 	d.SetDependLoop(p)
-<<<<<<< HEAD
-
-	if err := d.SetDbAccount(p, list); err != nil {
-		return err
-	}
-	if err := d.SetImageAccount(p); err != nil {
-=======
-	if err := d.SetImageAccount(p,jwtToken); err != nil {
->>>>>>> 8b7cd30... #153 devloper self test
+	if err := d.SetImageAccount(p, jwtToken); err != nil {
 		return err
 	}
 	return nil
 }
-func (d ProjectOwner) SetImageAccount(p *Project,jwtToken string) error {
+func (d ProjectOwner) SetImageAccount(p *Project, jwtToken string) error {
 	var err error
 	p.Owner.ImageAccounts, err = Project{}.GetImageAccount(jwtToken)
 	return err
 }
-func (d ProjectOwner) SetDbAccount(p *Project, list map[string][]string) error {
-	var err error
-	if p.Owner.IsMysql {
-		p.Owner.MysqlAccount, err = Project{}.GetDbAccount(MYSQL)
-		if err != nil {
-			return err
-		}
-		p.Owner.MysqlAccount.DbNames = d.GetDbNameByType(MYSQL, list)
-	}
-	if p.Owner.IsSqlServer {
-		p.Owner.SqlServerAccount, err = Project{}.GetDbAccount(SQLSERVER)
-		if err != nil {
-			return err
-		}
-		p.Owner.SqlServerAccount.DbNames = d.GetDbNameByType(SQLSERVER, list)
-	}
-	return nil
-}
+
 func (ProjectOwner) GetDbNameByType(dbType DateBaseType, list map[string][]string) []string {
 	for k, v := range list {
 		if dbType.String() == k {
@@ -62,14 +42,14 @@ func (ProjectOwner) GetDbNameByType(dbType DateBaseType, list map[string][]strin
 	}
 	return nil
 }
-func (d ProjectOwner) SetEvent(p *Project,jwtToken string) error {
+func (d ProjectOwner) SetEvent(p *Project, jwtToken string) error {
 	if p.Owner.IsStream {
 		var err error
-		p.Owner.EventProducer, err = Project{}.GetProject("event-broker-kafka",jwtToken)
+		p.Owner.EventProducer, err = Project{}.GetProject("event-broker-kafka", jwtToken)
 		if err != nil {
 			return err
 		}
-		p.Owner.EventConsumer, err = Project{}.GetProject("event-kafka-consumer",jwtToken)
+		p.Owner.EventConsumer, err = Project{}.GetProject("event-kafka-consumer", jwtToken)
 		if err != nil {
 			return err
 		}
@@ -82,16 +62,23 @@ func (d ProjectOwner) SetEvent(p *Project,jwtToken string) error {
 			p.Setting.Databases = make(map[string][]string, 0)
 		}
 		for k, v := range list {
-			if _, ok := p.Setting.Databases[k]; ok {
-				p.Setting.Databases[k] = append(p.Setting.Databases[k], v...)
+			if _, ok := list[k]; ok {
+				p.Setting.Databases[k] = append(p.Setting.Databases[k], d.removeTenant(v)...)
 			} else {
-				p.Setting.Databases[k] = v
+				p.Setting.Databases[k] = d.removeTenant(v)
 			}
 		}
 	}
 	return nil
 }
+func (d ProjectOwner) removeTenant(dbDtos []DatabaseDto) []string {
+	dbNames := make([]string, 0)
+	for _, v := range dbDtos {
+		dbNames = append(dbNames, v.DbName)
+	}
+	return dbNames
 
+}
 func (d ProjectOwner) ShouldKafka(p *Project) bool {
 	flag := false
 	d.kafka([]*Project{p}, &flag)
@@ -115,7 +102,7 @@ func (d ProjectOwner) ShouldStream(streams []string) bool {
 	return false
 }
 
-func (d ProjectOwner) DatabaseList(list map[string][]string) []string {
+func (d ProjectOwner) DatabaseTypes(list map[string][]DatabaseDto) []string {
 	dbTypes := make([]string, 0)
 	for k := range list {
 		dbTypes = append(dbTypes, k)
@@ -123,23 +110,43 @@ func (d ProjectOwner) DatabaseList(list map[string][]string) []string {
 	return dbTypes
 }
 
-func (d ProjectOwner) Database(p *Project) (list map[string][]string) {
-	list = make(map[string][]string, 0)
+func (d ProjectOwner) DatabaseTypesString(list map[string][]string) []string {
+	dbTypes := make([]string, 0)
+	for k := range list {
+		dbTypes = append(dbTypes, k)
+	}
+	return dbTypes
+}
+
+func (d ProjectOwner) Database(p *Project) (list map[string][]DatabaseDto) {
+	list = make(map[string][]DatabaseDto, 0)
 	projects := []*Project{p}
 	d.database(list, projects)
 	for k, v := range list {
-		list[k] = Unique(v)
+		list[k] = d.Unique(v)
 	}
 	return
 }
 
-func (d ProjectOwner) database(list map[string][]string, projects []*Project) {
+func (d ProjectOwner) Unique(params []DatabaseDto) (list []DatabaseDto) {
+	list = make([]DatabaseDto, 0)
+	temp := make(map[string]DatabaseDto, 0)
+	for _, v := range params {
+		temp[v.Namespace+v.DbName] = v
+	}
+	for _, v := range temp {
+		list = append(list, v)
+	}
+	return
+}
+
+func (d ProjectOwner) database(list map[string][]DatabaseDto, projects []*Project) {
 	for _, project := range projects {
 		for k, v := range project.Setting.Databases {
 			if _, ok := list[k]; ok {
-				list[k] = append(list[k], v...)
+				list[k] = append(list[k], d.addTenant(v, project.TenantName, project.Namespace)...)
 			} else {
-				list[k] = v
+				list[k] = d.addTenant(v, project.TenantName, project.Namespace)
 			}
 		}
 		if len(project.Children) != 0 {
@@ -147,6 +154,17 @@ func (d ProjectOwner) database(list map[string][]string, projects []*Project) {
 		}
 	}
 	return
+}
+func (d ProjectOwner) addTenant(dbNames []string, tenantName, namespace string) []DatabaseDto {
+	dbDtos := make([]DatabaseDto, 0)
+	for _, dbName := range dbNames {
+		dbDtos = append(dbDtos, DatabaseDto{
+			TenantName: tenantName,
+			DbName:     dbName,
+			Namespace:  namespace,
+		})
+	}
+	return dbDtos
 }
 
 func (d ProjectOwner) kafka(projects []*Project, isKafka *bool) {
@@ -193,7 +211,7 @@ func (d ProjectOwner) setDepend(pLoop *Project) {
 	if pLoop.Setting.IsProjectKafka {
 		pLoop.DependsOn = append(pLoop.DependsOn, "kafka")
 	}
-	dbTypes := d.DatabaseList(pLoop.Setting.Databases)
+	dbTypes := d.DatabaseTypesString(pLoop.Setting.Databases)
 	pLoop.DependsOn = append(pLoop.DependsOn, dbTypes...)
 }
 
