@@ -35,7 +35,7 @@ func Start(version string) {
 		return
 	}
 
-	if err = (Nginx{}).Write(project); err != nil {
+	if err = (Nginx{}).Write(project,*flag.Prefix); err != nil {
 		Error(err)
 		return
 	}

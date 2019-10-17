@@ -28,7 +28,7 @@ func (d ComposeSimple) Start(serviceName string, flag *Flag) error {
 	if err := d.ComposeYml(serviceName, flag); err != nil {
 		return err
 	}
-	if BoolPointCheck(flag.NoLogin) == false {
+	if BoolPointCheck(flag.DockerNoLogin) == false {
 		r, err := Project{}.GetRegistryCommon(*flag.JwtToken)
 		if err != nil {
 			return err
@@ -39,14 +39,17 @@ func (d ComposeSimple) Start(serviceName string, flag *Flag) error {
 		}
 	}
 	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
-	if err := d.Down(dockercompose, flag); err != nil {
-		return err
+	if BoolPointCheck(flag.DockerNoDown) == false {
+		if err := d.Down(dockercompose, flag); err != nil {
+			return err
+		}
+		Info("==> compose downed!")
 	}
-	if err := d.CheckAll(serviceName, dockercompose, flag); err != nil {
-		return err
+	if BoolPointCheck(flag.DockerNoCheck) == false {
+		if err := d.CheckAll(serviceName, dockercompose, flag); err != nil {
+			return err
+		}
 	}
-	Info("==> compose downed!")
-
 	if err := d.Up(dockercompose); err != nil {
 		return err
 	}
@@ -60,25 +63,29 @@ func (d ComposeSimple) ComposeYml(serviceName string, flag *Flag) error {
 	viper.SetConfigName(YMLNAMEDOCKERCOMPOSE)
 	viper.AddConfigPath(TEMP_FILE)
 
-	ip := *flag.HostIp
+	ip := *flag.DockerHostIp
 	compose := &Compose{}
 	compose.SetPort()
 	serviceList := strings.Split(serviceName, ",")
 	if ContainString(serviceList, KAFKASERVER.String()) {
-		if err := CheckHost(ip); err != nil {
+		if err := CheckHost(ip, *flag.Prefix); err != nil {
 			return err
 		}
 	}
 	for _, name := range serviceList {
 		switch name {
 		case KAFKASERVER.String():
-			compose.setKafkaEland(viper, *flag.KafkaPort, ip, flag.RegistryCommon)
+			compose.setKafkaEland(viper, *flag.DockerKafkaPort, ip, flag.RegistryCommon, *flag.Prefix)
 		case MYSQLSERVER.String():
-			compose.setMysql(viper, *flag.MysqlPort, flag.RegistryCommon)
+			mysqlPorts := strings.Split(*flag.DockerMysqlPort, ",")
+			for i, mysqPort := range mysqlPorts {
+				prefix := fmt.Sprint(*flag.Prefix, i, "-")
+				compose.setMysqlSimple(viper, mysqPort, flag.RegistryCommon, prefix)
+			}
 		case SQLSERVERSERVER.String():
-			compose.setSqlServer(viper, *flag.SqlServerPort, flag.RegistryCommon)
+			compose.setSqlServer(viper, *flag.DockerSqlServerPort, flag.RegistryCommon, *flag.Prefix)
 		case REDISSERVER.String():
-			compose.setRedis(viper, *flag.RedisPort, flag.RegistryCommon)
+			compose.setRedis(viper, *flag.DockerRedisPort, flag.RegistryCommon, *flag.Prefix)
 		}
 	}
 	return compose.WriteYml(viper)
@@ -87,19 +94,24 @@ func (d ComposeSimple) ComposeYml(serviceName string, flag *Flag) error {
 func (d ComposeSimple) CheckAll(serviceName, dockercompose string, flag *Flag) error {
 	compose := Compose{}
 	serviceList := strings.Split(serviceName, ",")
-	ip := *flag.HostIp
+	ip := *flag.DockerHostIp
 	for _, name := range serviceList {
 		switch name {
 		case KAFKASERVER.String():
-			if err := compose.checkKafka(dockercompose, *flag.KafkaPort, ip); err != nil {
+			if err := compose.checkKafka(dockercompose, *flag.DockerKafkaPort, ip); err != nil {
 				return err
 			}
 		case MYSQLSERVER.String():
-			if err := compose.checkMysql(dockercompose, *flag.MysqlPort, ip); err != nil {
-				return err
+			mysqlPorts := strings.Split(*flag.DockerMysqlPort, ",")
+			for i, mysqPort := range mysqlPorts {
+				prefix := fmt.Sprint(*flag.Prefix, i, "-")
+				if err := compose.checkMysqlSimple(dockercompose, mysqPort, ip, prefix); err != nil {
+					return err
+				}
 			}
+
 		case SQLSERVERSERVER.String():
-			if err := compose.checkSqlServer(dockercompose, *flag.SqlServerPort, ip); err != nil {
+			if err := compose.checkSqlServer(dockercompose, *flag.DockerSqlServerPort, ip); err != nil {
 				return err
 			}
 		}

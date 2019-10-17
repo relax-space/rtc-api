@@ -24,7 +24,7 @@ download example file from [github](https://github.com/relax-space/rtc-api/relea
 
 ```
 $ docker-compose -f example/docker-compose.yml up -d
-$ ./rtc run go-api --env staging --image-env="" --no-log
+$ ./rtc run go-api --env local --image-env="" --no-log
 ```
 
 ### Service find

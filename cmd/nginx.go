@@ -29,30 +29,30 @@ type Nginx struct {
 }
 
 // setNgnix set nginx default.conf
-func (d Nginx) Write(p *Project) (err error) {
+func (d Nginx) Write(p *Project, prefix string) (err error) {
 
 	if len(p.Setting.Ports) == 0 {
 		err = fmt.Errorf("port is required,project:%v", p.Name)
 		return
 	}
 	var location string
-	location += d.Location(p.Name, p.Setting.Ports[0])
+	location += d.Location(p.Name, p.Setting.Ports[0], prefix)
 	for _, sp := range p.Children {
 		if len(p.Setting.Ports) == 0 {
 			err = fmt.Errorf("port is required,project:%v", sp.Name)
 			return
 		}
-		location += d.Location(sp.Name, sp.Setting.Ports[0])
+		location += d.Location(sp.Name, sp.Setting.Ports[0], prefix)
 	}
 	if p.Owner.IsStream {
-		location += d.Location(p.Owner.EventProducer.Name, p.Owner.EventProducer.Setting.Ports[0])
+		location += d.Location(p.Owner.EventProducer.Name, p.Owner.EventProducer.Setting.Ports[0], prefix)
 	}
 	return (File{}).WriteString(TEMP_FILE+"/nginx", "default.conf", ngnixTemplateServer+location+"\n}")
 }
 
-func (Nginx) Location(serverName, port string) (location string) {
+func (Nginx) Location(serverName, port, prefix string) (location string) {
 	location = strings.Replace(ngnixTemplateLocation, "$serverName", serverName, -1)
-	location = strings.Replace(location, "$containerName", Compose{}.getContainerName(serverName), -1)
+	location = strings.Replace(location, "$containerName", Compose{}.getContainerName(serverName, prefix), -1)
 	location = strings.Replace(location, "$port", port, -1)
 	return
 }

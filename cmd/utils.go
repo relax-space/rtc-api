@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 
@@ -25,11 +24,10 @@ const (
 	YMLNAMEDOCKERCOMPOSE = "docker-compose"
 	CONFIGNAMENGINX      = "default"
 	SUFSERVER            = "-server"
-	PRETEST              = "rtc-"
 
 	TEMP_FILE = "temp"
 	//EventBroker_Name = "event-broker-kafka"
-	JobLogUrl = "https://gateway.p2shop.com.cn"
+	JobLogUrl      = "https://gateway.p2shop.com.cn"
 	REGISTRYCOMMON = "registry.p2shop.com.cn"
 )
 
@@ -164,13 +162,10 @@ func Info(message interface{}) {
 	}
 }
 
-func CheckHost(ip string) (err error) {
-	if runtime.GOOS != "windows" {
-		return
-	}
+func CheckHost(ip, prefix string) (err error) {
 	mapHost := map[string]string{
 		//"10.202.101.200": "registry.elandsystems.cn",
-		ip: PRETEST + "kafka",
+		ip: prefix + "kafka",
 	}
 
 	hosts, err := goodhosts.NewHosts()

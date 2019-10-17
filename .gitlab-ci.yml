@@ -7,7 +7,7 @@ variables:
   WINDOW_RTC: rtc-win64.exe
   MAC_RTC: rtc-darwin_amd64
   GOTEST_ENV:  "-e JWT_SECRET=1234"
-  RTC_ENV: " --no-login --mysql-port 3310 "
+  RTC_ENV: " --docker-no-login --docker-mysql-port 3310 --prefix rtc-first-"
 include: 
   - project: 'open/gitlab-ci'
     file: '/templates/beta-go.gitlab-ci.yml'
