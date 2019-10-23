@@ -68,7 +68,7 @@ func TestCmdBiz(t *testing.T) {
 			Databases:      map[string][]string{"mysql": []string{"fruit"}},
 		},
 	}
-	expProject.Name = models.Project{}.SetName(expProject.Service, expProject.Namespace)
+	expProject.Name = controllers.ProjectApiController{}.GetName(expProject.TenantName, expProject.Namespace, expProject.Service)
 	newProjects := []models.Project{
 		expProject,
 		subProject1,
@@ -80,7 +80,7 @@ func TestCmdBiz(t *testing.T) {
 		t.Run(fmt.Sprint("Create#", i+1), func(t *testing.T) {
 			expCreateProject := p
 			expCreateProject.Id = i + 1
-			expCreateProject.Namespace, expCreateProject.Name = controllers.ProjectApiController{}.GetNamespaceAndName(expCreateProject.TenantName, expCreateProject.Namespace, expCreateProject.Service)
+			expCreateProject.Name = controllers.ProjectApiController{}.GetName(expCreateProject.TenantName, expCreateProject.Namespace, expCreateProject.Service)
 
 			req := httptest.NewRequest(echo.POST, "/v1/projects", bytes.NewReader(pb))
 			setHeader(req)
@@ -188,7 +188,7 @@ func TestCmdBiz(t *testing.T) {
 		expUpdateProject := expProject
 		expUpdateProject.Id = id
 		expUpdateProject.Service = "go-api5"
-		expUpdateProject.Namespace, expUpdateProject.Name = controllers.ProjectApiController{}.GetNamespaceAndName(expUpdateProject.TenantName, expUpdateProject.Namespace, expUpdateProject.Service)
+		expUpdateProject.Name = controllers.ProjectApiController{}.GetName(expUpdateProject.TenantName, expUpdateProject.Namespace, expUpdateProject.Service)
 		pb, _ := json.Marshal(expUpdateProject)
 		req := httptest.NewRequest(echo.PUT, "/", bytes.NewReader(pb))
 		setHeader(req)

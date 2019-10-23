@@ -25,17 +25,12 @@ func Start(version string) {
 		return
 	}
 
-	if err = (ProjectOwner{}).ReLoad(project, *flag.JwtToken); err != nil {
-		Error(err)
-		return
-	}
-
 	if err = (BaseData{}).Write(project, *flag.JwtToken); err != nil {
 		Error(err)
 		return
 	}
 
-	if err = (Nginx{}).Write(project); err != nil {
+	if err = (Nginx{}).Write(project,*flag.Prefix); err != nil {
 		Error(err)
 		return
 	}

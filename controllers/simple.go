@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"nomni/utils/api"
 	"rtc-api/models"
 
 	"github.com/labstack/echo"
@@ -49,6 +50,7 @@ func (d NamespaceApiController) Init(g echoswagger.ApiGroup) {
 }
 
 func (d NamespaceApiController) GetAll(c echo.Context) error {
+
 	namespace, err := models.Namespace{}.GetAll(c.Request().Context())
 	if err != nil {
 		return ReturnApiFail(c, http.StatusInternalServerError, err)
@@ -62,6 +64,7 @@ type TenantApiController struct {
 func (d TenantApiController) Init(g echoswagger.ApiGroup) {
 	g.SetSecurity("Authorization")
 	g.GET("", d.GetAll)
+	g.GET("/:name/namespaces", d.GetNsByTenantName)
 }
 
 func (d TenantApiController) GetAll(c echo.Context) error {
@@ -70,4 +73,16 @@ func (d TenantApiController) GetAll(c echo.Context) error {
 		return ReturnApiFail(c, http.StatusInternalServerError, err)
 	}
 	return ReturnApiSucc(c, http.StatusOK, tenant)
+}
+
+func (d TenantApiController) GetNsByTenantName(c echo.Context) error {
+	tenantName := c.Param("name")
+	if len(tenantName) == 0 {
+		return ReturnApiFail(c, http.StatusBadRequest, api.MissRequiredParamError("name"))
+	}
+	namespace, err := models.Namespace{}.GetByTenantName(c.Request().Context(), tenantName)
+	if err != nil {
+		return ReturnApiFail(c, http.StatusInternalServerError, err)
+	}
+	return ReturnApiSucc(c, http.StatusOK, namespace)
 }

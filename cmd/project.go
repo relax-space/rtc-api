@@ -20,8 +20,8 @@ type Project struct {
 	Setting *SettingDto `json:"setting"`
 
 	Children  []*Project      `json:"children"`
-	DependsOn []string        `json:"-"`
-	Owner     ProjectOwnerDto `json:"-"`
+	DependsOn []string        `json:"dependsOn"`
+	Owner     ProjectOwnerDto `json:"owner"`
 }
 
 type ProjectOwnerDto struct {

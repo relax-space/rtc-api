@@ -1,20 +1,21 @@
-package cmd
+package controllers
 
-const (
-	DbAccount_Tenant_Split = "|"
+import (
+	"context"
+	"rtc-api/models"
 )
 
 type ProjectOwner struct {
 }
 
-func (d ProjectOwner) ReLoad(p *Project, jwtToken string) error {
+func (d ProjectOwner) Reload(ctx context.Context, p *models.Project) error {
 	p.Owner.IsKafka = d.ShouldKafka(p)
 	p.Owner.IsMysql = d.ShouldDb(p, MYSQL)
 	p.Owner.IsSqlServer = d.ShouldDb(p, SQLSERVER)
 	p.Owner.IsRedis = d.ShouldDb(p, REDIS)
 	d.SetStreams(p)
 	p.Owner.IsStream = d.ShouldStream(p.Owner.StreamNames)
-	if err := d.SetEvent(p, jwtToken); err != nil {
+	if err := d.SetEvent(ctx, p); err != nil {
 		return err
 	}
 
@@ -23,33 +24,25 @@ func (d ProjectOwner) ReLoad(p *Project, jwtToken string) error {
 	p.Owner.DbTypes = d.DatabaseTypes(list)
 	d.SetNames(p)
 	d.SetDependLoop(p)
-	if err := d.SetImageAccount(p, jwtToken); err != nil {
+	if err := d.SetImageAccount(ctx, p); err != nil {
 		return err
 	}
 	return nil
 }
-func (d ProjectOwner) SetImageAccount(p *Project, jwtToken string) error {
+func (d ProjectOwner) SetImageAccount(ctx context.Context, p *models.Project) error {
 	var err error
-	p.Owner.ImageAccounts, err = Project{}.GetImageAccount(jwtToken)
+	p.Owner.ImageAccounts, err = models.ImageAccount{}.GetAll(ctx)
 	return err
 }
 
-func (ProjectOwner) GetDbNameByType(dbType DateBaseType, list map[string][]string) []string {
-	for k, v := range list {
-		if dbType.String() == k {
-			return v
-		}
-	}
-	return nil
-}
-func (d ProjectOwner) SetEvent(p *Project, jwtToken string) error {
+func (d ProjectOwner) SetEvent(ctx context.Context, p *models.Project) error {
 	if p.Owner.IsStream {
 		var err error
-		p.Owner.EventProducer, err = Project{}.GetProject("event-broker-kafka", jwtToken)
+		_, p.Owner.EventProducer, err = models.Project{}.GetByName(ctx, "event-broker-kafka")
 		if err != nil {
 			return err
 		}
-		p.Owner.EventConsumer, err = Project{}.GetProject("event-kafka-consumer", jwtToken)
+		_, p.Owner.EventConsumer, err = models.Project{}.GetByName(ctx, "event-kafka-consumer")
 		if err != nil {
 			return err
 		}
@@ -71,7 +64,7 @@ func (d ProjectOwner) SetEvent(p *Project, jwtToken string) error {
 	}
 	return nil
 }
-func (d ProjectOwner) removeTenant(dbDtos []DatabaseDto) []string {
+func (d ProjectOwner) removeTenant(dbDtos []models.DatabaseDto) []string {
 	dbNames := make([]string, 0)
 	for _, v := range dbDtos {
 		dbNames = append(dbNames, v.DbName)
@@ -79,13 +72,13 @@ func (d ProjectOwner) removeTenant(dbDtos []DatabaseDto) []string {
 	return dbNames
 
 }
-func (d ProjectOwner) ShouldKafka(p *Project) bool {
+func (d ProjectOwner) ShouldKafka(p *models.Project) bool {
 	flag := false
-	d.kafka([]*Project{p}, &flag)
+	d.kafka([]*models.Project{p}, &flag)
 	return flag
 }
 
-func (d ProjectOwner) ShouldDb(p *Project, dbType DateBaseType) bool {
+func (d ProjectOwner) ShouldDb(p *models.Project, dbType DateBaseType) bool {
 	list := d.Database(p)
 	for k := range list {
 		if dbType.String() == k {
@@ -102,7 +95,7 @@ func (d ProjectOwner) ShouldStream(streams []string) bool {
 	return false
 }
 
-func (d ProjectOwner) DatabaseTypes(list map[string][]DatabaseDto) []string {
+func (d ProjectOwner) DatabaseTypes(list map[string][]models.DatabaseDto) []string {
 	dbTypes := make([]string, 0)
 	for k := range list {
 		dbTypes = append(dbTypes, k)
@@ -118,9 +111,9 @@ func (d ProjectOwner) DatabaseTypesString(list map[string][]string) []string {
 	return dbTypes
 }
 
-func (d ProjectOwner) Database(p *Project) (list map[string][]DatabaseDto) {
-	list = make(map[string][]DatabaseDto, 0)
-	projects := []*Project{p}
+func (d ProjectOwner) Database(p *models.Project) (list map[string][]models.DatabaseDto) {
+	list = make(map[string][]models.DatabaseDto, 0)
+	projects := []*models.Project{p}
 	d.database(list, projects)
 	for k, v := range list {
 		list[k] = d.Unique(v)
@@ -128,9 +121,9 @@ func (d ProjectOwner) Database(p *Project) (list map[string][]DatabaseDto) {
 	return
 }
 
-func (d ProjectOwner) Unique(params []DatabaseDto) (list []DatabaseDto) {
-	list = make([]DatabaseDto, 0)
-	temp := make(map[string]DatabaseDto, 0)
+func (d ProjectOwner) Unique(params []models.DatabaseDto) (list []models.DatabaseDto) {
+	list = make([]models.DatabaseDto, 0)
+	temp := make(map[string]models.DatabaseDto, 0)
 	for _, v := range params {
 		temp[v.Namespace+v.DbName] = v
 	}
@@ -140,7 +133,7 @@ func (d ProjectOwner) Unique(params []DatabaseDto) (list []DatabaseDto) {
 	return
 }
 
-func (d ProjectOwner) database(list map[string][]DatabaseDto, projects []*Project) {
+func (d ProjectOwner) database(list map[string][]models.DatabaseDto, projects []*models.Project) {
 	for _, project := range projects {
 		for k, v := range project.Setting.Databases {
 			if _, ok := list[k]; ok {
@@ -155,10 +148,10 @@ func (d ProjectOwner) database(list map[string][]DatabaseDto, projects []*Projec
 	}
 	return
 }
-func (d ProjectOwner) addTenant(dbNames []string, tenantName, namespace string) []DatabaseDto {
-	dbDtos := make([]DatabaseDto, 0)
+func (d ProjectOwner) addTenant(dbNames []string, tenantName, namespace string) []models.DatabaseDto {
+	dbDtos := make([]models.DatabaseDto, 0)
 	for _, dbName := range dbNames {
-		dbDtos = append(dbDtos, DatabaseDto{
+		dbDtos = append(dbDtos, models.DatabaseDto{
 			TenantName: tenantName,
 			DbName:     dbName,
 			Namespace:  namespace,
@@ -167,7 +160,7 @@ func (d ProjectOwner) addTenant(dbNames []string, tenantName, namespace string) 
 	return dbDtos
 }
 
-func (d ProjectOwner) kafka(projects []*Project, isKafka *bool) {
+func (d ProjectOwner) kafka(projects []*models.Project, isKafka *bool) {
 	for _, project := range projects {
 		if project.Setting.IsProjectKafka {
 			*isKafka = true
@@ -180,11 +173,11 @@ func (d ProjectOwner) kafka(projects []*Project, isKafka *bool) {
 	return
 }
 
-func (d ProjectOwner) SetNames(p *Project) {
+func (d ProjectOwner) SetNames(p *models.Project) {
 	d.childNames(p, p)
 }
 
-func (d ProjectOwner) childNames(p *Project, pLoop *Project) {
+func (d ProjectOwner) childNames(p *models.Project, pLoop *models.Project) {
 	for _, v := range pLoop.Children {
 		p.Owner.ChildNames = append(p.Owner.ChildNames, v.Name)
 		if len(v.Children) != 0 {
@@ -193,12 +186,12 @@ func (d ProjectOwner) childNames(p *Project, pLoop *Project) {
 	}
 }
 
-func (d ProjectOwner) SetDependLoop(p *Project) {
+func (d ProjectOwner) SetDependLoop(p *models.Project) {
 	d.setDepend(p)
 	d.setDependLoop(p, p)
 }
 
-func (d ProjectOwner) setDependLoop(p *Project, pLoop *Project) {
+func (d ProjectOwner) setDependLoop(p *models.Project, pLoop *models.Project) {
 	for k, v := range pLoop.Children {
 		pLoop.DependsOn = append(pLoop.DependsOn, v.Name)
 		d.setDepend(pLoop.Children[k])
@@ -207,7 +200,7 @@ func (d ProjectOwner) setDependLoop(p *Project, pLoop *Project) {
 		}
 	}
 }
-func (d ProjectOwner) setDepend(pLoop *Project) {
+func (d ProjectOwner) setDepend(pLoop *models.Project) {
 	if pLoop.Setting.IsProjectKafka {
 		pLoop.DependsOn = append(pLoop.DependsOn, "kafka")
 	}
@@ -215,13 +208,13 @@ func (d ProjectOwner) setDepend(pLoop *Project) {
 	pLoop.DependsOn = append(pLoop.DependsOn, dbTypes...)
 }
 
-func (d ProjectOwner) SetStreams(p *Project) {
+func (d ProjectOwner) SetStreams(p *models.Project) {
 	d.setStreams(p, p)
 	p.Owner.StreamNames = append(p.Owner.StreamNames, p.Setting.StreamNames...)
 	p.Owner.StreamNames = Unique(p.Owner.StreamNames)
 }
 
-func (d ProjectOwner) setStreams(p *Project, pLoop *Project) {
+func (d ProjectOwner) setStreams(p *models.Project, pLoop *models.Project) {
 	for _, v := range pLoop.Children {
 		p.Owner.StreamNames = append(p.Owner.StreamNames, v.Setting.StreamNames...)
 		if len(v.Children) != 0 {
