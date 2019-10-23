@@ -17,7 +17,7 @@ func ReturnApiFail(c echo.Context, status int, err error) error {
 	}
 	return c.JSON(status, api.Result{
 		Success: false,
-		Error:   api.UnknownError(err),
+		Error:   api.RtcUnknownError(),
 	})
 }
 

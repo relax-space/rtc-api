@@ -40,8 +40,8 @@ func TestCmdBiz(t *testing.T) {
 			StreamNames:    nil,
 		},
 	}
-	expProject.Name = models.Project{}.SetName(expProject.Service, expProject.Namespace)
-	subProject1.Name = models.Project{}.SetName(subProject1.Service, subProject1.Namespace)
+	expProject.Name = models.Project{}.GetName(expProject.TenantName, expProject.Namespace, expProject.Service)
+	subProject1.Name = models.Project{}.GetName(subProject1.TenantName, subProject1.Namespace, subProject1.Service)
 
 	projects := []models.Project{
 		expProject,
@@ -83,7 +83,7 @@ func TestCmdBiz(t *testing.T) {
 	})
 
 	t.Run("GetAll", func(t *testing.T) {
-		totalCount, projects, err := models.Project{}.GetAll(ctx, nil, nil, 0, 1)
+		totalCount, projects, err := models.Project{}.GetAll(ctx, nil, nil, 0, 1, "")
 		test.Ok(t, err)
 		v := projects[0]
 		test.Equals(t, int64(2), totalCount)
@@ -105,16 +105,10 @@ func TestCmdBiz(t *testing.T) {
 		test.Equals(t, int64(1), affectedRow)
 		test.Assert(t, f.Service == service, "update failure")
 	})
-	t.Run("Delete", func(t *testing.T) {
+	t.Run("Delete#2", func(t *testing.T) {
 		id := 2
 		affectedRow, err := models.Project{}.Delete(ctx, id)
-		test.Equals(t, int64(0), affectedRow)
-		test.Equals(t, "Deletion failed, the following microservices depend on it,ids:[1]", err.Error())
-	})
-	t.Run("Delete#2", func(t *testing.T) {
-		id := 1
-		affectedRow, err := models.Project{}.Delete(ctx, id)
-		test.Ok(t,err)
+		test.Ok(t, err)
 		test.Equals(t, int64(1), affectedRow)
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 )
 
 type File struct {
@@ -61,7 +62,7 @@ func (Folder) IsExist(fileName string) bool {
 	return s.IsDir()
 }
 
-func (d Folder) DeleteAll(folderPath string) error {
+func (d Folder) Delete(folderPath, excludePath string) error {
 
 	if has := d.IsExist(folderPath); has == false {
 		return nil
@@ -70,10 +71,35 @@ func (d Folder) DeleteAll(folderPath string) error {
 	if err != nil {
 		return err
 	}
-	for _, d := range dir {
-		if err = os.RemoveAll(path.Join(folderPath, d.Name())); err != nil {
-			return err
+	for _, v := range dir {
+		name := path.Join(folderPath, v.Name())
+		if d.IsShouldDelete(name, excludePath) {
+			if err = os.RemoveAll(name); err != nil {
+				return err
+			}
 		}
+
 	}
 	return nil
+}
+
+func (d Folder) DeleteLocalSql(folderPath string, localSql *bool) error {
+	exclude := ""
+	if BoolPointCheck(localSql) {
+		exclude = path.Join(TEMP_FILE, "database")
+	}
+	if err := d.Delete(folderPath, exclude); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d Folder) IsShouldDelete(folderPath, excludePath string) bool {
+	if len(excludePath) == 0 {
+		return true
+	}
+	if strings.HasPrefix(folderPath, excludePath) {
+		return false
+	}
+	return true
 }

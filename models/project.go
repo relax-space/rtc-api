@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"fmt"
 	"rtc-api/factory"
 	"time"
 
@@ -31,28 +30,28 @@ type ProjectSimple struct {
 }
 
 type ProjectOwnerDto struct {
-	IsKafka     bool
-	IsMysql     bool
-	IsSqlServer bool
-	IsRedis     bool
-	IsStream    bool
+	IsKafka     bool `json:"isKafka"`
+	IsMysql     bool `json:"isMysql"`
+	IsSqlServer bool `json:"isSqlServer"`
+	IsRedis     bool `json:"isRedis"`
+	IsStream    bool `json:"isStream"`
 
-	DbTypes       []string
-	ChildNames    []string
-	StreamNames   []string
-	EventProducer *Project
-	EventConsumer *Project
-	Databases     map[string][]DatabaseDto
-	ImageAccounts []ImageAccount
+	DbTypes       []string                 `json:"dbTypes"`
+	ChildNames    []string                 `json:"childNames"`
+	StreamNames   []string                 `json:"streamNames"`
+	EventProducer *Project                 `json:"eventProducer"`
+	EventConsumer *Project                 `json:"eventConsumer"`
+	Databases     map[string][]DatabaseDto `json:"databases"`
+	ImageAccounts []ImageAccount           `json:"imageAccounts"`
 }
 type DatabaseDto struct {
-	TenantName string
-	Namespace  string
-	DbName     string
+	TenantName string `json:"tenantName"`
+	Namespace  string `json:"namespace"`
+	DbName     string `json:"dbName"`
 }
 
 type SettingDto struct {
-	Image          string              `json:"image" xorm:"notnull"`
+	Image          string              `json:"image"`
 	Envs           []string            `json:"envs"`
 	IsProjectKafka bool                `json:"isProjectKafka"`
 	Ports          []string            `json:"ports"`
@@ -65,17 +64,10 @@ func (d *Project) Create(ctx context.Context) (int64, error) {
 }
 
 func (d *Project) Update(ctx context.Context, id int) (int64, error) {
-	return factory.DB(ctx).Where("id=?", id).Update(d)
+	return factory.DB(ctx).Where("id=?", id).MustCols("namespace", "sub_ids", "setting").Update(d)
 }
 func (d Project) Delete(ctx context.Context, id int) (int64, error) {
 
-	ids, err := d.GetParentIds(ctx, id)
-	if err != nil {
-		return 0, err
-	}
-	if len(ids) != 0 {
-		return 0, fmt.Errorf("Deletion failed, the following microservices depend on it,ids:%v", ids)
-	}
 	return factory.DB(ctx).Where("id=?", id).Delete(&d)
 }
 
@@ -132,7 +124,7 @@ func (Project) GetAllSimple(ctx context.Context) ([]ProjectSimple, error) {
 	return items, nil
 }
 
-func (Project) GetAll(ctx context.Context, sortby, order []string, offset, limit int) (int64, []*Project, error) {
+func (Project) GetAll(ctx context.Context, sortby, order []string, offset, limit int, like string) (int64, []*Project, error) {
 	queryBuilder := func() xorm.Interface {
 		q := factory.DB(ctx)
 		if len(sortby) == 0 && len(order) == 0 {
@@ -141,6 +133,9 @@ func (Project) GetAll(ctx context.Context, sortby, order []string, offset, limit
 		}
 		if err := setSortOrder(q, sortby, order); err != nil {
 			factory.Logger(ctx).Error(err)
+		}
+		if len(like) != 0 {
+			q.Where("name like ?", "%"+like+"%")
 		}
 		return q
 	}
@@ -152,10 +147,10 @@ func (Project) GetAll(ctx context.Context, sortby, order []string, offset, limit
 	return totalCount, items, nil
 }
 
-func (Project) SetName(name, nsName string) string {
-	pName := name
-	if len(nsName) != 0 {
-		pName += NsServiceSplit + nsName
+func (d Project) GetName(tenantName, namespace, service string) string {
+	pName := service
+	if len(namespace) != 0 {
+		pName = service + NsServiceSplit + tenantName + NsServiceSplit + namespace
 	}
 	return pName
 }

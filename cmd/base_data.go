@@ -13,7 +13,10 @@ import (
 type BaseData struct {
 }
 
-func (d BaseData) Write(p *Project, jwtToken string) error {
+func (d BaseData) Write(p *Project, jwtToken string, localSql bool) error {
+	if localSql {
+		return nil
+	}
 	Info("base data fetching ...")
 	folder := fmt.Sprintf("%v/database", TEMP_FILE)
 	dbAccounts, err := Project{}.GetAllDbAccount(jwtToken)

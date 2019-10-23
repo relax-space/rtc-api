@@ -15,11 +15,11 @@ func (d ProjectOwner) Reload(ctx context.Context, p *models.Project) error {
 	p.Owner.IsRedis = d.ShouldDb(p, REDIS)
 	d.SetStreams(p)
 	p.Owner.IsStream = d.ShouldStream(p.Owner.StreamNames)
-	if err := d.SetEvent(ctx, p); err != nil {
+	list := d.Database(p)
+	if err := d.SetEvent(ctx, p, list); err != nil {
 		return err
 	}
 
-	list := d.Database(p)
 	p.Owner.Databases = list
 	p.Owner.DbTypes = d.DatabaseTypes(list)
 	d.SetNames(p)
@@ -35,7 +35,7 @@ func (d ProjectOwner) SetImageAccount(ctx context.Context, p *models.Project) er
 	return err
 }
 
-func (d ProjectOwner) SetEvent(ctx context.Context, p *models.Project) error {
+func (d ProjectOwner) SetEvent(ctx context.Context, p *models.Project, rawDatabases map[string][]models.DatabaseDto) error {
 	if p.Owner.IsStream {
 		var err error
 		_, p.Owner.EventProducer, err = models.Project{}.GetByName(ctx, "event-broker-kafka")
@@ -51,14 +51,11 @@ func (d ProjectOwner) SetEvent(ctx context.Context, p *models.Project) error {
 		p.Owner.IsRedis = true
 
 		list := d.Database(p.Owner.EventConsumer)
-		if p.Setting.Databases == nil {
-			p.Setting.Databases = make(map[string][]string, 0)
-		}
 		for k, v := range list {
-			if _, ok := list[k]; ok {
-				p.Setting.Databases[k] = append(p.Setting.Databases[k], d.removeTenant(v)...)
+			if _, ok := rawDatabases[k]; ok {
+				rawDatabases[k] = append(rawDatabases[k], v...)
 			} else {
-				p.Setting.Databases[k] = d.removeTenant(v)
+				rawDatabases[k] = v
 			}
 		}
 	}

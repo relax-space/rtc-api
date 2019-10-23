@@ -63,6 +63,7 @@ func main() {
 	controllers.ImageAccountApiController{}.Init(r.Group("image_accounts", "v1/image_accounts"))
 	controllers.NamespaceApiController{}.Init(r.Group("namespaces", "v1/namespaces"))
 	controllers.TenantApiController{}.Init(r.Group("tenants", "v1/tenants"))
+	controllers.FrontApiController{}.Init(r.Group("fronts", "v1/fronts"))
 
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.Recover())
