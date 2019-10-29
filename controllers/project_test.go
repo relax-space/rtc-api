@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"nomni/utils/api"
 	"rtc-api/controllers"
 	"rtc-api/models"
 	"testing"
@@ -68,7 +69,7 @@ func TestCmdBiz(t *testing.T) {
 			Databases:      map[string][]string{"mysql": []string{"fruit"}},
 		},
 	}
-	expProject.Name = controllers.ProjectApiController{}.GetName(expProject.TenantName, expProject.Namespace, expProject.Service)
+	expProject.Name = models.Project{}.GetName(expProject.TenantName, expProject.Namespace, expProject.Service)
 	newProjects := []models.Project{
 		expProject,
 		subProject1,
@@ -80,7 +81,7 @@ func TestCmdBiz(t *testing.T) {
 		t.Run(fmt.Sprint("Create#", i+1), func(t *testing.T) {
 			expCreateProject := p
 			expCreateProject.Id = i + 1
-			expCreateProject.Name = controllers.ProjectApiController{}.GetName(expCreateProject.TenantName, expCreateProject.Namespace, expCreateProject.Service)
+			expCreateProject.Name = models.Project{}.GetName(expCreateProject.TenantName, expCreateProject.Namespace, expCreateProject.Service)
 
 			req := httptest.NewRequest(echo.POST, "/v1/projects", bytes.NewReader(pb))
 			setHeader(req)
@@ -126,9 +127,32 @@ func TestCmdBiz(t *testing.T) {
 
 	})
 
+	t.Run("GetAllLike", func(t *testing.T) {
+		req := httptest.NewRequest(echo.GET, "/v1/projects?like=api4", nil) //go-api is the second data,because orderby id desc
+		setHeader(req)
+		rec := httptest.NewRecorder()
+		c := echoApp.NewContext(req, rec)
+		test.Ok(t, handleWithFilter(controllers.ProjectApiController{}.GetAll, c))
+		test.Equals(t, http.StatusOK, rec.Code)
+		var resp struct {
+			Success bool `json:"success"`
+			Result  struct {
+				TotalCount int64            `json:"totalCount"`
+				Items      []models.Project `json:"items"`
+			} `json:"result"`
+		}
+		test.Ok(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		test.Equals(t, true, resp.Success)
+		test.Equals(t, int64(1), resp.Result.TotalCount)
+		test.Equals(t, 1, len(resp.Result.Items))
+		result := resp.Result.Items[0]
+		test.Equals(t, "go-api4", result.Name)
+
+	})
+
 	t.Run("GetById", func(t *testing.T) {
 		id := 1
-		req := httptest.NewRequest(echo.GET, "/?with_child=true", nil) //go-api is the second data,because orderby id desc
+		req := httptest.NewRequest(echo.GET, "/?depth=-1", nil) //go-api is the second data,because orderby id desc
 		setHeader(req)
 		rec := httptest.NewRecorder()
 		c := echoApp.NewContext(req, rec)
@@ -158,7 +182,7 @@ func TestCmdBiz(t *testing.T) {
 	})
 
 	t.Run("GetByName", func(t *testing.T) {
-		url := fmt.Sprintf("/v1/projects?name=%v&with_child=true", expProject.Name)
+		url := fmt.Sprintf("/v1/projects?name=%v&depth=-1", expProject.Name)
 		req := httptest.NewRequest(echo.GET, url, nil)
 		setHeader(req)
 		rec := httptest.NewRecorder()
@@ -185,10 +209,10 @@ func TestCmdBiz(t *testing.T) {
 	})
 	t.Run("Update#1", func(t *testing.T) {
 		id := 2
-		expUpdateProject := expProject
+		expUpdateProject := subProject1
 		expUpdateProject.Id = id
 		expUpdateProject.Service = "go-api5"
-		expUpdateProject.Name = controllers.ProjectApiController{}.GetName(expUpdateProject.TenantName, expUpdateProject.Namespace, expUpdateProject.Service)
+		expUpdateProject.Name = models.Project{}.GetName(expUpdateProject.TenantName, expUpdateProject.Namespace, expUpdateProject.Service)
 		pb, _ := json.Marshal(expUpdateProject)
 		req := httptest.NewRequest(echo.PUT, "/", bytes.NewReader(pb))
 		setHeader(req)
@@ -208,5 +232,44 @@ func TestCmdBiz(t *testing.T) {
 		test.Equals(t, expUpdateProject, resp.Result)
 
 	})
-
+	t.Run("Delete#1", func(t *testing.T) {
+		id := 2
+		req := httptest.NewRequest(echo.DELETE, "/", nil) //go-api is the second data,because orderby id desc
+		setHeader(req)
+		rec := httptest.NewRecorder()
+		c := echoApp.NewContext(req, rec)
+		c.SetPath("/v1/projects/:id")
+		c.SetParamNames("id")
+		c.SetParamValues(fmt.Sprint(id))
+		test.Ok(t, handleWithFilter(controllers.ProjectApiController{}.Delete, c))
+		test.Equals(t, http.StatusBadRequest, rec.Code)
+		var resp struct {
+			Result  models.Project `json:"result"`
+			Success bool           `json:"success"`
+			Error   api.Error      `json:"error"`
+		}
+		test.Ok(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		test.Equals(t, false, resp.Success)
+		test.Equals(t, "删除失败，有微服务 [1] 依赖于这个服务.", resp.Error.Error())
+	})
+	t.Run("Delete#2", func(t *testing.T) {
+		id := 1
+		req := httptest.NewRequest(echo.DELETE, "/", nil) //go-api is the second data,because orderby id desc
+		setHeader(req)
+		rec := httptest.NewRecorder()
+		c := echoApp.NewContext(req, rec)
+		c.SetPath("/v1/projects/:id")
+		c.SetParamNames("id")
+		c.SetParamValues(fmt.Sprint(id))
+		test.Ok(t, handleWithFilter(controllers.ProjectApiController{}.Delete, c))
+		test.Equals(t, http.StatusOK, rec.Code)
+		var resp struct {
+			Result  models.Project `json:"result"`
+			Success bool           `json:"success"`
+			Error   api.Error      `json:"error"`
+		}
+		test.Ok(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		test.Equals(t, true, resp.Success)
+		test.Equals(t, "", resp.Error.Error())
+	})
 }

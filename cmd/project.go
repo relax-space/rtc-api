@@ -103,7 +103,7 @@ func (d Project) GetServiceNames(q, jwtToken string) ([]string, error) {
 }
 
 func (d Project) GetProject(serviceName, jwtToken string) (*Project, error) {
-	urlStr := fmt.Sprintf("%v/v1/projects?name=%v&with_child=true", env.RtcApiUrl, serviceName)
+	urlStr := fmt.Sprintf("%v/v1/projects?name=%v&depth=-1", env.RtcApiUrl, serviceName)
 	var resp struct {
 		Success bool     `json:"success"`
 		Project *Project `json:"result"`

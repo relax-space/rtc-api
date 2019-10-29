@@ -9,6 +9,46 @@ import (
 	"github.com/pangpanglabs/echoswagger"
 )
 
+type FrontApiController struct {
+}
+
+func (d FrontApiController) Init(g echoswagger.ApiGroup) {
+	g.SetSecurity("Authorization")
+	g.GET("", d.GetForEdit).
+		AddParamQuery("", "tenantName", "pangpang", false)
+}
+
+func (d FrontApiController) GetForEdit(c echo.Context) error {
+	tenants, err := models.Tenant{}.GetAll(c.Request().Context())
+	if err != nil {
+		return ReturnApiFail(c, http.StatusInternalServerError, err)
+	}
+	tenantName := c.QueryParam("tenantName")
+	if len(tenantName) == 0 {
+		return ReturnApiFail(c, http.StatusBadRequest, api.MissRequiredParamError("name"))
+	}
+	namespaces, err := models.Namespace{}.GetByTenantName(c.Request().Context(), tenantName)
+	if err != nil {
+		return ReturnApiFail(c, http.StatusInternalServerError, err)
+	}
+
+	imageAccounts, err := models.ImageAccount{}.GetAll(c.Request().Context())
+	if err != nil {
+		return ReturnApiFail(c, http.StatusInternalServerError, err)
+	}
+	simpleProjects, err := models.Project{}.GetAllSimple(c.Request().Context())
+	if err != nil {
+		return ReturnApiFail(c, http.StatusInternalServerError, err)
+	}
+	editMap := map[string]interface{}{
+		"tenants":        tenants,
+		"namespaces":     namespaces,
+		"imageAccounts":  imageAccounts,
+		"simpleProjects": simpleProjects,
+	}
+	return ReturnApiSucc(c, http.StatusOK, editMap)
+}
+
 type DbAccountApiController struct {
 }
 
@@ -64,7 +104,7 @@ type TenantApiController struct {
 func (d TenantApiController) Init(g echoswagger.ApiGroup) {
 	g.SetSecurity("Authorization")
 	g.GET("", d.GetAll)
-	g.GET("/:name/namespaces", d.GetNsByTenantName)
+	g.GET("/:name/namespaces", d.GetNsByTenantName).AddParamPath("", "name", "pangpang")
 }
 
 func (d TenantApiController) GetAll(c echo.Context) error {
