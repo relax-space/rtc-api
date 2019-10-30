@@ -1,0 +1,19 @@
+database:
+  driver: mysql
+  connection: rtc_app:Eland123@tcp(rm-uf697cmu717ius9i3.mysql.rds.aliyuncs.com:3306)/rtc?charset=utf8&parseTime=True&loc=UTC
+  logger:
+    kafka:
+      brokers:
+        - 192.168.0.76:9092
+        - 192.168.0.145:9092
+        - 192.168.0.148:9092
+      topic: sqllog
+behaviorLog:
+  kafka:
+    brokers:
+      - 192.168.0.76:9092
+      - 192.168.0.145:9092
+      - 192.168.0.148:9092
+    topic: behaviorlog
+serviceName: rtc-api
+httpport: 8080

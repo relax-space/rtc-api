@@ -4,7 +4,6 @@
 *.log
 *.so
 *.dylib
-*.sql
 
 # Test binary, build with `go test -c`
 *.test
@@ -19,7 +18,7 @@ debug
 tmp/
 swagger-ui
 temp/
-run-test-container
 *.exe
 *.exe~
-rtc
+rtc-api
+rtc-api.*

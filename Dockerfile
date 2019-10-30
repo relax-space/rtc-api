@@ -1,5 +1,5 @@
-FROM pangpanglabs/golang:builder AS builder
-WORKDIR /go/src/run-test-container
+FROM pangpanglabs/golang:builder-beta AS builder
+WORKDIR /go/src/rtc-api
 COPY . .
 # disable cgo
 ENV CGO_ENABLED=0
@@ -11,6 +11,11 @@ RUN echo ">>> 3: go install" && go install
 # make application docker image use alpine
 FROM pangpanglabs/alpine-ssl
 WORKDIR /go/bin/
+# copy config files to image
+COPY --from=builder /go/src/rtc-api/*.yml ./
 # copy execute file to image
-COPY --from=builder /go/bin/run-test-container ./run-test-container
-RUN chmod +x ./run-test-container
+COPY --from=builder /go/bin/rtc-api ./rtc-api
+RUN chmod +x ./rtc-api
+
+EXPOSE 8080
+CMD ["./rtc-api"]
