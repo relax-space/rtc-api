@@ -1,15 +1,12 @@
 package cmd
 
-
-
 func Start(version string) {
 	isContinue, serviceName, flag := (Flag{}).Init(version)
 	if isContinue == false {
 		return
 	}
 
-	
-	if err := (Folder{}).DeleteLocalSql(TEMP_FILE,flag.LocalSql ); err != nil {
+	if err := (Folder{}).DeleteLocalSql(TEMP_FILE, flag.LocalSql); err != nil {
 		Error(err)
 		return
 	}
@@ -28,7 +25,8 @@ func Start(version string) {
 		return
 	}
 
-	if err = (BaseData{}).Write(project, *flag.JwtToken,*flag.LocalSql); err != nil {
+	if err = (BaseData{}).Write(project, *flag.JwtToken, *flag.LocalSql); err != nil {
+		Error(err)
 		return
 	}
 
