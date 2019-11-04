@@ -175,12 +175,23 @@ func (d ProjectApiController) Update(c echo.Context) error {
 	}
 	v.Id = int(id)
 	v.Name = models.Project{}.GetName(v.TenantName, v.Namespace, v.Service)
-	has, _, err := models.Project{}.GetById(c.Request().Context(), v.Id)
+	has, p1, err := models.Project{}.GetById(c.Request().Context(), v.Id)
 	if err != nil {
 		return ReturnApiFail(c, http.StatusInternalServerError, err)
 	}
 	if has == false {
 		return ReturnApiFail(c, http.StatusBadRequest, api.RtcServiceHasNotExistError())
+	}
+	nameExist, p2, err := models.Project{}.GetByName(c.Request().Context(), v.Name)
+	if err != nil {
+		return ReturnApiFail(c, http.StatusInternalServerError, err)
+	}
+	if nameExist == true {
+		name1 := models.Project{}.GetName(p1.TenantName, p1.Namespace, p1.Service)
+		name2 := models.Project{}.GetName(p2.TenantName, p2.Namespace, p2.Service)
+		if name1 != name2 { //Name is a unique
+			return ReturnApiFail(c, http.StatusBadRequest, api.RtcServiceHasExistError())
+		}
 	}
 	affectedRow, err := v.Update(c.Request().Context(), v.Id)
 	if err != nil {
