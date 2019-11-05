@@ -1,25 +1,47 @@
 # variables:
   # SERVICE_NAME: go-api # for example: product-api-pangpang-brand from  https://gitlab.p2shop.cn:8443/data/rtc-data/blob/qa/config.qa.yml
-  # FOLDERNAME: ""  # for example: nomni/
+  # FOLDERNAME: ""  # for example:nomni/
 variables:
   SERVICE_NAME: rtc-api
   LINUX_RTC: rtc-linux_amd64
   WINDOW_RTC: rtc-win64.exe
   MAC_RTC: rtc-darwin_amd64
-  GOTEST_ENV:  "-e JWT_SECRET=1234"
   RTC_ENV: " --docker-no-login --docker-mysql-port 3310 --prefix rtc-first-"
 include: 
   - project: 'open/gitlab-ci'
     file: '/templates/go.gitlab-ci.yml'
 stages:
+  - pre-build
   - build
   - test
   - release
+pre-build:
+  stage: pre-build
+  tags:
+    - golang-build
+  after_script:
+    - GLOBIGNORE="vendor-${CI_COMMIT_REF_SLUG}"; rm -r *
+  script:
+    - mkdir -p vendor-$CI_COMMIT_REF_SLUG/nomni/utils
+    - git clone ssh://git@gitlab.srxcloud.com:622/nomni/utils.git vendor-$CI_COMMIT_REF_SLUG/nomni/utils
+    - rm -r -f vendor-$CI_COMMIT_REF_SLUG/nomni/utils/.git
+  artifacts:
+    paths:
+      - vendor-$CI_COMMIT_REF_SLUG/
+    expire_in: 1h
+  only:
+    - merge_requests
+    - tags
 release:
   stage: release
   tags:
     - golang-build
   script:
+    - mkdir -p vendor
+    - |
+      if [ -d "vendor-$CI_COMMIT_REF_SLUG" ]; then
+      cp -r vendor-$CI_COMMIT_REF_SLUG/* vendor/
+      fi
     - >
       docker run --rm 
       -v $(pwd):/go/src/$WORKDIR
