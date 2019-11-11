@@ -5,6 +5,7 @@ import (
 	"nomni/utils/api"
 	"rtc-api/models"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/pangpanglabs/echoswagger"
@@ -20,6 +21,8 @@ func (d ProjectApiController) Init(g echoswagger.ApiGroup) {
 		AddParamQuery("", "name", "go-api", false).
 		AddParamQuery("", "depth", "-1:all child,0:no child,1: 1 child", false).
 		AddParamQuery("", "simple", "true", false)
+	g.GET("/filterDbNames", d.GetDeleteDbNames).
+		AddParamQueryNested(DatabaseDto{})
 	g.GET("/:id", d.GetById).
 		AddParamPath("", "id", "1").
 		AddParamQuery("", "depth", "-1:all child,0:no child,1: 1 child", false)
@@ -84,6 +87,46 @@ func (d ProjectApiController) GetById(c echo.Context) error {
 
 	return ReturnApiSucc(c, http.StatusOK, project)
 }
+
+func (d ProjectApiController) GetDeleteDbNames(c echo.Context) error {
+	var v DatabaseDto
+	if err := c.Bind(&v); err != nil {
+		return ReturnApiFail(c, http.StatusBadRequest, api.ParameterParsingError(err))
+	}
+	if err := c.Validate(v); err != nil {
+		return ReturnApiFail(c, http.StatusBadRequest, api.ParameterParsingError(err))
+	}
+
+	projects, err := models.Project{}.GetAllReal(c.Request().Context())
+	if err != nil {
+		return ReturnApiFail(c, http.StatusInternalServerError, err)
+	}
+	tempNames := make([]string, 0)
+	names := strings.Split(v.DbNames, ",")
+	for _, project := range projects {
+		for k, dbNames := range project.Setting.Databases {
+			if k == "mysql" {
+				for _, dbName := range dbNames {
+					if v.TenantName == project.TenantName &&
+						v.Namespace == project.Namespace &&
+						v.Id != project.Id &&
+						ContainsString(names, dbName) {
+						tempNames = append(tempNames, dbName)
+					}
+				}
+			}
+		}
+	}
+	dbNames := make([]string, 0)
+	for _, v := range names {
+		if !ContainsString(tempNames, v) {
+			dbNames = append(dbNames, v)
+		}
+	}
+	v.DbNames = strings.Join(dbNames, ",")
+	return ReturnApiSucc(c, http.StatusOK, v)
+}
+
 func (d ProjectApiController) GetAllSimple(c echo.Context) error {
 	project, err := models.Project{}.GetAllSimple(c.Request().Context())
 	if err != nil {
