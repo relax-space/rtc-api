@@ -16,13 +16,14 @@ const (
 )
 
 type Flag struct {
-	LocalSql       *bool
-	Env            *string
-	ImageEnv       *string
-	Debug          *bool
-	RegistryCommon *string
-	JwtToken       *string
-	Prefix         *string
+	LocalSql        *bool
+	Env             *string
+	ImageEnv        *string
+	Debug           *bool
+	RegistryCommon  *string
+	JwtToken        *string
+	Prefix          *string
+	IntegrationTest *bool
 
 	DockerNoLog   *bool
 	DockerNoLogin *bool
@@ -203,8 +204,9 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 		RegistryCommon: run.Flag("registry-common", `
 	1.You can set private registry for common image,like: mysql,ngnix,kafka.
 	2.default: registry.p2shop.com.cn.`).String(),
-		JwtToken: run.Flag("jwt-token", "In order to access rtc-api you need to set the jwt-token, you can set the environment variable(JWT_TOKEN), or you can use this parameter.").String(),
-		Prefix:   run.Flag("prefix", "You can modify the prefix of the microserver's docker container name.").String(),
+		JwtToken:        run.Flag("jwt-token", "In order to access rtc-api you need to set the jwt-token, you can set the environment variable(JWT_TOKEN), or you can use this parameter.").String(),
+		Prefix:          run.Flag("prefix", "You can modify the prefix of the microserver's docker container name.").String(),
+		IntegrationTest: run.Flag("integration-test", "This field is used to distinguish between unit testing and integration testing.").Bool(),
 
 		DockerNoLogin: run.Flag("docker-no-login", "You can ignore login step.").Bool(),
 		DockerNoPull:  run.Flag("docker-no-pull", "You can ignore pull images step.").Bool(),

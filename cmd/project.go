@@ -53,6 +53,10 @@ type DbAccountDto struct {
 	Port       int
 	User       string
 	Pwd        string
+	THost      string
+	TPort      int
+	TUser      string
+	TPwd       string
 }
 type ImageAccountDto struct {
 	Registry  string `json:"registry"`

@@ -13,7 +13,7 @@ import (
 type BaseData struct {
 }
 
-func (d BaseData) Write(p *Project, jwtToken string, localSql bool) error {
+func (d BaseData) Write(p *Project, jwtToken string, localSql, integrationTest bool) error {
 	if localSql {
 		return nil
 	}
@@ -28,7 +28,7 @@ func (d BaseData) Write(p *Project, jwtToken string, localSql bool) error {
 		if err := (Folder{}).MkdirAll(folder); err != nil {
 			return err
 		}
-		if err := d.writeMysql(dbAccounts, p.Owner.Databases[MYSQL.String()], folder); err != nil {
+		if err := d.writeMysql(dbAccounts, p.Owner.Databases[MYSQL.String()], folder, integrationTest); err != nil {
 			return err
 		}
 	}
@@ -42,15 +42,22 @@ func (d BaseData) getDatabaseName(dbName, namespace string) string {
 	}
 	return dbNameNew
 }
-func (d BaseData) writeMysql(dbAccounts []DbAccountDto, dbDtos []DatabaseDto, folder string) error {
+func (d BaseData) writeMysql(dbAccounts []DbAccountDto, dbDtos []DatabaseDto, folder string, integrationTest bool) error {
 	for _, dbDto := range dbDtos {
 		dbAccount := Project{}.GetDbAccount(dbAccounts, MYSQL, dbDto.TenantName)
 		config := mysql.NewConfig()
-		config.User = dbAccount.User
-		config.Passwd = dbAccount.Pwd
 		config.DBName = d.getDatabaseName(dbDto.DbName, dbDto.Namespace)
 		config.Net = "tcp"
-		config.Addr = dbAccount.Host + ":" + fmt.Sprint(dbAccount.Port)
+		if integrationTest == true {
+			config.User = dbAccount.TUser
+			config.Passwd = dbAccount.TPwd
+			config.Addr = dbAccount.THost + ":" + fmt.Sprint(dbAccount.TPort)
+		} else {
+			config.User = dbAccount.User
+			config.Passwd = dbAccount.Pwd
+			config.Addr = dbAccount.Host + ":" + fmt.Sprint(dbAccount.Port)
+		}
+
 		db, err := sql.Open("mysql", config.FormatDSN())
 		if err != nil {
 			return err
