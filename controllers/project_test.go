@@ -84,7 +84,6 @@ func TestCmdBiz(t *testing.T) {
 			expCreateProject.Name = models.Project{}.GetName(expCreateProject.TenantName, expCreateProject.Namespace, expCreateProject.Service)
 
 			req := httptest.NewRequest(echo.POST, "/v1/projects", bytes.NewReader(pb))
-			setHeader(req)
 			rec := httptest.NewRecorder()
 			test.Ok(t, handleWithFilter(controllers.ProjectApiController{}.Create, echoApp.NewContext(req, rec)))
 			test.Equals(t, http.StatusCreated, rec.Code)
@@ -100,7 +99,6 @@ func TestCmdBiz(t *testing.T) {
 
 	t.Run("GetAll", func(t *testing.T) {
 		req := httptest.NewRequest(echo.GET, "/v1/projects?sortby=id&order=asc&skipCount=0&maxResultCount=1", nil) //go-api is the second data,because orderby id desc
-		setHeader(req)
 		rec := httptest.NewRecorder()
 		c := echoApp.NewContext(req, rec)
 		test.Ok(t, handleWithFilter(controllers.ProjectApiController{}.GetAll, c))
@@ -129,7 +127,6 @@ func TestCmdBiz(t *testing.T) {
 
 	t.Run("GetAllLike", func(t *testing.T) {
 		req := httptest.NewRequest(echo.GET, "/v1/projects?like=api4", nil) //go-api is the second data,because orderby id desc
-		setHeader(req)
 		rec := httptest.NewRecorder()
 		c := echoApp.NewContext(req, rec)
 		test.Ok(t, handleWithFilter(controllers.ProjectApiController{}.GetAll, c))
@@ -153,7 +150,6 @@ func TestCmdBiz(t *testing.T) {
 	t.Run("GetById", func(t *testing.T) {
 		id := 1
 		req := httptest.NewRequest(echo.GET, "/?depth=-1", nil) //go-api is the second data,because orderby id desc
-		setHeader(req)
 		rec := httptest.NewRecorder()
 		c := echoApp.NewContext(req, rec)
 		c.SetPath("/v1/projects/:id")
@@ -184,7 +180,6 @@ func TestCmdBiz(t *testing.T) {
 	t.Run("GetByName", func(t *testing.T) {
 		url := fmt.Sprintf("/v1/projects?name=%v&depth=-1", expProject.Name)
 		req := httptest.NewRequest(echo.GET, url, nil)
-		setHeader(req)
 		rec := httptest.NewRecorder()
 		c := echoApp.NewContext(req, rec)
 		test.Ok(t, handleWithFilter(controllers.ProjectApiController{}.GetAll, c))
@@ -215,7 +210,6 @@ func TestCmdBiz(t *testing.T) {
 		expUpdateProject.Name = models.Project{}.GetName(expUpdateProject.TenantName, expUpdateProject.Namespace, expUpdateProject.Service)
 		pb, _ := json.Marshal(expUpdateProject)
 		req := httptest.NewRequest(echo.PUT, "/", bytes.NewReader(pb))
-		setHeader(req)
 		rec := httptest.NewRecorder()
 		c := echoApp.NewContext(req, rec)
 		c.SetPath("/v1/projects/:id")
@@ -235,7 +229,6 @@ func TestCmdBiz(t *testing.T) {
 	t.Run("Delete#1", func(t *testing.T) {
 		id := 2
 		req := httptest.NewRequest(echo.DELETE, "/", nil) //go-api is the second data,because orderby id desc
-		setHeader(req)
 		rec := httptest.NewRecorder()
 		c := echoApp.NewContext(req, rec)
 		c.SetPath("/v1/projects/:id")
@@ -255,7 +248,6 @@ func TestCmdBiz(t *testing.T) {
 	t.Run("Delete#2", func(t *testing.T) {
 		id := 1
 		req := httptest.NewRequest(echo.DELETE, "/", nil) //go-api is the second data,because orderby id desc
-		setHeader(req)
 		rec := httptest.NewRecorder()
 		c := echoApp.NewContext(req, rec)
 		c.SetPath("/v1/projects/:id")
