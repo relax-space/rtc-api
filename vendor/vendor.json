@@ -1,0 +1,19 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "zz+yQcBk4i6ILwyLrsLbQFabBtA=",
+			"path": "nomni/utils/api",
+			"revision": "3156b18701e49d3e6710bb0d40c5a0db966ae9c5",
+			"revisionTime": "2019-11-05T01:50:37Z"
+		},
+		{
+			"checksumSHA1": "wkWqVrPNu6tmMlUU54aW6Zb+XrU=",
+			"path": "nomni/utils/validator",
+			"revision": "3156b18701e49d3e6710bb0d40c5a0db966ae9c5",
+			"revisionTime": "2019-11-05T01:50:37Z"
+		}
+	],
+	"rootPath": "rtc-api"
+}
