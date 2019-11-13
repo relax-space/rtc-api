@@ -40,3 +40,13 @@ func Unique(params []string) (list []string) {
 	}
 	return
 }
+
+
+func ContainsString(bs []string,b string) bool{
+	for _, v := range bs {
+		if v ==b{
+			return true
+		}
+	}
+	return false
+}

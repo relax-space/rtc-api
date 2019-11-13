@@ -31,3 +31,10 @@ type SettingDto struct {
 	Databases      map[string][]string `json:"databases"`
 	StreamNames    []string            `json:"streamNames"`
 }
+
+type DatabaseDto struct {
+	Id         int    `json:"id" query:"id" validate:"required"`
+	TenantName string `json:"tenantName" query:"tenantName" validate:"required"`
+	Namespace  string `json:"namespace" query:"namespace"`
+	DbNames    string `json:"dbNames" query:"dbNames" validate:"required"`
+}

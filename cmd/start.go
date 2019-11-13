@@ -25,7 +25,7 @@ func Start(version string) {
 		return
 	}
 
-	if err = (BaseData{}).Write(project, *flag.JwtToken, *flag.LocalSql); err != nil {
+	if err = (BaseData{}).Write(project, *flag.JwtToken, *flag.LocalSql,*flag.IntegrationTest); err != nil {
 		Error(err)
 		return
 	}
