@@ -6,7 +6,7 @@ variables:
   LINUX_RTC: rtc-linux_amd64
   WINDOW_RTC: rtc-win64.exe
   MAC_RTC: rtc-darwin_amd64
-  RTC_ENV: " --docker-no-login --docker-mysql-port 3310 --prefix rtc-first-"
+  RTC_ENV: " --docker-no-login" # use qa for rtc-api
 include: 
   - project: 'open/gitlab-ci'
     file: '/templates/go.gitlab-ci.yml'
@@ -18,7 +18,7 @@ stages:
 pre-build:
   stage: pre-build
   tags:
-    - golang-build
+    - shell
   after_script:
     - GLOBIGNORE="vendor-${CI_COMMIT_REF_SLUG}"; rm -r *
   script:
@@ -35,7 +35,7 @@ pre-build:
 release:
   stage: release
   tags:
-    - golang-build
+    - shell
   script:
     - mkdir -p vendor
     - |
