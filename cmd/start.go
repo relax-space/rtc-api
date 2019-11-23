@@ -19,13 +19,13 @@ func Start(version string) {
 		}
 		return
 	}
-	project, err := Project{}.GetProject(*serviceName, *flag.JwtToken)
+	project, err := Project{}.GetProject(*serviceName, *flag.JwtToken, *flag.DockerImage)
 	if err != nil {
 		Error(err)
 		return
 	}
 
-	if err = (BaseData{}).Write(project, *flag.JwtToken, *flag.LocalSql,*flag.IntegrationTest); err != nil {
+	if err = (BaseData{}).Write(project, *flag.JwtToken, *flag.LocalSql, *flag.IntegrationTest); err != nil {
 		Error(err)
 		return
 	}

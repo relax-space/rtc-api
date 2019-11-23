@@ -14,24 +14,9 @@ stages:
   - pre-build
   - build
   - test
+  - integration-fetch
+  - integration-test
   - release
-pre-build:
-  stage: pre-build
-  tags:
-    - shell
-  after_script:
-    - GLOBIGNORE="vendor-${CI_COMMIT_REF_SLUG}"; rm -r *
-  script:
-    - mkdir -p vendor-$CI_COMMIT_REF_SLUG/nomni/utils
-    - git clone ssh://git@gitlab.srxcloud.com:622/nomni/utils.git vendor-$CI_COMMIT_REF_SLUG/nomni/utils
-    - rm -r -f vendor-$CI_COMMIT_REF_SLUG/nomni/utils/.git
-  artifacts:
-    paths:
-      - vendor-$CI_COMMIT_REF_SLUG/
-    expire_in: 1h
-  only:
-    - merge_requests
-    - tags
 release:
   stage: release
   tags:
