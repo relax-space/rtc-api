@@ -31,6 +31,7 @@ type Flag struct {
 	DockerNoDown  *bool
 	DockerNoCheck *bool
 	DockerHostIp  *string
+	DockerImage   *string
 
 	DockerMysqlPort     *string
 	DockerRedisPort     *string
@@ -216,6 +217,7 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 		DockerHostIp: run.Flag("docker-host-ip", `
 	1.ip(default): auto get ip.
 	2.You can specify your host ip.`).String(),
+		DockerImage:         run.Flag("docker-image", `You can specify current service image.`).String(),
 		DockerMysqlPort:     run.Flag("docker-mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
 		DockerRedisPort:     run.Flag("docker-redis-port", "You can change default redis port.").Default(outPort.Redis).String(),
 		DockerMongoPort:     run.Flag("docker-mongo-port", "You can change default mongo port.").Default(outPort.Mongo).String(),
