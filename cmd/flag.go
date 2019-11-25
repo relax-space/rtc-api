@@ -16,7 +16,6 @@ const (
 )
 
 type Flag struct {
-	LocalSql        *bool
 	Env             *string
 	ImageEnv        *string
 	Debug           *bool
@@ -24,6 +23,7 @@ type Flag struct {
 	JwtToken        *string
 	Prefix          *string
 	IntegrationTest *bool
+	DbNet           *string
 
 	DockerNoLog   *bool
 	DockerNoLogin *bool
@@ -202,7 +202,6 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 	desc := fmt.Sprintf("The name of the service, you can get it by `./%v ls`.", pName)
 	serviceName = run.Arg("service-name", desc).Required().String()
 	flag = &Flag{
-		LocalSql: run.Flag("local-sql", `Load data from a local file.`).Bool(),
 		ImageEnv: run.Flag("image-env", `
 	1.Optional [staging, qa , prd].
 	2.microservice docker image runtime environment variable.
@@ -219,6 +218,11 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 		JwtToken:        run.Flag("jwt-token", "In order to access rtc-api you need to set the jwt-token, you can set the environment variable(JWT_TOKEN), or you can use this parameter.").String(),
 		Prefix:          run.Flag("prefix", "You can modify the prefix of the microserver's docker container name.").String(),
 		IntegrationTest: run.Flag("integration-test", "This field is used to distinguish between unit testing and integration testing.").Bool(),
+		DbNet: run.Flag("db-net", `
+	1.Optional [local, tcp(default) , http].
+	2.local: load local database file.
+	3.tcp: load database file by tcp/ip.
+	4.http: load database file by http/ip.`).String(),
 
 		DockerNoLogin: run.Flag("docker-no-login", "You can ignore login step.").Bool(),
 		DockerNoPull:  run.Flag("docker-no-pull", "You can ignore pull images step.").Bool(),
