@@ -193,7 +193,7 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 	flag = &Flag{
 		LocalSql: run.Flag("local-sql", `Load data from a local file.`).Bool(),
 		ImageEnv: run.Flag("image-env", `
-	1.Optional [staging, qa , production].
+	1.Optional [staging, qa , prd].
 	2.microservice docker image runtime environment variable.
 	3.The default is qa, you can choose other option`).Default("qa").String(),
 		Env: run.Flag("env", `

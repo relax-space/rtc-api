@@ -12,13 +12,17 @@ include:
     file: '/templates/go.gitlab-ci.yml'
 stages:
   - pre-build
-  - build
-  - test
-  - integration-fetch
-  - integration-test
-  - release
-release:
-  stage: release
+  - build-qa
+  - unit-test-qa
+  - integration-build-qa
+  - integration-test-qa
+  - build-prd
+  - unit-test-prd
+  - integration-build-prd
+  - integration-test-prd
+  - app-deploy
+app-deploy:
+  stage: app-deploy
   tags:
     - shell
   script:
