@@ -25,11 +25,12 @@ const (
 	CONFIGNAMENGINX      = "default"
 	SUFSERVER            = "-server"
 
-	TEMP_FILE = "temp"
 	//EventBroker_Name = "event-broker-kafka"
 	JobLogUrl      = "https://gateway.p2shop.com.cn"
 	REGISTRYCOMMON = "registry.p2shop.com.cn"
 )
+
+var TEMP_FILE = "temp"
 
 type PortDto struct {
 	Mysql       string
