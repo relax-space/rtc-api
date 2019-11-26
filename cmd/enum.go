@@ -68,3 +68,21 @@ func (ServiceType) List() []string {
 func (d ServiceType) String() string {
 	return d.List()[d]
 }
+
+// BaseDbSource
+type DbNet int
+
+const (
+	EMPTYDBNET DbNet = iota
+	LOCALDBNET
+	TCPDBNET
+	HTTPDBNET
+)
+
+func (DbNet) List() []string {
+	return []string{"empty", "local", "tcp", "http"}
+}
+
+func (d DbNet) String() string {
+	return d.List()[d]
+}

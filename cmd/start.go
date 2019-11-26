@@ -6,7 +6,7 @@ func Start(version string) {
 		return
 	}
 
-	if err := (Folder{}).DeleteLocalSql(TEMP_FILE, flag.LocalSql); err != nil {
+	if err := (Folder{}).DeleteAndIgnoreLocalSql(TEMP_FILE, flag.DbNet); err != nil {
 		Error(err)
 		return
 	}
@@ -25,7 +25,7 @@ func Start(version string) {
 		return
 	}
 
-	if err = (BaseData{}).Write(project, *flag.JwtToken, *flag.LocalSql, *flag.IntegrationTest); err != nil {
+	if err = (BaseData{}).Write(project, *flag.JwtToken, *flag.IntegrationTest, flag.DbNet); err != nil {
 		Error(err)
 		return
 	}

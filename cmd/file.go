@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"io"
+	"net/http"
+	"github.com/pangpanglabs/goutils/httpreq"
 	"io/ioutil"
 	"os"
 	"path"
@@ -25,6 +28,26 @@ func (File) WriteString(folderPath, fileName, content string) error {
 		return err
 	}
 	return nil
+}
+
+func (File) WriteUrl(url, fileName, jwtToken string) (err error) {
+	req := httpreq.New(http.MethodGet, url, nil, func(httpReq *httpreq.HttpReq) error {
+		httpReq.RespDataType = httpreq.ByteArrayType
+		return nil
+	})
+	resp, err := req.WithToken(jwtToken).RawCall()
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	out, err := os.OpenFile(fileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return
+	}
+	defer out.Close()
+	_, err = io.Copy(out, resp.Body)
+	return
 }
 
 func (d File) Create(folderPath, fileName string) error {
@@ -83,9 +106,9 @@ func (d Folder) Delete(folderPath, excludePath string) error {
 	return nil
 }
 
-func (d Folder) DeleteLocalSql(folderPath string, localSql *bool) error {
+func (d Folder) DeleteAndIgnoreLocalSql(folderPath string, dbNet *string) error {
 	exclude := ""
-	if BoolPointCheck(localSql) {
+	if StringPointCheck(dbNet) && *dbNet == LOCALDBNET.String() {
 		exclude = path.Join(TEMP_FILE, "database")
 	}
 	if err := d.Delete(folderPath, exclude); err != nil {
