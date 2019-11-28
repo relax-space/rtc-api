@@ -16,7 +16,6 @@ const (
 )
 
 type Flag struct {
-	LocalSql        *bool
 	Env             *string
 	ImageEnv        *string
 	Debug           *bool
@@ -24,6 +23,7 @@ type Flag struct {
 	JwtToken        *string
 	Prefix          *string
 	IntegrationTest *bool
+	DbNet           *string
 
 	DockerNoLog   *bool
 	DockerNoLogin *bool
@@ -32,6 +32,7 @@ type Flag struct {
 	DockerNoCheck *bool
 	DockerHostIp  *string
 	DockerImage   *string
+	DockerWorkDir *string
 
 	DockerMysqlPort     *string
 	DockerRedisPort     *string
@@ -68,6 +69,9 @@ func (d Flag) Init(version string) (isContinue bool, serviceName *string, flag *
 			log.SetFlags(log.Lshortfile | log.LstdFlags)
 		} else {
 			log.SetFlags(0)
+		}
+		if StringPointCheck(flag.DockerWorkDir) {
+			TEMP_FILE = *flag.DockerWorkDir
 		}
 		flag.DockerHostIp = d.getIp(flag.DockerHostIp)
 		flag.JwtToken = d.getJwt(flag.JwtToken)
@@ -119,11 +123,12 @@ func (d Flag) configureLsCommand(app *kingpin.Application) {
 }
 
 func (d Flag) configureDownCommand(app *kingpin.Application) {
-	dockercompose := fmt.Sprintf("%v/docker-compose.yml", TEMP_FILE)
+
 	var rmi *string
 	var v *bool
 	var remove *bool
 	var t *int
+	var dockerWorkDir *string
 	down := kingpin.Command("down", `
 	Stops containers and removes containers, networks, volumes, and images
 	created by 'up'.
@@ -136,6 +141,11 @@ func (d Flag) configureDownCommand(app *kingpin.Application) {
 
 	Networks and volumes defined as 'external' are never removed.`).
 		Action(func(c *kingpin.ParseContext) error {
+			directory := TEMP_FILE
+			if StringPointCheck(dockerWorkDir) {
+				directory = *dockerWorkDir
+			}
+			dockercompose := fmt.Sprintf("%v/docker-compose.yml", directory)
 			param := make([]string, 0)
 			param = append(param, "-f", dockercompose, "down")
 			if StringPointCheck(rmi) {
@@ -169,7 +179,8 @@ func (d Flag) configureDownCommand(app *kingpin.Application) {
     Compose file`).Bool()
 	t = down.Flag("timeout", `
     Specify a shutdown timeout in seconds.
-    (default: 10)`).Short('t').Int()
+	(default: 10)`).Short('t').Int()
+	dockerWorkDir = down.Flag("docker-work-dir", `You can specify rtc temp directory.`).Short('w').String()
 }
 
 func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string, flag *Flag) {
@@ -191,9 +202,8 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 	desc := fmt.Sprintf("The name of the service, you can get it by `./%v ls`.", pName)
 	serviceName = run.Arg("service-name", desc).Required().String()
 	flag = &Flag{
-		LocalSql: run.Flag("local-sql", `Load data from a local file.`).Bool(),
 		ImageEnv: run.Flag("image-env", `
-	1.Optional [staging, qa , production].
+	1.Optional [staging, qa , prd].
 	2.microservice docker image runtime environment variable.
 	3.The default is qa, you can choose other option`).Default("qa").String(),
 		Env: run.Flag("env", `
@@ -208,6 +218,11 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 		JwtToken:        run.Flag("jwt-token", "In order to access rtc-api you need to set the jwt-token, you can set the environment variable(JWT_TOKEN), or you can use this parameter.").String(),
 		Prefix:          run.Flag("prefix", "You can modify the prefix of the microserver's docker container name.").String(),
 		IntegrationTest: run.Flag("integration-test", "This field is used to distinguish between unit testing and integration testing.").Bool(),
+		DbNet: run.Flag("db-net", `
+	1.Optional [local, tcp(default) , http].
+	2.local: load local database file.
+	3.tcp: load database file by tcp/ip.
+	4.http: load database file by http/ip.`).String(),
 
 		DockerNoLogin: run.Flag("docker-no-login", "You can ignore login step.").Bool(),
 		DockerNoPull:  run.Flag("docker-no-pull", "You can ignore pull images step.").Bool(),
@@ -217,7 +232,9 @@ func (d Flag) configureRunCommand(app *kingpin.Application) (serviceName *string
 		DockerHostIp: run.Flag("docker-host-ip", `
 	1.ip(default): auto get ip.
 	2.You can specify your host ip.`).String(),
-		DockerImage:         run.Flag("docker-image", `You can specify current service image.`).String(),
+		DockerImage:   run.Flag("docker-image", `You can specify current service image.`).String(),
+		DockerWorkDir: run.Flag("docker-work-dir", `You can specify rtc temp directory.`).Short('w').String(),
+
 		DockerMysqlPort:     run.Flag("docker-mysql-port", "You can change default mysql port.").Default(outPort.Mysql).String(),
 		DockerRedisPort:     run.Flag("docker-redis-port", "You can change default redis port.").Default(outPort.Redis).String(),
 		DockerMongoPort:     run.Flag("docker-mongo-port", "You can change default mongo port.").Default(outPort.Mongo).String(),
