@@ -28,8 +28,8 @@ app-deploy:
   script:
     - mkdir -p vendor
     - |
-      if [ -d "vendor-$CI_COMMIT_REF_SLUG" ]; then
-      cp -r vendor-$CI_COMMIT_REF_SLUG/* vendor/
+      if [ -d "$SHARE_FOLDER" ]; then
+      cp -r $SHARE_FOLDER/* vendor/
       fi
     - >
       docker run --rm 
@@ -38,7 +38,7 @@ app-deploy:
       -e CGO_ENABLED=0
       -e GOOS=windows
       -e GOARCH=amd64
-      $GOBUILDER
+      $GOBUILDER_IMAGE
       sh -c '
       go get -v -d &&
       go build -ldflags "-s -w -X 'main.Version=$CI_COMMIT_TAG'" -o '$WINDOW_RTC' &&
@@ -48,7 +48,7 @@ app-deploy:
       -v $(pwd):/go/src/$WORKDIR
       -w /go/src/$WORKDIR
       -e CGO_ENABLED=0
-      $GOBUILDER
+      $GOBUILDER_IMAGE
       sh -c '
       go get -v -d &&
       go build -ldflags "-s -w -X 'main.Version=$CI_COMMIT_TAG'" -o '$LINUX_RTC' &&
@@ -60,7 +60,7 @@ app-deploy:
       -e CGO_ENABLED=0
       -e GOOS=darwin
       -e GOARCH=amd64
-      $GOBUILDER
+      $GOBUILDER_IMAGE
       sh -c '
       go get -v -d &&
       go build -ldflags "-s -w -X 'main.Version=$CI_COMMIT_TAG'" -o '$MAC_RTC' &&
