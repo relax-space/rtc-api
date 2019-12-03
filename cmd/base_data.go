@@ -58,12 +58,17 @@ func (d BaseData) getDatabaseName(dbName, namespace string) string {
 	return dbNameNew
 }
 func (d BaseData) writeMysql(dbAccounts []DbAccountDto, dbDtos []DatabaseDto, folder string, integrationTest bool, dbNet, jwtToken string) error {
+
 	for _, dbDto := range dbDtos {
 		dbAccount := Project{}.GetDbAccount(dbAccounts, MYSQL, dbDto.TenantName)
 		if dbNet == TCPDBNET.String() {
-			return d.tcp(dbAccount, dbDto, folder, integrationTest)
+			if err := d.tcp(dbAccount, dbDto, folder, integrationTest); err != nil {
+				return err
+			}
 		} else if dbNet == HTTPDBNET.String() {
-			return d.http(dbAccount, dbDto, folder, integrationTest, jwtToken)
+			if err := d.http(dbAccount, dbDto, folder, integrationTest, jwtToken); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
