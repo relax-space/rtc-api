@@ -1,25 +1,36 @@
 # variables:
   # SERVICE_NAME: go-api # for example: product-api-pangpang-brand from  https://gitlab.p2shop.cn:8443/data/rtc-data/blob/qa/config.qa.yml
-  # FOLDERNAME: ""  # for example: nomni/
+  # FOLDERNAME: ""  # for example:nomni/
 variables:
   SERVICE_NAME: rtc-api
   LINUX_RTC: rtc-linux_amd64
   WINDOW_RTC: rtc-win64.exe
   MAC_RTC: rtc-darwin_amd64
-  GOTEST_ENV:  "-e JWT_SECRET=1234"
-  RTC_ENV: " --docker-no-login --docker-mysql-port 3310 --prefix rtc-first-"
+  RTC_ENV: " --docker-no-login" # use qa for rtc-api
 include: 
   - project: 'open/gitlab-ci'
     file: '/templates/go.gitlab-ci.yml'
 stages:
-  - build
-  - test
-  - release
-release:
-  stage: release
+  - pre-build
+  - build-qa
+  - unit-test-qa
+  - integration-build-qa
+  - integration-test-qa
+  - build-prd
+  - unit-test-prd
+  - integration-build-prd
+  - integration-test-prd
+  - app-deploy
+app-deploy:
+  stage: app-deploy
   tags:
-    - golang-build
+    - shell
   script:
+    - mkdir -p vendor
+    - |
+      if [ -d "$SHARE_FOLDER" ]; then
+      cp -r $SHARE_FOLDER/* vendor/
+      fi
     - >
       docker run --rm 
       -v $(pwd):/go/src/$WORKDIR
@@ -27,7 +38,7 @@ release:
       -e CGO_ENABLED=0
       -e GOOS=windows
       -e GOARCH=amd64
-      $GOBUILDER
+      $GOBUILDER_IMAGE
       sh -c '
       go get -v -d &&
       go build -ldflags "-s -w -X 'main.Version=$CI_COMMIT_TAG'" -o '$WINDOW_RTC' &&
@@ -37,7 +48,7 @@ release:
       -v $(pwd):/go/src/$WORKDIR
       -w /go/src/$WORKDIR
       -e CGO_ENABLED=0
-      $GOBUILDER
+      $GOBUILDER_IMAGE
       sh -c '
       go get -v -d &&
       go build -ldflags "-s -w -X 'main.Version=$CI_COMMIT_TAG'" -o '$LINUX_RTC' &&
@@ -49,7 +60,7 @@ release:
       -e CGO_ENABLED=0
       -e GOOS=darwin
       -e GOARCH=amd64
-      $GOBUILDER
+      $GOBUILDER_IMAGE
       sh -c '
       go get -v -d &&
       go build -ldflags "-s -w -X 'main.Version=$CI_COMMIT_TAG'" -o '$MAC_RTC' &&

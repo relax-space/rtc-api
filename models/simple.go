@@ -41,6 +41,10 @@ type DbAccount struct {
 	Port       int
 	User       string
 	Pwd        string
+	THost       string
+	TPort       int
+	TUser       string
+	TPwd        string
 }
 
 func (DbAccount) GetAll(ctx context.Context) ([]DbAccount, error) {

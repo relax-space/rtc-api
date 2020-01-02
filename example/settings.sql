@@ -26,11 +26,9 @@ CREATE TABLE IF NOT EXISTS `db_account` (
   `pwd` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- 正在导出表  rtc.db_account 的数据：~3 rows (大约)
+-- 正在导出表  rtc.db_account 的数据：~1 rows (大约)
 /*!40000 ALTER TABLE `db_account` DISABLE KEYS */;
 INSERT INTO `db_account` (`tenant_name`, `name`, `host`, `port`, `user`, `pwd`) VALUES
-	('pangpang', 'mysql', '127.0.0.1', 3308, 'root', '******'),
-	('pangpang', 'sqlserver', '10.202.101.230', 1433, 'sa', '******'),
 	('test', 'mysql', '127.0.0.1', 3311, 'root', '1234');
 /*!40000 ALTER TABLE `db_account` ENABLE KEYS */;
 

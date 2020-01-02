@@ -4,9 +4,9 @@ services:
     depends_on:
     - rtc-first-mysql-server
     environment:
-    - APP_ENV=rtc
+    - APP_ENV=sample
     - IS_RTC_API=Y
-    image: xiaoxinmiao/rtc-api
+    image: relaxed/rtc-api
     ports:
     - 8080:8080
     restart: always
@@ -16,7 +16,7 @@ services:
     - MYSQL_ROOT_PASSWORD=1234
     image: mysql:5.7.22
     ports:
-    - 3310:3306
+    - 3306
     volumes:
     - ./settings.sql:/docker-entrypoint-initdb.d/settings.sql
   rtc-base-mysql-server:

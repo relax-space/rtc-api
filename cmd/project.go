@@ -53,6 +53,10 @@ type DbAccountDto struct {
 	Port       int
 	User       string
 	Pwd        string
+	THost      string
+	TPort      int
+	TUser      string
+	TPwd       string
 }
 type ImageAccountDto struct {
 	Registry  string `json:"registry"`
@@ -102,7 +106,7 @@ func (d Project) GetServiceNames(q, jwtToken string) ([]string, error) {
 	return newList, nil
 }
 
-func (d Project) GetProject(serviceName, jwtToken string) (*Project, error) {
+func (d Project) GetProject(serviceName, jwtToken, dockerImage string) (*Project, error) {
 	urlStr := fmt.Sprintf("%v/v1/projects?name=%v&depth=-1", env.RtcApiUrl, serviceName)
 	var resp struct {
 		Success bool     `json:"success"`
@@ -114,6 +118,9 @@ func (d Project) GetProject(serviceName, jwtToken string) (*Project, error) {
 	}
 	if statusCode != http.StatusOK {
 		return nil, fmt.Errorf("http status exp:200,act:%v,url:%v", statusCode, urlStr)
+	}
+	if resp.Project != nil && len(dockerImage) != 0{
+		resp.Project.Setting.Image = dockerImage
 	}
 	return resp.Project, nil
 }

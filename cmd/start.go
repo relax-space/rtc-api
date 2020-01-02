@@ -1,15 +1,12 @@
 package cmd
 
-
-
 func Start(version string) {
 	isContinue, serviceName, flag := (Flag{}).Init(version)
 	if isContinue == false {
 		return
 	}
 
-	
-	if err := (Folder{}).DeleteLocalSql(TEMP_FILE,flag.LocalSql ); err != nil {
+	if err := (Folder{}).DeleteAndIgnoreLocalSql(TEMP_FILE, flag.DbNet); err != nil {
 		Error(err)
 		return
 	}
@@ -22,13 +19,14 @@ func Start(version string) {
 		}
 		return
 	}
-	project, err := Project{}.GetProject(*serviceName, *flag.JwtToken)
+	project, err := Project{}.GetProject(*serviceName, *flag.JwtToken, *flag.DockerImage)
 	if err != nil {
 		Error(err)
 		return
 	}
 
-	if err = (BaseData{}).Write(project, *flag.JwtToken,*flag.LocalSql); err != nil {
+	if err = (BaseData{}).Write(project, *flag.JwtToken, *flag.IntegrationTest, flag.DbNet); err != nil {
+		Error(err)
 		return
 	}
 
